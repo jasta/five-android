@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="/home/jasta/android/five/libsyncml-java/dist/libsyncml-java.jar" sourcepath="/home/jasta/android/five/libsyncml-java/src"/>
+	<classpathentry kind="lib" path="/usr/local/lib/android/android.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/usr/local/lib/android/docs/reference"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
