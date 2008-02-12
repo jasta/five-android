@@ -47,7 +47,7 @@ public final class Five
 			  PORT + " INTEGER NOT NULL, " +
 			  REVISION + " INTEGER " +
 			  ");";
-			
+
 			public static final String INSERT_DUMMY =
 			  "INSERT INTO " + TABLE + " (" +
 			  NAME + ", " +
@@ -89,11 +89,11 @@ public final class Five
 	{
 		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.media";
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.media";
-		
+
 		/** Access URI. */
 		public static final ContentURI CONTENT_URI =
 		  ContentURI.create("content://" + AUTHORITY + "/content");
-		
+
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
 
