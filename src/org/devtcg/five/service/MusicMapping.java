@@ -86,6 +86,15 @@ public class MusicMapping implements DatabaseMapping
 	public void beginSyncLocal(int code, long last, long next)
 	{
 		Log.i(TAG, "starting sync, code=" + code);
+
+		/* Slow refresh from server: delete all our local content first. */
+		if (code == 210)
+		{
+			mContent.delete(Five.Content.CONTENT_URI, null, null);
+			mContent.delete(Five.Music.Artists.CONTENT_URI, null, null);
+			mContent.delete(Five.Music.Albums.CONTENT_URI, null, null);
+			mContent.delete(Five.Music.Songs.CONTENT_URI, null, null);
+		}
 	}
 
 	public void beginSyncRemote(int numChanges)
@@ -161,7 +170,6 @@ public class MusicMapping implements DatabaseMapping
 			ContentValues cvalues = new ContentValues();
 			cvalues.put(Five.Content.SIZE, meta.getValue("SIZE"));
 			cvalues.put(Five.Content.SOURCE_ID, mSourceId);
-			cvalues.put(Five.Content.CACHED, false);
 
 			ContentURI curi = mContent.insert(Five.Content.CONTENT_URI.addId(mSourceId), cvalues);
 
@@ -242,6 +250,9 @@ public class MusicMapping implements DatabaseMapping
 				String line = scanner.nextLine();
 				
 				String keyvalue[] = line.split(":", 2);
+				
+				if (keyvalue.length < 2)
+					throw new IllegalArgumentException("Parse error on line '" + line + "'");
 				
 				String old = mData.put(keyvalue[0], keyvalue[1]);
 				

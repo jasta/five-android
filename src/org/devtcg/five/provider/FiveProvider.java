@@ -29,7 +29,7 @@ public class FiveProvider extends ContentProvider
 		ARTISTS, ARTIST,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUM,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
-		CONTENT,
+		CONTENT, CONTENT_ITEM
 		;
 
 		public static URIPatternIds get(int ordinal)
@@ -120,6 +120,7 @@ public class FiveProvider extends ContentProvider
 			sel = id + " AND (" + sel + ")";
 
 		int ret = mDB.update(Five.Sources.SQL.TABLE, v, sel, selArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
 		
 		return ret;
 	}
@@ -252,11 +253,81 @@ public class FiveProvider extends ContentProvider
 		}
 	}
 
+	private int deleteSource(ContentURI uri, URIPatternIds type, 
+	  String selection, String[] selectionArgs)
+	{
+		int count;
+
+		count = mDB.delete(Five.Sources.SQL.TABLE, selection, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;
+	}
+
+	private int deleteContent(ContentURI uri, URIPatternIds type, 
+	  String selection, String[] selectionArgs)
+	{
+		int count;
+
+		count = mDB.delete(Five.Content.SQL.TABLE, selection, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;
+	}
+
+	private int deleteArtist(ContentURI uri, URIPatternIds type, 
+	  String selection, String[] selectionArgs)
+	{
+		int count;
+
+		count = mDB.delete(Five.Music.Artists.SQL.TABLE, selection, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;
+	}
+
+	private int deleteAlbum(ContentURI uri, URIPatternIds type, 
+	  String selection, String[] selectionArgs)
+	{
+		int count;
+
+		count = mDB.delete(Five.Music.Albums.SQL.TABLE, selection, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;
+	}
+
+	private int deleteSong(ContentURI uri, URIPatternIds type, 
+	  String selection, String[] selectionArgs)
+	{
+		int count;
+
+		count = mDB.delete(Five.Music.Songs.SQL.TABLE, selection, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;
+	}
+
 	@Override
 	public int delete(ContentURI uri, String selection, String[] selectionArgs)
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+
+		switch (type)
+		{
+		case SOURCES:
+			return deleteSource(uri, type, selection, selectionArgs);
+		case CONTENT:
+			return deleteContent(uri, type, selection, selectionArgs);
+		case ARTISTS:
+			return deleteArtist(uri, type, selection, selectionArgs);
+		case ALBUMS:
+			return deleteAlbum(uri, type, selection, selectionArgs);
+		case SONGS:
+			return deleteSong(uri, type, selection, selectionArgs);
+		default:
+			throw new IllegalArgumentException("Cannot delete URI: " + uri);
+		}
 	}
 
 	@Override
@@ -294,7 +365,8 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources", URIPatternIds.SOURCES.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "content", URIPatternIds.CONTENT.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT_ITEM.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
