@@ -3,7 +3,7 @@
     <property name="sdk-folder" value="/usr/local/lib/android_sdk_linux_m3-rc37a" />
     <property name="android-tools" value="/usr/local/lib/android_sdk_linux_m3-rc37a/tools" />
 
-	<property name="libsyncml.jar" value="/home/jasta/android/five/libsyncml-java/dist/libsyncml-java.jar" />
+	<property name="libsyncml.jar" value="../libsyncml-java/dist/libsyncml-java.jar" />
 
 	<path id="project.class.path">
 		<pathelement path="${libsyncml.jar}" />
