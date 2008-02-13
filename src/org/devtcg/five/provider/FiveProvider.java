@@ -240,7 +240,7 @@ public class FiveProvider extends ContentProvider
 		{
 		case SOURCES:
 			return insertSource(uri, type, values);
-		case CONTENT:
+		case CONTENT_ITEM:
 			return insertContent(uri, type, values);
 		case ARTISTS:
 			return insertArtist(uri, type, values);

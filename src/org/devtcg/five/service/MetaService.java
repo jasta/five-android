@@ -193,8 +193,18 @@ public class MetaService extends Service
 
 				try
 				{
-					sess.sync(new MusicMapping(mContent, mHandler, sourceId, c.getInt(4)),
-					  SyncSession.ALERT_CODE_ONE_WAY_FROM_SERVER);
+					MusicMapping db;
+					int code;
+					
+					if (c.getInt(4) == 0)
+						code = SyncSession.ALERT_CODE_REFRESH_FROM_SERVER;
+					else
+						code = SyncSession.ALERT_CODE_ONE_WAY_FROM_SERVER;
+					
+					db = new MusicMapping(mContent, mHandler, sourceId,
+					  c.getInt(4));
+					
+					sess.sync(db, code);
 				}
 				catch (Exception e)
 				{
