@@ -6,6 +6,7 @@ import org.devtcg.five.service.IMetaObserver;
 import org.devtcg.five.service.IMetaService;
 import org.devtcg.five.service.MetaService;
 
+import android.app.Activity;
 import android.app.ListActivity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -16,14 +17,17 @@ import android.os.Bundle;
 import android.os.DeadObjectException;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.SimpleCursorAdapter;
 
-public class SourceList extends ListActivity
+public class SourceList extends Activity
 {
 	private static final String TAG = "SourceList";
 	
@@ -35,12 +39,25 @@ public class SourceList extends ListActivity
 	  Five.Sources._ID, Five.Sources.NAME,
 	  Five.Sources.REVISION };
 	
-	private Handler mHandler = new Handler();
 	private IMetaService mService;
+	
+	private ProgressBar mProgress;
+	
+	private final Handler mHandler = new Handler()
+	{
+		@Override
+		public void handleMessage(Message msg)
+		{
+			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
+			mProgress.setProgress((int)scale);
+		}
+	};
 
     @Override
     public void onCreate(Bundle icicle)
     {
+    	Log.d(TAG, "!!!!!! onCreate");
+    	
         super.onCreate(icicle);
         setContentView(R.layout.source_list);
 
@@ -53,16 +70,58 @@ public class SourceList extends ListActivity
 
         mCursor = managedQuery(intent.getData(), PROJECTION, null, null);
         assert mCursor != null;
-
-        setListAdapter(new SimpleCursorAdapter(this,
+        
+        ListView list = (ListView)findViewById(android.R.id.list);
+        
+        View footer = getViewInflate().inflate(R.layout.source_footer,
+          null, false, null);
+        list.addFooterView(footer, null, false);
+        
+        mProgress = (ProgressBar)footer.findViewById(R.id.sync_progress);
+        
+        list.setAdapter(new SimpleCursorAdapter(this,
         	R.layout.source_list_item,
         	mCursor,
         	new String[] { Five.Sources.NAME, Five.Sources.REVISION },
         	new int[] { R.id.sourceName, R.id.sourceText }
-        ));
-        
-        bindService(new Intent(this, MetaService.class), null, mConnection,
-          Context.BIND_AUTO_CREATE);
+        ));        
+
+        if (mCursor.count() > 0)
+        	findViewById(android.R.id.empty).setVisibility(View.GONE);
+    }
+    
+    @Override
+    public void onResume()
+    {
+    	Log.d(TAG, "!!!!!! onResume");
+    	
+    	Intent meta = new Intent(this, MetaService.class);
+    	boolean bound = false;
+
+    	if (startService(meta, null) != null)
+    	{
+    		if (bindService(meta, null, mConnection, 0) == true)
+    			bound = true;
+    	}
+
+    	if (bound == false)
+    		Log.e(TAG, "Failed to bind to MetaService");
+
+    	super.onResume();
+    }
+
+    @Override
+    public void onPause()
+    {
+    	Log.d(TAG, "!!!!!! onPause");
+    	
+    	try { mService.unregisterObserver(mObserver); }
+    	catch (DeadObjectException e) { }
+    	
+    	unbindService(mConnection);
+    	mService = null;
+    	
+    	super.onPause();    	
     }
 
     private ServiceConnection mConnection = new ServiceConnection()
@@ -71,6 +130,8 @@ public class SourceList extends ListActivity
 		{
 			mService = IMetaService.Stub.asInterface(service);
 			
+			Log.d(TAG, "Attempting to register with service...");
+
 			try
 			{
 				mService.registerObserver(mObserver);
@@ -114,6 +175,9 @@ public class SourceList extends ListActivity
 		public void updateProgress(int sourceId, int itemNo, int itemCount)
 		{
 			Log.d(TAG, "updateProgress: " + sourceId + " (" + itemNo + " / " + itemCount + ")");
+			
+			Message msg = mHandler.obtainMessage(0, itemNo, itemCount);
+			mHandler.sendMessage(msg);
 		}
     };
 

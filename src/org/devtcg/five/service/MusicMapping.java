@@ -241,8 +241,6 @@ public class MusicMapping implements DatabaseMapping
 
 		public MetaDataFormat(String data)
 		{
-			Log.i(TAG, "data=" + data);
-			
 			Scanner scanner = new Scanner(data);
 			
 			while (scanner.hasNextLine() == true)
