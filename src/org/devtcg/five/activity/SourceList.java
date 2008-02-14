@@ -23,9 +23,12 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
+import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class SourceList extends Activity
 {
@@ -70,21 +73,42 @@ public class SourceList extends Activity
 
         mCursor = managedQuery(intent.getData(), PROJECTION, null, null);
         assert mCursor != null;
-        
+
         ListView list = (ListView)findViewById(android.R.id.list);
-        
+
         View footer = getViewInflate().inflate(R.layout.source_footer,
           null, false, null);
         list.addFooterView(footer, null, false);
-        
+
         mProgress = (ProgressBar)footer.findViewById(R.id.sync_progress);
-        
-        list.setAdapter(new SimpleCursorAdapter(this,
+
+        SimpleCursorAdapter adapter = new SimpleCursorAdapter(this,
         	R.layout.source_list_item,
         	mCursor,
         	new String[] { Five.Sources.NAME, Five.Sources.REVISION },
-        	new int[] { R.id.sourceName, R.id.sourceText }
-        ));        
+        	new int[] { R.id.source_name, R.id.source_sync }
+        );
+
+        adapter.setViewBinder(new ViewBinder()
+        {
+			public boolean setViewValue(View view, Cursor cursor, int column)
+			{
+				if (cursor.getColumnIndex(Five.Sources.REVISION) != column)
+					return false;
+
+				TextView revText = (TextView)view; 
+				int rev = cursor.getInt(column);
+
+				if (rev == 0)
+					revText.setText("Never synchronized");
+				else
+					revText.setText("Last sync: " + rev);
+
+				return true;
+			}
+        });
+        
+        list.setAdapter(adapter);
 
         if (mCursor.count() > 0)
         	findViewById(android.R.id.empty).setVisibility(View.GONE);
@@ -100,7 +124,7 @@ public class SourceList extends Activity
 
     	if (startService(meta, null) != null)
     	{
-    		if (bindService(meta, null, mConnection, 0) == true)
+    		if (bindService(meta, mConnection, 0) == true)
     			bound = true;
     	}
 
@@ -160,6 +184,14 @@ public class SourceList extends Activity
 		public void endSync()
 		{
 			Log.d(TAG, "endSync");
+
+			mHandler.post(new Runnable()
+			{
+				public void run()
+				{
+					mProgress.setProgress(0);
+				}
+			});
 		}
 		
 		public void beginSource(int sourceId)
@@ -175,7 +207,7 @@ public class SourceList extends Activity
 		public void updateProgress(int sourceId, int itemNo, int itemCount)
 		{
 			Log.d(TAG, "updateProgress: " + sourceId + " (" + itemNo + " / " + itemCount + ")");
-			
+
 			Message msg = mHandler.obtainMessage(0, itemNo, itemCount);
 			mHandler.sendMessage(msg);
 		}

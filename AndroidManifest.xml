@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.devtcg.five">
-    <application android:theme="@android:style/Theme.Dark" android:icon="@drawable/icon">
+    <application android:icon="@drawable/icon">
     
-	    <provider class=".provider.FiveProvider"
+	    <provider android:name=".provider.FiveProvider"
     		android:authorities="org.devtcg.five" />
     
-        <activity class=".activity.SourceList" android:label="@string/app_name">
+        <activity android:name=".activity.SourceList" android:label="@string/app_name">
             <intent-filter>
-                <action android:value="android.intent.action.MAIN" />
-                <category android:value="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         
-        <service class=".service.MetaService" />
-        <service class=".service.ContentService" android:process=":remote" />
+        <service android:name=".service.MetaService" />
+        <service android:name=".service.ContentService" android:process=":remote" />
         
     </application>
 </manifest> 

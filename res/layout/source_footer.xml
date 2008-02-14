@@ -6,12 +6,15 @@
     android:paddingTop="8dip"
    	>
    	
-   	<ProgressBar id="@+id/sync_progress"
+   	<ProgressBar android:id="@+id/sync_progress"
    		android:layout_width="0px"
-   		android:layout_height="28dip"
+   		android:layout_height="wrap_content"
+   		style="?android:attr/progressBarStyleHorizontal"
+		android:layout_gravity="center_vertical"
    		android:progress="0"
-   		android:background="@android:drawable/progress_horizontal"
    		android:layout_weight="1"
+   		android:layout_marginLeft="12dip"
+   		android:layout_marginRight="12dip"
 	   	/>
 	   	
 	<Button

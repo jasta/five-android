@@ -6,25 +6,17 @@
    	android:paddingTop="2px"
    	>
 
-    <ListView id="@android:id/list"
+    <ListView android:id="@android:id/list"
     	android:layout_width="fill_parent"
     	android:layout_height="fill_parent"
     	android:layout_weight="1"
     	/>
-
-<!--
-    <TextView id="@+id/test"
-    	android:layout_width="fill_parent"
-    	android:layout_height="wrap_content"
-    	android:text="Suck it"
-    	/>
--->
-
-    <TextView id="@android:id/empty"
+    	
+    <TextView android:id="@android:id/empty"
     	android:layout_width="fill_parent"
     	android:layout_height="wrap_content"
     	android:text="No sources.  Press [Menu] to start."
-    	android:padding="4dip"
+    	android:padding="20dip"
     	/>
     	
 </LinearLayout>

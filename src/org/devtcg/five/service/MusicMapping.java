@@ -8,8 +8,9 @@ import org.devtcg.syncml.model.DatabaseMapping;
 import org.devtcg.syncml.protocol.SyncItem;
 
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
-import android.net.ContentURI;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -110,7 +111,9 @@ public class MusicMapping implements DatabaseMapping
 			/* Successful sync, yay! */
 			ContentValues v = new ContentValues();
 			v.put(Five.Sources.REVISION, getNextAnchor());
-			mContent.update(Five.Sources.CONTENT_URI.addId(mSourceId), v, null, null);
+			
+			Uri source = ContentUris.withAppendedId(Five.Sources.CONTENT_URI, mSourceId);
+			mContent.update(source, v, null, null);
 
 			/* XXX: This does nothing... */
 			mLastAnchor = getNextAnchor();
@@ -136,7 +139,7 @@ public class MusicMapping implements DatabaseMapping
 		Log.i(TAG, "Inserting item (" + item.getMimeType() + "): " + item.getSourceId());
 		MetaDataFormat meta = new MetaDataFormat(item.getData());
 
-		ContentURI uri = null;
+		Uri uri = null;
 		ContentValues values = new ContentValues();
 
 		if (format.equals("artist") == true)
@@ -146,9 +149,9 @@ public class MusicMapping implements DatabaseMapping
 //			values.put(Five.Music.Artists.PHOTO_ID, meta.getValue("ARTWORK"));
 
 			uri = mContent.insert(Five.Music.Artists.CONTENT_URI, values);
-
+			
 			if (uri != null)
-				mArtistMap.put(item.getSourceId(), uri.getPathLeafId());
+				mArtistMap.put(item.getSourceId(), Long.valueOf(uri.getLastPathSegment()));
 		}
 		else if (format.equals("album") == true)
 		{
@@ -162,7 +165,7 @@ public class MusicMapping implements DatabaseMapping
 			uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
 
 			if (uri != null)
-				mAlbumMap.put(item.getSourceId(), uri.getPathLeafId());
+				mAlbumMap.put(item.getSourceId(), Long.valueOf(uri.getLastPathSegment()));
 		}
 		else if (format.equals("song") == true)
 		{
@@ -171,7 +174,8 @@ public class MusicMapping implements DatabaseMapping
 			cvalues.put(Five.Content.SIZE, meta.getValue("SIZE"));
 			cvalues.put(Five.Content.SOURCE_ID, mSourceId);
 
-			ContentURI curi = mContent.insert(Five.Content.CONTENT_URI.addId(mSourceId), cvalues);
+			Uri source = ContentUris.withAppendedId(Five.Content.CONTENT_URI, mSourceId);
+			Uri curi = mContent.insert(source, cvalues);
 
 			if (curi == null)
 			{
@@ -216,7 +220,7 @@ public class MusicMapping implements DatabaseMapping
 			return 400;
 		}
 		
-		item.setTargetId(uri.getPathLeafId());
+		item.setTargetId(Long.valueOf(uri.getLastPathSegment()));
 
 		Message msg = mHandler.obtainMessage(MetaService.MSG_UPDATE_PROGRESS, mCounter++, mNumChanges);
 		mHandler.sendMessage(msg);

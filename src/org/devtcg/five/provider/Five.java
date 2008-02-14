@@ -1,6 +1,6 @@
 package org.devtcg.five.provider;
 
-import android.net.ContentURI;
+import android.net.Uri;
 import android.provider.BaseColumns;
 
 /**
@@ -20,8 +20,8 @@ public final class Five
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.source";
 
 		/** Access URI. */
-		public static final ContentURI CONTENT_URI =
-		  ContentURI.create("content://" + AUTHORITY + "/sources");
+		public static final Uri CONTENT_URI =
+		  Uri.parse("content://" + AUTHORITY + "/sources");
 
 		/** Server name, for identification purposes. */
 		public static final String NAME = "name";
@@ -75,8 +75,8 @@ public final class Five
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.content";
 
 		/** Access URI. */
-		public static final ContentURI CONTENT_URI =
-		  ContentURI.create("content://" + AUTHORITY + "/cache");
+		public static final Uri CONTENT_URI =
+		  Uri.parse("content://" + AUTHORITY + "/cache");
 		
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
@@ -91,8 +91,8 @@ public final class Five
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.media";
 
 		/** Access URI. */
-		public static final ContentURI CONTENT_URI =
-		  ContentURI.create("content://" + AUTHORITY + "/content");
+		public static final Uri CONTENT_URI =
+		  Uri.parse("content://" + AUTHORITY + "/content");
 
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
@@ -126,8 +126,8 @@ public final class Five
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.image";
 		
 		/** Access URI. */
-		public static final ContentURI CONTENT_URI =
-		  ContentURI.create("content://" + AUTHORITY + "/media/images");
+		public static final Uri CONTENT_URI =
+		  Uri.parse("content://" + AUTHORITY + "/media/images");
 		
 		/** Key to access potentially cached or remote data. */
 		public static final String CONTENT_SOURCE_ID = "content_source_id";
@@ -157,8 +157,8 @@ public final class Five
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.song";
 			
 			/** Access URI. */
-			public static final ContentURI CONTENT_URI =
-			  ContentURI.create("content://" + AUTHORITY + "/media/music/songs");
+			public static final Uri CONTENT_URI =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/songs");
 
 			/** Key to access potentially cached or remote data. */
 			public static final String CONTENT_SOURCE_ID = "content_source_id";
@@ -221,8 +221,8 @@ public final class Five
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.artist";
 			
 			/** Access URI. */
-			public static final ContentURI CONTENT_URI =
-				ContentURI.create("content://" + AUTHORITY + "/media/music/artists");
+			public static final Uri CONTENT_URI =
+				Uri.parse("content://" + AUTHORITY + "/media/music/artists");
 
 			/** Performing name. */
 			public static final String NAME = "name";
@@ -259,8 +259,8 @@ public final class Five
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.album";
 			
 			/** Access URI. */
-			public static final ContentURI CONTENT_URI =
-			  ContentURI.create("content://" + AUTHORITY + "/media/music/albums");
+			public static final Uri CONTENT_URI =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
 
 			/** Album name. */
 			public static final String NAME = "name";
@@ -305,8 +305,8 @@ public final class Five
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists";
 
 			/** Access URI. */
-			public static final ContentURI CONTENT_URI =
-			  ContentURI.create("content://" + AUTHORITY + "/media/music/playlists");
+			public static final Uri CONTENT_URI =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists");
 
 			/** User-prescribed name and description. */
 			public static final String NAME = "name";
@@ -322,8 +322,8 @@ public final class Five
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists.songs";
 			
 			/** Access URI. */
-			public static final ContentURI CONTENT_URI =
-			  ContentURI.create("content://" + AUTHORITY + "/media/music/playlists/songs");
+			public static final Uri CONTENT_URI =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/songs");
 			
 			/** Playlist ID. */
 			public static final String PLAYLIST = "playlist";

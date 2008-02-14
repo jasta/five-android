@@ -14,6 +14,7 @@ import org.devtcg.syncml.transport.SyncHttpConnection;
 
 import android.app.Service;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.DeadObjectException;
 import android.os.Handler;
@@ -33,7 +34,7 @@ public class MetaService extends Service
 	private final MetaObservable mObservable = new MetaObservable();
 	
 	@Override
-	public IBinder getBinder()
+	public IBinder onBind(Intent intent)
 	{
 		return mBinder;
 	}
@@ -187,8 +188,8 @@ public class MetaService extends Service
 				sess.open();
 				
 				int sourceId = c.getInt(0);
-
-				msg = mHandler.obtainMessage(MSG_BEGIN_SOURCE, sourceId);
+				
+				msg = mHandler.obtainMessage(MSG_BEGIN_SOURCE, sourceId, 0);
 				mHandler.sendMessage(msg);
 
 				try
@@ -213,7 +214,7 @@ public class MetaService extends Service
 				
 				sess.close();
 
-				msg = mHandler.obtainMessage(MSG_END_SOURCE, sourceId);
+				msg = mHandler.obtainMessage(MSG_END_SOURCE, sourceId, 0);
 				mHandler.sendMessage(msg);
 			}
 			
