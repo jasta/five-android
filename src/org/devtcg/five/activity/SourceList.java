@@ -27,13 +27,19 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.LayoutAnimationController;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.CursorAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class SourceList extends Activity
@@ -52,6 +58,8 @@ public class SourceList extends Activity
 	private IMetaService mService;
 
 	private ProgressBar mProgress;
+	private Button mSyncAll;
+	private boolean mSyncing = false;
 
 	private HashMap<Integer, String> mStatus = new HashMap<Integer, String>();
 
@@ -93,6 +101,14 @@ public class SourceList extends Activity
         list.addFooterView(footer, null, false);
 
         mProgress = (ProgressBar)footer.findViewById(R.id.sync_progress);
+        mSyncAll = (Button)footer.findViewById(R.id.source_sync_all);
+
+        mSyncAll.setOnClickListener(new OnClickListener() {
+			public void onClick(View v)
+			{
+				menuSync();
+			}
+        });
 
         mListAdapter = new SimpleCursorAdapter(this,
         	R.layout.source_list_item,
@@ -228,7 +244,7 @@ public class SourceList extends Activity
 			{
 				public void run()
 				{
-					mProgress.setProgress(0);
+					stopSyncUI();
 				}
 			});
 		}
@@ -292,10 +308,43 @@ public class SourceList extends Activity
     	
     	return true;
     }
+    
+    protected void startSyncUI()
+    {
+    	mSyncing = true;
+    	mSyncAll.setClickable(false);
+    	
+    	mProgress.setProgress(0);
+    	mProgress.setVisibility(View.VISIBLE);
+    	
+    	Animation anim = new AlphaAnimation(0.0f, 1.0f);
+    	anim.setDuration(500);
+    	mProgress.startAnimation(anim);
+    }
+    
+    protected void stopSyncUI()
+    {
+    	mSyncing = false;
+    	mSyncAll.setClickable(true);
 
+    	mProgress.setVisibility(View.INVISIBLE);
+    	
+    	Animation anim = new AlphaAnimation(1.0f, 0.0f); 
+    	anim.setDuration(500);
+    	mProgress.startAnimation(anim);
+    }
+    
     protected void menuSync()
     {
     	Log.i(TAG, "menuSync(), here we go!");
+
+    	if (mSyncing == true)
+    	{
+    		Toast.makeText(this, "Already synchronizing...", Toast.LENGTH_SHORT);
+    		return;
+    	}
+    	
+    	startSyncUI();
 
 		try
 		{
@@ -304,7 +353,8 @@ public class SourceList extends Activity
 		catch (DeadObjectException e)
 		{
 			mService = null;
-		}	    	
+			stopSyncUI();
+		}
     }
     
     @Override

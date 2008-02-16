@@ -5,9 +5,11 @@
     android:layout_height="wrap_content"
     android:paddingTop="8dip"
    	>
-   	
-   	<ProgressBar android:id="@+id/sync_progress"
-   		android:layout_width="0px"
+
+   	<ProgressBar
+   		android:id="@+id/sync_progress"
+   		android:visibility="invisible"
+   		android:layout_width="wrap_content"
    		android:layout_height="wrap_content"
    		style="?android:attr/progressBarStyleHorizontal"
 		android:layout_gravity="center_vertical"
@@ -16,8 +18,9 @@
    		android:layout_marginLeft="12dip"
    		android:layout_marginRight="12dip"
 	   	/>
-	   	
+	   	  	
 	<Button
+		android:id="@+id/source_sync_all"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:text="Sync"
