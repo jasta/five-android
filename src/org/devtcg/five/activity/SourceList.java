@@ -230,7 +230,8 @@ public class SourceList extends Activity
     
     private IMetaObserver.Stub mObserver = new IMetaObserver.Stub()
     {
-    	private long lastUpdate = 0;
+    	private long lastUpdateTime = 0;
+    	private float lastUpdateProgress = 0.00f;
     	
 		public void beginSync()
 		{
@@ -281,11 +282,15 @@ public class SourceList extends Activity
 			Log.d(TAG, "updateProgress: " + sourceId + " (" + itemNo + " / " + itemCount + ")");
 
 			long time = System.currentTimeMillis();
+			float progress = (float)itemNo / (float)itemCount;
 
-			if (lastUpdate + 1500 > time)
+			if (lastUpdateTime + 1500 > time &&
+			    lastUpdateProgress + 0.03f > progress)
 				return;
 
-			lastUpdate = time;
+			lastUpdateTime = time;
+			lastUpdateProgress = progress;
+			
 			Message msg = mHandler.obtainMessage(sourceId, itemNo, itemCount);
 			mHandler.sendMessage(msg);
 		}
