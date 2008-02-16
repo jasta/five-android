@@ -8,8 +8,7 @@
 
     <ListView android:id="@android:id/list"
     	android:layout_width="fill_parent"
-    	android:layout_height="fill_parent"
-    	android:layout_weight="1"
+    	android:layout_height="wrap_content"
     	/>
     	
     <TextView android:id="@android:id/empty"
@@ -18,5 +17,35 @@
     	android:text="No sources.  Press [Menu] to start."
     	android:padding="20dip"
     	/>
+    	
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="8dip"
+   	>
+
+   	<ProgressBar
+   		android:id="@+id/sync_progress"
+   		android:visibility="invisible"
+   		android:layout_width="wrap_content"
+   		android:layout_height="wrap_content"
+   		style="?android:attr/progressBarStyleHorizontal"
+		android:layout_gravity="center_vertical"
+   		android:progress="0"
+   		android:layout_weight="1"
+   		android:layout_marginLeft="12dip"
+   		android:layout_marginRight="12dip"
+	   	/>
+	   	  	
+	<Button
+		android:id="@+id/source_sync_all"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Sync"
+		android:layout_marginRight="12dip"
+		/>
+
+</LinearLayout>
     	
 </LinearLayout>

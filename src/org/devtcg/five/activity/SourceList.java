@@ -97,12 +97,12 @@ public class SourceList extends Activity
 
         ListView list = (ListView)findViewById(android.R.id.list);
 
-        View footer = getViewInflate().inflate(R.layout.source_footer,
-          null, false, null);
-        list.addFooterView(footer, null, false);
+//        View footer = getViewInflate().inflate(R.layout.source_footer,
+//          null, false, null);
+//        list.addFooterView(footer, null, false);
 
-        mProgress = (ProgressBar)footer.findViewById(R.id.sync_progress);
-        mSyncAll = (Button)footer.findViewById(R.id.source_sync_all);
+        mProgress = (ProgressBar)findViewById(R.id.sync_progress);
+        mSyncAll = (Button)findViewById(R.id.source_sync_all);
 
         mSyncAll.setOnClickListener(new OnClickListener() {
 			public void onClick(View v)
