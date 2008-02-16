@@ -184,10 +184,11 @@ public class MetaService extends Service
 				  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);
 				
 				server.setAuthentication(info);
+				server.setSourceURI("IMEI:" + android.os.SystemProperties.get(android.telephony.TelephonyProperties.PROPERTY_IMEI));
 				
 				SyncSession sess = new SyncSession(server);
 				sess.open();
-				
+
 				int sourceId = c.getInt(0);
 				
 				msg = mHandler.obtainMessage(MSG_BEGIN_SOURCE, sourceId, 0);
