@@ -30,6 +30,7 @@ import android.view.View.OnClickListener;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LayoutAnimationController;
+import android.view.animation.Animation.AnimationListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CursorAdapter;
@@ -315,10 +316,18 @@ public class SourceList extends Activity
     	mSyncAll.setClickable(false);
     	
     	mProgress.setProgress(0);
-    	mProgress.setVisibility(View.VISIBLE);
     	
     	Animation anim = new AlphaAnimation(0.0f, 1.0f);
     	anim.setDuration(500);
+    	anim.setAnimationListener(new AnimationListener() {
+			public void onAnimationEnd() {}
+			public void onAnimationRepeat() {}
+
+			public void onAnimationStart()
+			{
+				mProgress.setVisibility(View.VISIBLE);
+			}
+    	});
     	mProgress.startAnimation(anim);
     }
     
@@ -327,10 +336,18 @@ public class SourceList extends Activity
     	mSyncing = false;
     	mSyncAll.setClickable(true);
 
-//    	mProgress.setVisibility(View.INVISIBLE);
-    	
     	Animation anim = new AlphaAnimation(1.0f, 0.0f); 
     	anim.setDuration(500);
+    	anim.setAnimationListener(new AnimationListener () {
+			public void onAnimationEnd()
+			{
+				mProgress.setVisibility(View.INVISIBLE);
+			}
+			
+			public void onAnimationRepeat() {}
+			public void onAnimationStart() {}
+    	});
+    	
     	mProgress.startAnimation(anim);
     }
     
