@@ -6,6 +6,7 @@ import java.util.Observable;
 import java.util.Vector;
 
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.five.util.ThreadStoppable;
 import org.devtcg.syncml.protocol.SyncAuthInfo;
 import org.devtcg.syncml.protocol.SyncSession;
@@ -210,6 +211,15 @@ public class MetaService extends Service
 				catch (Exception e)
 				{
 					Log.d(TAG, "Sync failed", e);
+
+					String log = e.getMessage();
+					
+					if (log == null)
+						log = e.toString();
+					
+					/* Insert a log line so that the activity can display persistent
+					 * error information to the user. */
+					SourceLog.insertLog(mContent, sourceId, Five.SourcesLog.TYPE_ERROR, log);
 				}
 				
 				sess.close();

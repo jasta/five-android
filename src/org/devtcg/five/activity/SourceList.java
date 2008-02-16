@@ -1,5 +1,7 @@
 package org.devtcg.five.activity;
 
+import java.util.HashMap;
+
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IMetaObserver;
@@ -36,15 +38,18 @@ public class SourceList extends Activity
 	
 	private static final int MENU_SYNC = Menu.FIRST;
 	
+	private SimpleCursorAdapter mListAdapter;
 	private Cursor mCursor;
 
 	private static final String[] PROJECTION = new String[] {
 	  Five.Sources._ID, Five.Sources.NAME,
-	  Five.Sources.REVISION };
+	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };
 	
 	private IMetaService mService;
 	
 	private ProgressBar mProgress;
+	
+	private HashMap<Integer, String> mStatus = new HashMap<Integer, String>();
 	
 	private final Handler mHandler = new Handler()
 	{
@@ -53,6 +58,9 @@ public class SourceList extends Activity
 		{
 			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
 			mProgress.setProgress((int)scale);
+
+			mStatus.put(msg.what, "Synchronizing: " + msg.arg1 + " of " + msg.arg2 + " items...");
+			mListAdapter.notifyDataSetChanged();
 		}
 	};
 
@@ -82,33 +90,49 @@ public class SourceList extends Activity
 
         mProgress = (ProgressBar)footer.findViewById(R.id.sync_progress);
 
-        SimpleCursorAdapter adapter = new SimpleCursorAdapter(this,
+        mListAdapter = new SimpleCursorAdapter(this,
         	R.layout.source_list_item,
         	mCursor,
         	new String[] { Five.Sources.NAME, Five.Sources.REVISION },
         	new int[] { R.id.source_name, R.id.source_sync }
         );
 
-        adapter.setViewBinder(new ViewBinder()
+        mListAdapter.setViewBinder(new ViewBinder()
         {
 			public boolean setViewValue(View view, Cursor cursor, int column)
 			{
 				if (cursor.getColumnIndex(Five.Sources.REVISION) != column)
 					return false;
-
-				TextView revText = (TextView)view; 
-				int rev = cursor.getInt(column);
-
-				if (rev == 0)
-					revText.setText("Never synchronized");
+				
+				TextView revText = (TextView)view;
+				String status = mStatus.get(cursor.getInt(0));
+				
+				if (status != null)
+				{
+					revText.setText(status);
+				}
 				else
-					revText.setText("Last sync: " + rev);
+				{
+					String lasterr = cursor.getString(cursor.getColumnIndex(Five.Sources.LAST_ERROR));
+					
+					if (lasterr != null)
+						revText.setText("Critical error, click for details.");
+					else
+					{
+						int rev = cursor.getInt(column);
+
+						if (rev == 0)
+							revText.setText("Never synchronized");
+						else
+							revText.setText("Last synchronized: " + DateUtils.formatTimeAgo(rev));
+					}
+				}
 
 				return true;
 			}
         });
         
-        list.setAdapter(adapter);
+        list.setAdapter(mListAdapter);
 
         if (mCursor.count() > 0)
         	findViewById(android.R.id.empty).setVisibility(View.GONE);
@@ -176,6 +200,8 @@ public class SourceList extends Activity
     
     private IMetaObserver.Stub mObserver = new IMetaObserver.Stub()
     {
+    	private long lastUpdate = 0;
+    	
 		public void beginSync()
 		{
 			Log.d(TAG, "beginSync");
@@ -193,22 +219,44 @@ public class SourceList extends Activity
 				}
 			});
 		}
-		
-		public void beginSource(int sourceId)
+
+		public void beginSource(final int sourceId)
 		{
 			Log.d(TAG, "beginSource: " + sourceId);
+
+			mHandler.post(new Runnable() {
+				public void run()
+				{
+					mStatus.put(sourceId, "Synchronizing...");
+					mListAdapter.notifyDataSetChanged();
+				}
+			});
 		}
 
-		public void endSource(int sourceId)
+		public void endSource(final int sourceId)
 		{
 			Log.d(TAG, "endSource: " + sourceId);
+
+			mHandler.post(new Runnable() {
+				public void run()
+				{
+					mStatus.remove(sourceId);
+					mListAdapter.notifyDataSetChanged();
+				}
+			});
 		}
 
 		public void updateProgress(int sourceId, int itemNo, int itemCount)
 		{
 			Log.d(TAG, "updateProgress: " + sourceId + " (" + itemNo + " / " + itemCount + ")");
 
-			Message msg = mHandler.obtainMessage(0, itemNo, itemCount);
+			long time = System.currentTimeMillis();
+
+			if (lastUpdate + 1500 > time)
+				return;
+
+			lastUpdate = time;
+			Message msg = mHandler.obtainMessage(sourceId, itemNo, itemCount);
 			mHandler.sendMessage(msg);
 		}
     };
@@ -248,5 +296,51 @@ public class SourceList extends Activity
     	}
     	
     	return super.onOptionsItemSelected(item);
+    }
+    
+    public static class DateUtils
+    {
+    	public static String formatTimeAgo(long epoch)
+    	{
+    		long now = System.currentTimeMillis() / 1000;
+
+    		if (now < epoch)
+    			throw new IllegalArgumentException("Supplied time must be in the past");
+
+    		long diff = now - epoch;
+
+    		String[] units = { "d", "h", "m" };
+    		int values[] = { 86400, 3600, 60 };
+    		int digits[] = { 0, 0, 0 };
+    		
+    		for (int offs = 0; offs < values.length; offs++)
+    		{    			
+    			digits[offs] = (int)diff / values[offs];
+    			diff -= digits[offs] * values[offs];
+    			
+    			if (diff == 0)
+    				break;
+    		}
+
+    		StringBuilder ret = new StringBuilder();
+    		
+    		for (int i = 0; i < digits.length; i++)
+    		{
+    			if (digits[i] > 0)
+    				ret.append(digits[i]).append(units[i]).append(' ');
+    		}
+    		
+    		if (ret.length() == 0)
+    		{
+    			if (diff > 0)
+    				ret.append(diff).append("s ago");
+    			else
+    				ret.append("now");
+    		}
+    		else
+    			ret.append("ago");
+
+    		return ret.toString();
+    	}
     }
 }

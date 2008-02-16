@@ -19,14 +19,14 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 8;
+	private static final int DATABASE_VERSION = 11;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
 
 	private static enum URIPatternIds
 	{
-		SOURCES, SOURCE,
+		SOURCES, SOURCE, SOURCE_LOG,
 		ARTISTS, ARTIST,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUM,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
@@ -46,6 +46,7 @@ public class FiveProvider extends ContentProvider
 		{
 			db.execSQL(Five.Sources.SQL.CREATE);
 			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
+			db.execSQL(Five.SourcesLog.SQL.CREATE);
 
 			db.execSQL(Five.Content.SQL.CREATE);
 			db.execSQL(Five.Music.Artists.SQL.CREATE);
@@ -56,6 +57,8 @@ public class FiveProvider extends ContentProvider
 		private void onDrop(SQLiteDatabase db)
 		{
 			db.execSQL(Five.Sources.SQL.DROP);
+			db.execSQL(Five.SourcesLog.SQL.DROP);
+			
 			db.execSQL(Five.Content.SQL.DROP);
 			db.execSQL(Five.Music.Artists.SQL.DROP);
 			db.execSQL(Five.Music.Albums.SQL.DROP);
@@ -85,27 +88,38 @@ public class FiveProvider extends ContentProvider
 			String[] selectionArgs, String sortOrder)
 	{
 		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+		String groupBy = null;
 
 		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
 		{
 		case SOURCES:
-			qb.setTables(Five.Sources.SQL.TABLE);
+			qb.setTables(Five.Sources.SQL.TABLE + " s " +
+			  "LEFT JOIN " + Five.SourcesLog.SQL.TABLE + " sl " +
+			  "ON sl.source_id = s._id " +
+			  "AND sl.type = " + Five.SourcesLog.TYPE_ERROR + " " +
+			  "AND sl.timestamp > s.revision");
 			qb.setProjectionMap(sourcesMap);
+			groupBy = "s._id";
 			break;
-			
+
 		case SOURCE:
 			qb.setTables(Five.Sources.SQL.TABLE);
 			qb.appendWhere("_id=" + uri.getLastPathSegment());
 			break;
 			
+		case SOURCE_LOG:
+			qb.setTables(Five.SourcesLog.SQL.TABLE);
+			qb.appendWhere("source_id=" + uri.getPathSegments().get(1));
+			break;
+
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
-		
-		Cursor c = qb.query(mDB, projection, selection, selectionArgs, null, null, sortOrder);
-		
+
+		Cursor c = qb.query(mDB, projection, selection, selectionArgs, groupBy, null, sortOrder);
+
 		c.setNotificationUri(getContext().getContentResolver(), uri);
-		
+
 		return c;
 	}
 	
@@ -145,7 +159,35 @@ public class FiveProvider extends ContentProvider
 		return null;
 	}
 	
-	private Uri insertContent(Uri uri, URIPatternIds tyep, ContentValues v)
+	private Uri insertSourceLog(Uri uri, URIPatternIds type, ContentValues v)
+	{
+		String sourceId = uri.getPathSegments().get(1);  
+
+		if (v.containsKey(Five.SourcesLog.SOURCE_ID) == true)
+			throw new IllegalArgumentException("SOURCE_ID must be provided through the URI, not the columns");
+		
+		v.put(Five.SourcesLog.SOURCE_ID, sourceId);
+
+		if (v.containsKey(Five.SourcesLog.TIMESTAMP) == false)
+			v.put(Five.SourcesLog.TIMESTAMP, System.currentTimeMillis() / 1000);
+
+		long id = mDB.insert(Five.SourcesLog.SQL.TABLE, Five.SourcesLog.SOURCE_ID, v);
+
+		if (id == -1)
+			return null;
+
+		Uri ret = Five.Sources.CONTENT_URI.buildUpon()
+		  .appendPath(sourceId)
+		  .appendPath("log")
+		  .appendPath(String.valueOf(id))
+		  .build();
+
+		getContext().getContentResolver().notifyChange(ret, null);
+
+		return ret;
+	}
+	
+	private Uri insertContent(Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Content.SOURCE_ID) == false)
 			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
@@ -235,11 +277,13 @@ public class FiveProvider extends ContentProvider
 	public Uri insert(Uri uri, ContentValues values)
 	{
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
-		
+
 		switch (type)
 		{
 		case SOURCES:
 			return insertSource(uri, type, values);
+		case SOURCE_LOG:
+			return insertSourceLog(uri, type, values);
 		case CONTENT_ITEM:
 			return insertContent(uri, type, values);
 		case ARTISTS:
@@ -365,6 +409,8 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources", URIPatternIds.SOURCES.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
+		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/log", URIPatternIds.SOURCE_LOG.ordinal());
+
 		URI_MATCHER.addURI(Five.AUTHORITY, "content", URIPatternIds.CONTENT.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT_ITEM.ordinal());
 
@@ -381,10 +427,11 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
 		
 		sourcesMap = new HashMap<String, String>();
-		sourcesMap.put(Five.Sources._ID, Five.Sources._ID);
-		sourcesMap.put(Five.Sources.HOST, Five.Sources.HOST);
-		sourcesMap.put(Five.Sources.NAME, Five.Sources.NAME);
-		sourcesMap.put(Five.Sources.PORT, Five.Sources.PORT);
-		sourcesMap.put(Five.Sources.REVISION, Five.Sources.REVISION);
+		sourcesMap.put(Five.Sources._ID, "s." + Five.Sources._ID + " AS " + Five.Sources._ID);
+		sourcesMap.put(Five.Sources.HOST, "s." + Five.Sources.HOST + " AS " + Five.Sources.HOST);
+		sourcesMap.put(Five.Sources.NAME, "s." + Five.Sources.NAME + " AS " + Five.Sources.NAME);
+		sourcesMap.put(Five.Sources.PORT, "s." + Five.Sources.PORT + " AS " + Five.Sources.PORT);
+		sourcesMap.put(Five.Sources.REVISION, "s." + Five.Sources.REVISION + " AS " + Five.Sources.REVISION);
+		sourcesMap.put(Five.Sources.LAST_ERROR, "sl." + Five.SourcesLog.MESSAGE + " AS " + Five.Sources.LAST_ERROR);
 	}
 }
