@@ -327,7 +327,7 @@ public class SourceList extends Activity
     	mSyncing = false;
     	mSyncAll.setClickable(true);
 
-    	mProgress.setVisibility(View.INVISIBLE);
+//    	mProgress.setVisibility(View.INVISIBLE);
     	
     	Animation anim = new AlphaAnimation(1.0f, 0.0f); 
     	anim.setDuration(500);
