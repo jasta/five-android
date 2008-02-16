@@ -11,10 +11,12 @@ import org.devtcg.five.service.MetaService;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.content.ComponentName;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.DeadObjectException;
 import android.os.Handler;
@@ -24,6 +26,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -35,22 +39,22 @@ import android.widget.SimpleCursorAdapter.ViewBinder;
 public class SourceList extends Activity
 {
 	private static final String TAG = "SourceList";
-	
+
 	private static final int MENU_SYNC = Menu.FIRST;
-	
+
 	private SimpleCursorAdapter mListAdapter;
 	private Cursor mCursor;
 
-	private static final String[] PROJECTION = new String[] {
+	private static final String[] PROJECTION = {
 	  Five.Sources._ID, Five.Sources.NAME,
 	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };
-	
+
 	private IMetaService mService;
-	
+
 	private ProgressBar mProgress;
-	
+
 	private HashMap<Integer, String> mStatus = new HashMap<Integer, String>();
-	
+
 	private final Handler mHandler = new Handler()
 	{
 		@Override
@@ -68,7 +72,7 @@ public class SourceList extends Activity
     public void onCreate(Bundle icicle)
     {
     	Log.d(TAG, "!!!!!! onCreate");
-    	
+
         super.onCreate(icicle);
         setContentView(R.layout.source_list);
 
@@ -132,16 +136,25 @@ public class SourceList extends Activity
 			}
         });
         
+        list.setOnItemClickListener(mOnClick);
         list.setAdapter(mListAdapter);
-
-        if (mCursor.count() > 0)
-        	findViewById(android.R.id.empty).setVisibility(View.GONE);
     }
     
     @Override
     public void onResume()
     {
     	Log.d(TAG, "!!!!!! onResume");
+
+        if (mCursor.count() > 0)
+        {
+        	findViewById(android.R.id.empty).setVisibility(View.GONE);
+        	findViewById(android.R.id.list).setVisibility(View.VISIBLE);
+        }
+        else
+        {
+        	findViewById(android.R.id.empty).setVisibility(View.VISIBLE);
+        	findViewById(android.R.id.list).setVisibility(View.GONE);
+        }
     	
     	Intent meta = new Intent(this, MetaService.class);
     	boolean bound = false;
@@ -260,7 +273,16 @@ public class SourceList extends Activity
 			mHandler.sendMessage(msg);
 		}
     };
-
+    
+    private AdapterView.OnItemClickListener mOnClick = new AdapterView.OnItemClickListener()
+    {
+		public void onItemClick(AdapterView parent, View v, int pos, long id)
+		{
+			startActivity(new Intent(Intent.VIEW_ACTION,
+			  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
+		}
+    };
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
