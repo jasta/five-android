@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Five Client</string>
+    <string name="app_name">FiveSync</string>
     <string name="source_info_title">Source Information</string>
     <string name="source_list_title">Synchronization Sources</string>
 </resources>

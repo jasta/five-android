@@ -6,7 +6,7 @@
        <provider android:name=".provider.FiveProvider"
          android:authorities="org.devtcg.five" />
     
-        <activity android:name=".activity.SourceList" android:label="@string/source_list_title">
+        <activity android:name=".activity.SourceList" android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

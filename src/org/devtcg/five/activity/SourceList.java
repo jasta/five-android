@@ -83,6 +83,7 @@ public class SourceList extends Activity
     	Log.d(TAG, "!!!!!! onCreate");
 
         super.onCreate(icicle);
+        setTitle(R.string.source_list_title);
         setContentView(R.layout.source_list);
 
         Intent intent = getIntent();
