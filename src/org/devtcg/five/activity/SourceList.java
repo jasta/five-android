@@ -319,7 +319,7 @@ public class SourceList extends Activity
     protected void startSyncUI()
     {
     	mSyncing = true;
-    	mSyncAll.setClickable(false);
+    	mSyncAll.setEnabled(false);
     	
     	mProgress.setProgress(0);
     	
@@ -340,7 +340,7 @@ public class SourceList extends Activity
     protected void stopSyncUI()
     {
     	mSyncing = false;
-    	mSyncAll.setClickable(true);
+    	mSyncAll.setEnabled(true);
 
     	Animation anim = new AlphaAnimation(1.0f, 0.0f); 
     	anim.setDuration(500);
