@@ -50,7 +50,7 @@ public class MusicMapping implements DatabaseMapping
 		mSourceId = sourceId;
 		mLastAnchor = lastAnchor;
 		mNextAnchor = System.currentTimeMillis() / 1000;
-		
+
 		if (mNextAnchor <= mLastAnchor)
 			throw new IllegalArgumentException("Last anchor may not meet or exceed the current time");
 	}
@@ -135,7 +135,7 @@ public class MusicMapping implements DatabaseMapping
 		}
 
 		String format = mime.substring(typeIndex + mimePrefix.length());
-		
+
 		Log.i(TAG, "Inserting item (" + item.getMimeType() + "): " + item.getSourceId());
 		MetaDataFormat meta = new MetaDataFormat(item.getData());
 
