@@ -25,7 +25,7 @@ public class MusicMapping implements DatabaseMapping
 	protected ContentResolver mContent;
 	protected long mSourceId;
 	
-	protected int mCounter = 1;
+	protected int mCounter = 0;
 	
 	protected long mLastAnchor;
 	protected long mNextAnchor;
@@ -125,6 +125,17 @@ public class MusicMapping implements DatabaseMapping
 		mAlbumMap.clear();
 	}
 	
+	private void bumpCounter()
+	{
+		mCounter++;
+	}
+	
+	private void notifyChange()
+	{
+		Message msg = mHandler.obtainMessage(MetaService.MSG_UPDATE_PROGRESS, mCounter, mNumChanges);
+		mHandler.sendMessage(msg);
+	}
+	
 	private static String getBaseType(String mime)
 	{
 		int typeIndex = mime.indexOf(mimePrefix);
@@ -137,9 +148,11 @@ public class MusicMapping implements DatabaseMapping
 
 	public int insert(SyncItem item)
 	{
+		bumpCounter();
+
 		String mime = item.getMimeType();
 		String format = getBaseType(mime);
-
+		
 		if (format == null)
 		{
 			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
@@ -233,8 +246,7 @@ public class MusicMapping implements DatabaseMapping
 		
 		item.setTargetId(Long.valueOf(uri.getLastPathSegment()));
 
-		Message msg = mHandler.obtainMessage(MetaService.MSG_UPDATE_PROGRESS, mCounter++, mNumChanges);
-		mHandler.sendMessage(msg);
+		notifyChange();
 
 		return 201;
 	}
@@ -246,6 +258,8 @@ public class MusicMapping implements DatabaseMapping
 
 	public int delete(SyncItem item)
 	{
+		bumpCounter();
+		
 		String mime = item.getMimeType();
 		String format = getBaseType(mime);
 
@@ -297,7 +311,9 @@ public class MusicMapping implements DatabaseMapping
 			  "Delete request failed: no such object found of type " + mime + " with id " + id);
 			return 211;
 		}
-
+		
+		notifyChange();
+		
 		return 200;
 	}
 	
