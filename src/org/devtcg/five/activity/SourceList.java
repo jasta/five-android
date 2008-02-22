@@ -60,7 +60,7 @@ public class SourceList extends Activity
 
 	private ProgressBar mProgress;
 	private Button mSyncAll;
-	private boolean mSyncing = false;
+	private boolean mSyncing;
 
 	private HashMap<Integer, String> mStatus = new HashMap<Integer, String>();
 
@@ -161,6 +161,9 @@ public class SourceList extends Activity
     @Override
     public void onResume()
     {
+    	/* We don't know if we're syncing until we connect to the service. */
+    	mSyncing = false;
+    	
     	Log.d(TAG, "!!!!!! onResume");
 
         if (mCursor.count() > 0)
@@ -237,14 +240,21 @@ public class SourceList extends Activity
 		public void beginSync()
 		{
 			Log.d(TAG, "beginSync");
+			
+			mHandler.post(new Runnable() {
+				public void run()
+				{
+					if (mSyncing == false)
+						startSyncUI(false);
+				}
+			});
 		}
 
 		public void endSync()
 		{
 			Log.d(TAG, "endSync");
 
-			mHandler.post(new Runnable()
-			{
+			mHandler.post(new Runnable() {
 				public void run()
 				{
 					stopSyncUI();
@@ -318,25 +328,38 @@ public class SourceList extends Activity
     
     protected void startSyncUI()
     {
+    	startSyncUI(true);
+    }
+    
+    protected void startSyncUI(boolean animation)
+    {
     	mSyncing = true;
     	mSyncAll.setEnabled(false);
     	
     	mProgress.setProgress(0);
-    	
-    	Animation anim = new AlphaAnimation(0.0f, 1.0f);
-    	anim.setDuration(500);
-    	anim.setAnimationListener(new AnimationListener() {
-			public void onAnimationEnd() {}
-			public void onAnimationRepeat() {}
 
-			public void onAnimationStart()
-			{
-				mProgress.setVisibility(View.VISIBLE);
-			}
-    	});
-    	mProgress.startAnimation(anim);
+    	if (animation == true)
+    	{
+    		Animation anim = new AlphaAnimation(0.0f, 1.0f);
+    		anim.setDuration(500);
+    		anim.setAnimationListener(new AnimationListener() {
+    			public void onAnimationEnd() {}
+    			public void onAnimationRepeat() {}
+
+    			public void onAnimationStart()
+    			{
+    				mProgress.setVisibility(View.VISIBLE);
+    			}
+    		});
+    		
+    		mProgress.startAnimation(anim);
+    	}
+    	else
+    	{
+    		mProgress.setVisibility(View.VISIBLE);
+    	}
     }
-    
+
     protected void stopSyncUI()
     {
     	mSyncing = false;
@@ -366,7 +389,7 @@ public class SourceList extends Activity
     		Toast.makeText(this, "Already synchronizing...", Toast.LENGTH_SHORT);
     		return;
     	}
-    	
+
     	startSyncUI();
 
 		try
