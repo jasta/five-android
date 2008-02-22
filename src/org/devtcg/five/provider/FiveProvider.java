@@ -112,7 +112,16 @@ public class FiveProvider extends ContentProvider
 			qb.setTables(Five.SourcesLog.SQL.TABLE);
 			qb.appendWhere("source_id=" + uri.getPathSegments().get(1));
 			break;
-
+			
+		case SONGS:
+			qb.setTables(Five.Music.Songs.SQL.TABLE);
+			break;
+			
+		case SONG:
+			qb.setTables(Five.Music.Songs.SQL.TABLE);
+			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			break;
+			
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
@@ -447,6 +456,7 @@ public class FiveProvider extends ContentProvider
 		case SOURCES:
 			return deleteSource(uri, type, selection, selectionArgs);
 		case CONTENT:
+		case CONTENT_ITEM:
 			return deleteContent(uri, type, selection, selectionArgs);
 		case ARTISTS:
 		case ARTIST:
