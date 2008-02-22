@@ -58,7 +58,7 @@ public class MetaService extends Service
 				break;
 			case MSG_END_SYNC:
 				mObservable.notifyEndSync();
-				
+
 				try { mSyncThread.join(); }
 				catch (InterruptedException e) {}
 				
@@ -91,6 +91,7 @@ public class MetaService extends Service
 			{
 				try
 				{
+					observer.beginSync();
 					observer.beginSource(mSyncSource);
 
 					if (mSyncProgressN != -1 && mSyncProgressD != -1)
@@ -295,7 +296,7 @@ public class MetaService extends Service
 		public void notifyBeginSource(int sourceId)
 		{
 			Iterator<IMetaObserver> i = mObservers.iterator();
-			
+
 			while (i.hasNext() == true)
 			{
 				IMetaObserver o = i.next();
