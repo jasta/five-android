@@ -58,7 +58,7 @@ public class SourceInfo extends Activity
     	Uri uri = getIntent().getData();
 
     	mCursor = managedQuery(uri, PROJECTION, null, null);
-    	
+
     	/* XXX: This should be re-arranged to show up in onResume(). */
     	int rev = 0;
     	if (mCursor.first() == true)
@@ -83,7 +83,7 @@ public class SourceInfo extends Activity
 					return false;
 				
 				DateFormat fmt = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
-				((TextView)view).setText(fmt.format(new Date(c.getInt(col) * 1000)));
+				((TextView)view).setText(fmt.format(new Date(c.getLong(col) * 1000)));
 				
 				return true;
 			}
