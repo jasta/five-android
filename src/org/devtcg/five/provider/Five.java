@@ -248,9 +248,9 @@ public final class Five
 				  CONTENT_SOURCE_ID + " INTEGER, " +
 				  CONTENT_ID + " INTEGER, " +
 				  TITLE + " TEXT NOT NULL, " +
-				  ARTIST_ID + " INTEGER, " +
+				  ARTIST_ID + " INTEGER NOT NULL, " +
 				  ALBUM_ID + " INTEGER, " +
-				  LENGTH + " INTEGER, " +
+				  LENGTH + " INTEGER NOT NULL, " +
 				  TRACK + " INTEGER, " +
 				  GENRE + " TEXT, " +
 				  SET + " INTEGER, " +
