@@ -11,6 +11,7 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
 
 public class FiveProvider extends ContentProvider
@@ -19,7 +20,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 11;
+	private static final int DATABASE_VERSION = 12;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -241,9 +242,6 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Music.Songs.ARTIST_ID) == false)
 			throw new IllegalArgumentException("ARTIST_ID cannot be NULL");
 
-		if (v.containsKey(Five.Music.Songs.ALBUM_ID) == false)
-			throw new IllegalArgumentException("ALBUM_ID cannot be NULL");
-		
 		if (v.containsKey(Five.Music.Songs.CONTENT_ID) == false)
 			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
@@ -260,10 +258,13 @@ public class FiveProvider extends ContentProvider
 
 		getContext().getContentResolver().notifyChange(artistUri, null);
 
-		long albumId = v.getAsLong(Five.Music.Songs.ALBUM_ID);
-		Uri albumUri = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, albumId);
+		if (v.containsKey(Five.Music.Songs.ALBUM_ID) == true)
+		{
+			long albumId = v.getAsLong(Five.Music.Songs.ALBUM_ID);
+			Uri albumUri = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, albumId);
 
-		getContext().getContentResolver().notifyChange(albumUri, null);
+			getContext().getContentResolver().notifyChange(albumUri, null);
+		}
 
 		long contentId = v.getAsLong(Five.Music.Songs.CONTENT_ID);
 		Uri Uri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, contentId);
@@ -311,20 +312,62 @@ public class FiveProvider extends ContentProvider
 	private int deleteContent(Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
+		String custom;
 		int count;
+		
+		switch (type)
+		{
+		case CONTENT:
+			custom = selection;
+			break;
+			
+		case CONTENT_ITEM:
+			StringBuilder where = new StringBuilder();
+			where.append(Five.Content._ID).append('=').append(uri.getLastPathSegment());
+			
+			if (TextUtils.isEmpty(selection) == false)
+				where.append(" AND (").append(selection).append(')');
 
-		count = mDB.delete(Five.Content.SQL.TABLE, selection, selectionArgs);
+			custom = where.toString();			
+			break;
+			
+		default:
+			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
+		}
+
+		count = mDB.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
-
+	
 	private int deleteArtist(Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
+		String custom;
 		int count;
 
-		count = mDB.delete(Five.Music.Artists.SQL.TABLE, selection, selectionArgs);
+		switch (type)
+		{
+		case ARTISTS:
+			custom = selection;
+			break;
+
+		case ARTIST:
+			StringBuilder where = new StringBuilder();
+			where.append(Five.Music.Artists._ID).append('=').append(uri.getLastPathSegment());
+			
+			if (TextUtils.isEmpty(selection) == false)
+				where.append(" AND (").append(selection).append(')');
+
+			custom = where.toString();			
+			break;
+
+		default:
+			throw new IllegalArgumentException("Cannot delete artist URI: " + uri);
+		}
+
+		count = mDB.delete(Five.Music.Artists.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -333,9 +376,30 @@ public class FiveProvider extends ContentProvider
 	private int deleteAlbum(Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
+		String custom;
 		int count;
-
-		count = mDB.delete(Five.Music.Albums.SQL.TABLE, selection, selectionArgs);
+		
+		switch (type)
+		{
+		case ALBUMS:
+			custom = selection;
+			break;
+			
+		case ALBUM:
+			StringBuilder where = new StringBuilder();
+			where.append(Five.Music.Albums._ID).append('=').append(uri.getLastPathSegment());
+			
+			if (TextUtils.isEmpty(selection) == false)
+				where.append(" AND (").append(selection).append(')');
+			
+			custom = where.toString();
+			break;
+			
+		default:
+			throw new IllegalArgumentException("Cannot delete album URI: " + uri);
+		}
+		
+		count = mDB.delete(Five.Music.Albums.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -344,9 +408,30 @@ public class FiveProvider extends ContentProvider
 	private int deleteSong(Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
+		String custom;
 		int count;
+		
+		switch (type)
+		{
+		case SONGS:
+			custom = selection;
+			break;
+		
+		case SONG:
+			StringBuilder where = new StringBuilder();
+			where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
+			
+			if (TextUtils.isEmpty(selection) == false)
+				where.append(" AND (").append(selection).append(')');
+			
+			custom = where.toString();	
+			break;
 
-		count = mDB.delete(Five.Music.Songs.SQL.TABLE, selection, selectionArgs);
+		default:
+			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
+		}
+
+		count = mDB.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -364,10 +449,13 @@ public class FiveProvider extends ContentProvider
 		case CONTENT:
 			return deleteContent(uri, type, selection, selectionArgs);
 		case ARTISTS:
+		case ARTIST:
 			return deleteArtist(uri, type, selection, selectionArgs);
 		case ALBUMS:
+		case ALBUM:
 			return deleteAlbum(uri, type, selection, selectionArgs);
 		case SONGS:
+		case SONG:
 			return deleteSong(uri, type, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot delete URI: " + uri);
