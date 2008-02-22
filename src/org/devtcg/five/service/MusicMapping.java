@@ -4,12 +4,14 @@ import java.util.HashMap;
 import java.util.Scanner;
 
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.syncml.model.DatabaseMapping;
 import org.devtcg.syncml.protocol.SyncItem;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -87,7 +89,7 @@ public class MusicMapping implements DatabaseMapping
 	public void beginSyncLocal(int code, long last, long next)
 	{
 		Log.i(TAG, "starting sync, code=" + code);
-
+		
 		/* Slow refresh from server: delete all our local content first. */
 		if (code == 210)
 		{
@@ -122,21 +124,30 @@ public class MusicMapping implements DatabaseMapping
 		mArtistMap.clear();
 		mAlbumMap.clear();
 	}
+	
+	private static String getBaseType(String mime)
+	{
+		int typeIndex = mime.indexOf(mimePrefix);
+
+		if (typeIndex != 0)
+			return null;
+
+		return mime.substring(typeIndex + mimePrefix.length());		
+	}
 
 	public int insert(SyncItem item)
 	{
 		String mime = item.getMimeType();
-		int typeIndex = mime.indexOf(mimePrefix);
+		String format = getBaseType(mime);
 
-		if (typeIndex != 0)
+		if (format == null)
 		{
-			Log.e(TAG, "Unknown mime type: " + mime);
-			return 400;
+			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
+			  "Unknown MIME type from server: " + mime);
+			return 404;
 		}
 
-		String format = mime.substring(typeIndex + mimePrefix.length());
-
-		Log.i(TAG, "Inserting item (" + item.getMimeType() + "): " + item.getSourceId());
+		Log.i(TAG, "Inserting item (" + mime + "): " + item.getSourceId());
 		MetaDataFormat meta = new MetaDataFormat(item.getData());
 
 		Uri uri = null;
@@ -149,7 +160,7 @@ public class MusicMapping implements DatabaseMapping
 //			values.put(Five.Music.Artists.PHOTO_ID, meta.getValue("ARTWORK"));
 
 			uri = mContent.insert(Five.Music.Artists.CONTENT_URI, values);
-			
+
 			if (uri != null)
 				mArtistMap.put(item.getSourceId(), Long.valueOf(uri.getLastPathSegment()));
 		}
@@ -193,7 +204,7 @@ public class MusicMapping implements DatabaseMapping
 
 			if (meta.hasValue("ALBUM_GUID") == true)
 				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getValue("ALBUM_GUID")));
-			else
+			else if (meta.hasValue("ALBUM") == true)
 				values.put(Five.Music.Songs.ALBUM_ID, meta.getValue("ALBUM"));
 
 			values.put(Five.Music.Songs.LENGTH, meta.getValue("LENGTH"));
@@ -232,10 +243,62 @@ public class MusicMapping implements DatabaseMapping
 	{
 		return 0;
 	}
-	
+
 	public int delete(SyncItem item)
 	{
-		return 0;
+		String mime = item.getMimeType();
+		String format = getBaseType(mime);
+
+		if (format == null)
+		{
+			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
+			  "Unknown MIME type from server: " + mime);
+			return 211;
+		}
+
+		Uri uri;
+		long id = Long.valueOf(item.getTargetId());
+
+		if (format.equals("artist") == true)
+		{
+			uri = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, id);
+		}
+		else if (format.equals("album") == true)
+		{
+			uri = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
+		}
+		else if (format.equals("song") == true)
+		{
+			uri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, id);
+			
+			Cursor c = mContent.query(uri, new String[] { Five.Music.Songs.CONTENT_ID },
+			  null, null, null);
+			
+			if (c.first() == false)
+				uri = null;
+			else
+			{
+				Uri curi = ContentUris.withAppendedId(Five.Content.CONTENT_URI, c.getLong(0));
+				mContent.delete(curi, null, null);
+			}
+
+			c.close();
+		}
+		else
+		{
+			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
+			  "Unknown MIME type from server: " + mime);
+			return 211;
+		}
+
+		if (uri == null || mContent.delete(uri, null, null) == 0)
+		{
+			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
+			  "Delete request failed: no such object found of type " + mime + " with id " + id);
+			return 211;
+		}
+
+		return 200;
 	}
 	
 	private static class MetaDataFormat
