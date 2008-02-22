@@ -125,10 +125,10 @@ public class SourceList extends Activity
 			{
 				if (cursor.getColumnIndex(Five.Sources.REVISION) != column)
 					return false;
-				
+
 				TextView revText = (TextView)view;
 				String status = mStatus.get(cursor.getInt(0));
-				
+
 				if (status != null)
 				{
 					revText.setText(status);
@@ -136,7 +136,7 @@ public class SourceList extends Activity
 				else
 				{
 					String lasterr = cursor.getString(cursor.getColumnIndex(Five.Sources.LAST_ERROR));
-					
+
 					if (lasterr != null)
 						revText.setText("Critical error, click for details.");
 					else
@@ -157,7 +157,7 @@ public class SourceList extends Activity
         list.setOnItemClickListener(mOnClick);
         list.setAdapter(mListAdapter);
     }
-    
+
     @Override
     public void onResume()
     {
