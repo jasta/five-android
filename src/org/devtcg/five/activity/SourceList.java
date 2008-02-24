@@ -31,6 +31,7 @@ import android.os.*;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.view.animation.*;
 import android.view.animation.Animation.AnimationListener;
@@ -67,15 +68,17 @@ public class SourceList extends Activity
         super.onCreate(icicle);
         setTitle(R.string.source_list_title);
         setContentView(R.layout.source_list);
+        
+        /* Work around a lame bug in M5 that causes the second progress bar animation to
+         * not work correctly. */
+        ((ViewGroup)findViewById(R.id.source_list_top)).setAnimationCacheEnabled(false);
 
         mSwitcher = (ViewSwitcher)findViewById(R.id.loading_switcher);
-        mSwitcher.setAnimationCacheEnabled(false);
 
-        /* Disabled due to Android m5-rc14 nested animation bug. */
-//        mSwitcher.setInAnimation(AnimationUtils.loadAnimation(this,
-//          android.R.anim.fade_in));
-//        mSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this,
-//          android.R.anim.fade_out));
+        mSwitcher.setInAnimation(AnimationUtils.loadAnimation(this,
+          android.R.anim.fade_in));
+        mSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this,
+          android.R.anim.fade_out));
 
         Intent intent = getIntent();
         if (intent.getData() == null)
@@ -171,7 +174,7 @@ public class SourceList extends Activity
         	findViewById(android.R.id.empty).setVisibility(View.VISIBLE);
         	findViewById(android.R.id.list).setVisibility(View.GONE);
         }
-    	
+
     	Intent meta = new Intent(this, MetaService.class);
     	boolean bound = false;
 
