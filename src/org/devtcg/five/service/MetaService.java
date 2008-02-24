@@ -152,6 +152,14 @@ public class MetaService extends Service
 
 			return true;
 		}
+
+		public boolean isSyncing()
+		{
+			if (mSyncThread == null || mSyncThread.isAlive() == false)
+				return false;
+			
+			return true;
+		}
 	};
 
 	private static class SyncThread extends ThreadStoppable
