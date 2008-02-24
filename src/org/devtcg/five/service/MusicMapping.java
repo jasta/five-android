@@ -197,10 +197,10 @@ public class MusicMapping implements DatabaseMapping
 		{
 			values.put(Five.Music.Albums.NAME, meta.getValue("N"));
 
-			if (meta.hasValue("ARTIST_GUID") == true)
-				values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
-			else
-				values.put(Five.Music.Albums.ARTIST_ID, meta.getValue("ARTIST"));
+			if (meta.hasValue("ARTIST") == true)
+				values.put(Five.Music.Songs.ARTIST_ID, meta.getValue("ARTIST"));
+			else if (meta.hasValue("ARTIST_GUID") == true)
+				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
 
 			uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
 
@@ -226,15 +226,15 @@ public class MusicMapping implements DatabaseMapping
 			/* And the meta data... */
 			values.put(Five.Music.Songs.TITLE, meta.getValue("N"));
 
-			if (meta.hasValue("ARTIST_GUID") == true)
-				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
-			else
+			if (meta.hasValue("ARTIST") == true)
 				values.put(Five.Music.Songs.ARTIST_ID, meta.getValue("ARTIST"));
+			else if (meta.hasValue("ARTIST_GUID") == true)
+				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
 
-			if (meta.hasValue("ALBUM_GUID") == true)
-				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getValue("ALBUM_GUID")));
-			else if (meta.hasValue("ALBUM") == true)
+			if (meta.hasValue("ALBUM") == true)
 				values.put(Five.Music.Songs.ALBUM_ID, meta.getValue("ALBUM"));
+			else if (meta.hasValue("ALBUM_GUID") == true)
+				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getValue("ALBUM_GUID")));
 
 			values.put(Five.Music.Songs.LENGTH, meta.getValue("LENGTH"));
 
