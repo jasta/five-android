@@ -22,7 +22,8 @@ interface IMetaService
 {
 	void registerObserver(in IMetaObserver observer);
 	void unregisterObserver(in IMetaObserver observer);
-
+	
 	boolean startSync();
 	boolean stopSync();
+	boolean isSyncing();
 }
