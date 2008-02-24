@@ -25,40 +25,16 @@ import org.devtcg.five.service.IMetaService;
 import org.devtcg.five.service.MetaService;
 
 import android.app.Activity;
-import android.app.ListActivity;
-import android.content.ComponentName;
-import android.content.ContentUris;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
+import android.content.*;
 import android.database.Cursor;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.DeadObjectException;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
+import android.os.*;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.view.animation.LayoutAnimationController;
+import android.view.animation.*;
 import android.view.animation.Animation.AnimationListener;
-import android.widget.AdapterView;
-import android.widget.Button;
-import android.widget.CursorAdapter;
-import android.widget.LinearLayout;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.ProgressBar;
-import android.widget.SimpleCursorAdapter;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.ViewSwitcher;
+import android.widget.*;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class SourceList extends Activity
@@ -83,19 +59,6 @@ public class SourceList extends Activity
 
 	private HashMap<Integer, String> mStatus = new HashMap<Integer, String>();
 
-	private final Handler mHandler = new Handler()
-	{
-		@Override
-		public void handleMessage(Message msg)
-		{
-			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
-			mProgress.setProgress((int)scale);
-
-			mStatus.put(msg.what, "Synchronizing: " + msg.arg1 + " of " + msg.arg2 + " items...");
-			mListAdapter.notifyDataSetChanged();
-		}
-	};
-
     @Override
     public void onCreate(Bundle icicle)
     {
@@ -104,7 +67,7 @@ public class SourceList extends Activity
         super.onCreate(icicle);
         setTitle(R.string.source_list_title);
         setContentView(R.layout.source_list);
-        
+
         mSwitcher = (ViewSwitcher)findViewById(R.id.loading_switcher);
         mSwitcher.setAnimationCacheEnabled(false);
 
@@ -195,7 +158,7 @@ public class SourceList extends Activity
     	/* We don't know if we're syncing until we connect to the service. */
     	mSyncing = false;
     	mSwitcher.setDisplayedChild(0);
-    	
+
     	Log.d(TAG, "!!!!!! onResume");
 
         if (mCursor.count() > 0)
@@ -242,27 +205,46 @@ public class SourceList extends Activity
     	
     	super.onPause();    	
     }
+    
+    private void presentUI()
+    {
+    	if (mSwitcher.getDisplayedChild() == 0)
+    		mSwitcher.showNext();
+    }
+
+    private Runnable mPresentUI = new Runnable()
+    {
+		public void run()
+		{
+			presentUI();
+		}
+    };
+    
+	private final Handler mHandler = new Handler()
+	{
+		@Override
+		public void handleMessage(Message msg)
+		{
+			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
+			mProgress.setProgress((int)scale);
+
+			mStatus.put(msg.what, "Synchronizing: " + msg.arg1 + " of " + msg.arg2 + " items...");
+			mListAdapter.notifyDataSetChanged();
+		}
+	};
 
     private ServiceConnection mConnection = new ServiceConnection()
     {
 		public void onServiceConnected(ComponentName name, IBinder service)
 		{
 			mService = IMetaService.Stub.asInterface(service);
-			
+
 			Log.d(TAG, "Attempting to register with service...");
 
 			try
 			{
 				if (mService.isSyncing() == false)
-				{
-					mHandler.post(new Runnable() {
-						public void run()
-						{
-							if (mSwitcher.getDisplayedChild() == 0)
-								mSwitcher.showNext();
-						}
-					});					
-				}
+					mHandler.post(mPresentUI);
 
 				mService.registerObserver(mObserver);
 			}
@@ -270,14 +252,8 @@ public class SourceList extends Activity
 			{
 				Log.e(TAG, "What the hell happened here?", e);
 				mService = null;
-				
-				mHandler.post(new Runnable() {
-					public void run()
-					{
-						if (mSwitcher.getDisplayedChild() == 0)
-							mSwitcher.showNext();
-					}
-				});
+
+				mHandler.post(mPresentUI);
 			}
 		}
 
@@ -285,14 +261,8 @@ public class SourceList extends Activity
 		{
 			Log.d(TAG, "onServiceDisconnected: Where did it go?  Should we retry?  Hmm.");
 			mService = null;
-			
-			mHandler.post(new Runnable() {
-				public void run()
-				{
-					if (mSwitcher.getDisplayedChild() == 0)
-						mSwitcher.showNext();
-				}
-			});
+
+			mHandler.post(mPresentUI);
 		}
     };
     
@@ -310,9 +280,8 @@ public class SourceList extends Activity
 				{
 					if (mSyncing == false)
 						startSyncUI(false);
-					
-					if (mSwitcher.getDisplayedChild() == 0)
-						mSwitcher.showNext();
+
+					presentUI();
 				}
 			});
 		}
@@ -392,39 +361,26 @@ public class SourceList extends Activity
     	
     	return true;
     }
-    
+
     protected void startSyncUI()
     {
     	startSyncUI(true);
     }
-    
+
     protected void startSyncUI(boolean animation)
     {
     	mSyncing = true;
     	mSyncAll.setEnabled(false);
-    	
+
     	mProgress.setProgress(0);
-    	
+
     	if (animation == true)
     	{
-    		Animation anim = new AlphaAnimation(0.0f, 1.0f);
-    		anim.setDuration(500);
-    		anim.setAnimationListener(new AnimationListener() {
-    			public void onAnimationEnd() {}
-    			public void onAnimationRepeat() {}
+    		mProgress.startAnimation(AnimationUtils.loadAnimation(this,
+    		  android.R.anim.fade_in));
+    	}
 
-    			public void onAnimationStart()
-    			{
-    				mProgress.setVisibility(View.VISIBLE);
-    			}
-    		});
-    		
-    		mProgress.startAnimation(anim);
-    	}
-    	else
-    	{
-    		mProgress.setVisibility(View.VISIBLE);
-    	}
+    	mProgress.setVisibility(View.VISIBLE);
     }
 
     protected void stopSyncUI()
@@ -432,19 +388,9 @@ public class SourceList extends Activity
     	mSyncing = false;
     	mSyncAll.setEnabled(true);
     	
-    	Animation anim = new AlphaAnimation(1.0f, 0.0f); 
-    	anim.setDuration(500);
-    	anim.setAnimationListener(new AnimationListener () {
-			public void onAnimationEnd()
-			{
-				mProgress.setVisibility(View.INVISIBLE);
-			}
-			
-			public void onAnimationRepeat() {}
-			public void onAnimationStart() {}
-    	});
-
-    	mProgress.startAnimation(anim);
+    	mProgress.startAnimation(AnimationUtils.loadAnimation(this,
+    	  android.R.anim.fade_out));
+    	mProgress.setVisibility(View.INVISIBLE);
     }
     
     protected void menuSync()
