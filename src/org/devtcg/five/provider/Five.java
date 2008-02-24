@@ -283,13 +283,19 @@ public final class Five
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.artist";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.artist";
-			
+
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 				Uri.parse("content://" + AUTHORITY + "/media/music/artists");
 
-			/** Performing name. */
+			/** Performing name (significant portion for sort purposes; excludes "The"). */
 			public static final String NAME = "name";
+
+			/** Full name, including prefix. */
+			public static final String FULL_NAME = "full_name";
+
+			/** Leading text not included for sorting purposes. */
+			public static final String NAME_PREFIX = "name_prefix";
 
 			/** Band or performer photograph. */
 			public static final String PHOTO_ID = "image_id";
@@ -308,6 +314,7 @@ public final class Five
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  NAME + " TEXT NOT NULL, " +
+				  NAME_PREFIX + " TEXT, " +
 				  GENRE + " TEXT, " +
 				  DISCOVERY_DATE + " DATETIME " +
 				  ");";
@@ -326,8 +333,14 @@ public final class Five
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
 
-			/** Album name. */
+			/** Album name (less prefix). */
 			public static final String NAME = "name";
+			
+			/** Full name, including prefix. */
+			public static final String FULL_NAME = "full_name";
+
+			/** Leading text not included for sorting purposes. */
+			public static final String NAME_PREFIX = "name_prefix";
 
 			/** Artist. */
 			public static final String ARTIST = "artist";
@@ -353,6 +366,7 @@ public final class Five
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  NAME + " TEXT NOT NULL, " +
+				  NAME_PREFIX + " TEXT, " +
 				  ARTIST_ID + " INTEGER, " +
 				  RELEASE_DATE + " DATETIME, " +
 				  DISCOVERY_DATE + " DATETIME " +

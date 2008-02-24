@@ -36,10 +36,12 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 12;
+	private static final int DATABASE_VERSION = 13;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
+	private static final HashMap<String, String> artistsMap;
+	private static final HashMap<String, String> albumsMap;
 
 	private static enum URIPatternIds
 	{
@@ -128,20 +130,42 @@ public class FiveProvider extends ContentProvider
 			qb.setTables(Five.SourcesLog.SQL.TABLE);
 			qb.appendWhere("source_id=" + uri.getPathSegments().get(1));
 			break;
-			
+
 		case SONGS:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
 			break;
-			
+
 		case SONG:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
 			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			break;
+
+		case ARTISTS:
+			qb.setTables(Five.Music.Artists.SQL.TABLE);
+			qb.setProjectionMap(artistsMap);
+			break;
+
+		case ARTIST:
+			qb.setTables(Five.Music.Artists.SQL.TABLE);
+			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			qb.setProjectionMap(artistsMap);
+			break;
+			
+		case ALBUMS:
+			qb.setTables(Five.Music.Albums.SQL.TABLE);
+			qb.setProjectionMap(albumsMap);
+			break;
+
+		case ALBUM:
+			qb.setTables(Five.Music.Albums.SQL.TABLE);
+			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			qb.setProjectionMap(albumsMap);
 			break;
 			
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
-
+		
 		Cursor c = qb.query(mDB, projection, selection, selectionArgs, groupBy, null, sortOrder);
 
 		c.setNotificationUri(getContext().getContentResolver(), uri);
@@ -228,14 +252,34 @@ public class FiveProvider extends ContentProvider
 		
 		return ret;
 	}
+	
+	private boolean adjustNameWithPrefix(ContentValues v)
+	{
+		String name = v.getAsString(Five.Music.Artists.NAME);
+
+		if (name.startsWith("The ") == true)
+		{
+			v.put(Five.Music.Artists.NAME, name.substring(4));
+			v.put(Five.Music.Artists.NAME_PREFIX, "The ");
+			
+			return true;
+		}
+		
+		return false;
+	}
 
 	private Uri insertArtist(Uri uri, URIPatternIds type, ContentValues v)
 	{
-		long id = mDB.insert(Five.Music.Artists.SQL.TABLE, Five.Music.Artists.NAME, v);
+		if (v.containsKey(Five.Music.Artists.NAME) == false)
+			throw new IllegalArgumentException("NAME cannot be NULL");
 		
+		adjustNameWithPrefix(v);
+
+		long id = mDB.insert(Five.Music.Artists.SQL.TABLE, Five.Music.Artists.NAME, v);
+
 		if (id == -1)
 			return null;
-		
+
 		Uri ret = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, id);
 		getContext().getContentResolver().notifyChange(ret, null);
 		return ret;
@@ -243,14 +287,19 @@ public class FiveProvider extends ContentProvider
 
 	private Uri insertAlbum(Uri uri, URIPatternIds type, ContentValues v)
 	{
+		if (v.containsKey(Five.Music.Albums.NAME) == false)
+			throw new IllegalArgumentException("NAME cannot be NULL");
+
 		if (v.containsKey(Five.Music.Albums.ARTIST_ID) == false)
 			throw new IllegalArgumentException("ARTIST_ID cannot be NULL");
-		
+
+		adjustNameWithPrefix(v);
+
 		long id = mDB.insert(Five.Music.Albums.SQL.TABLE, Five.Music.Albums.NAME, v);
-		
+
 		if (id == -1)
 			return null;
-		
+
 		Uri ret = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
 		getContext().getContentResolver().notifyChange(ret, null);
 
@@ -547,5 +596,17 @@ public class FiveProvider extends ContentProvider
 		sourcesMap.put(Five.Sources.PORT, "s." + Five.Sources.PORT + " AS " + Five.Sources.PORT);
 		sourcesMap.put(Five.Sources.REVISION, "s." + Five.Sources.REVISION + " AS " + Five.Sources.REVISION);
 		sourcesMap.put(Five.Sources.LAST_ERROR, "sl." + Five.SourcesLog.MESSAGE + " AS " + Five.Sources.LAST_ERROR);
+		
+		artistsMap = new HashMap<String, String>();
+		artistsMap.put(Five.Music.Artists._ID, Five.Music.Artists._ID);
+		artistsMap.put(Five.Music.Artists.DISCOVERY_DATE, Five.Music.Artists.DISCOVERY_DATE);
+		artistsMap.put(Five.Music.Artists.GENRE, Five.Music.Artists.GENRE);
+		artistsMap.put(Five.Music.Artists.NAME, Five.Music.Artists.NAME);
+		artistsMap.put(Five.Music.Artists.NAME_PREFIX, Five.Music.Artists.NAME_PREFIX);
+		artistsMap.put(Five.Music.Artists.FULL_NAME, "IFNULL(" + Five.Music.Artists.NAME_PREFIX + ", \"\") || " + Five.Music.Artists.NAME + " AS " + Five.Music.Artists.FULL_NAME);
+		artistsMap.put(Five.Music.Artists.PHOTO_ID, Five.Music.Artists.PHOTO_ID);
+		
+		/* TODO... */
+		albumsMap = new HashMap<String, String>();
 	}
 }
