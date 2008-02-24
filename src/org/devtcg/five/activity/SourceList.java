@@ -45,6 +45,7 @@ import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.view.animation.Animation.AnimationListener;
 import android.widget.AdapterView;
@@ -57,6 +58,7 @@ import android.widget.ProgressBar;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ViewSwitcher;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class SourceList extends Activity
@@ -74,6 +76,7 @@ public class SourceList extends Activity
 
 	private IMetaService mService;
 
+	private ViewSwitcher mSwitcher;
 	private ProgressBar mProgress;
 	private Button mSyncAll;
 	private boolean mSyncing;
@@ -101,6 +104,15 @@ public class SourceList extends Activity
         super.onCreate(icicle);
         setTitle(R.string.source_list_title);
         setContentView(R.layout.source_list);
+        
+        mSwitcher = (ViewSwitcher)findViewById(R.id.loading_switcher);
+        mSwitcher.setAnimationCacheEnabled(false);
+
+        /* Disabled due to Android m5-rc14 nested animation bug. */
+//        mSwitcher.setInAnimation(AnimationUtils.loadAnimation(this,
+//          android.R.anim.fade_in));
+//        mSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this,
+//          android.R.anim.fade_out));
 
         Intent intent = getIntent();
         if (intent.getData() == null)
@@ -179,6 +191,7 @@ public class SourceList extends Activity
     {
     	/* We don't know if we're syncing until we connect to the service. */
     	mSyncing = false;
+    	mSwitcher.setDisplayedChild(0);
     	
     	Log.d(TAG, "!!!!!! onResume");
 
@@ -203,7 +216,12 @@ public class SourceList extends Activity
     	}
 
     	if (bound == false)
+    	{
+    		mSwitcher.showNext();
+
     		Log.e(TAG, "Failed to bind to MetaService");
+    		Toast.makeText(this, "CRITICAL: Failure to connect to service", Toast.LENGTH_LONG);
+    	}
 
     	super.onResume();
     }
@@ -212,10 +230,10 @@ public class SourceList extends Activity
     public void onPause()
     {
     	Log.d(TAG, "!!!!!! onPause");
-    	
+
     	try { mService.unregisterObserver(mObserver); }
     	catch (DeadObjectException e) { }
-    	
+
     	unbindService(mConnection);
     	mService = null;
     	
@@ -232,12 +250,31 @@ public class SourceList extends Activity
 
 			try
 			{
+				if (mService.isSyncing() == false)
+				{
+					mHandler.post(new Runnable() {
+						public void run()
+						{
+							if (mSwitcher.getDisplayedChild() == 0)
+								mSwitcher.showNext();
+						}
+					});					
+				}
+
 				mService.registerObserver(mObserver);
 			}
 			catch (DeadObjectException e)
 			{
 				Log.e(TAG, "What the hell happened here?", e);
 				mService = null;
+				
+				mHandler.post(new Runnable() {
+					public void run()
+					{
+						if (mSwitcher.getDisplayedChild() == 0)
+							mSwitcher.showNext();
+					}
+				});
 			}
 		}
 
@@ -245,6 +282,14 @@ public class SourceList extends Activity
 		{
 			Log.d(TAG, "onServiceDisconnected: Where did it go?  Should we retry?  Hmm.");
 			mService = null;
+			
+			mHandler.post(new Runnable() {
+				public void run()
+				{
+					if (mSwitcher.getDisplayedChild() == 0)
+						mSwitcher.showNext();
+				}
+			});
 		}
     };
     
@@ -262,6 +307,9 @@ public class SourceList extends Activity
 				{
 					if (mSyncing == false)
 						startSyncUI(false);
+					
+					if (mSwitcher.getDisplayedChild() == 0)
+						mSwitcher.showNext();
 				}
 			});
 		}
@@ -353,7 +401,7 @@ public class SourceList extends Activity
     	mSyncAll.setEnabled(false);
     	
     	mProgress.setProgress(0);
-
+    	
     	if (animation == true)
     	{
     		Animation anim = new AlphaAnimation(0.0f, 1.0f);
@@ -380,7 +428,7 @@ public class SourceList extends Activity
     {
     	mSyncing = false;
     	mSyncAll.setEnabled(true);
-
+    	
     	Animation anim = new AlphaAnimation(1.0f, 0.0f); 
     	anim.setDuration(500);
     	anim.setAnimationListener(new AnimationListener () {
@@ -392,7 +440,7 @@ public class SourceList extends Activity
 			public void onAnimationRepeat() {}
 			public void onAnimationStart() {}
     	});
-    	
+
     	mProgress.startAnimation(anim);
     }
     
