@@ -345,7 +345,7 @@ public class FiveProvider extends ContentProvider
 		case CONTENT:
 			custom = selection;
 			break;
-			
+
 		case CONTENT_ITEM:
 			StringBuilder where = new StringBuilder();
 			where.append(Five.Content._ID).append('=').append(uri.getLastPathSegment());
@@ -355,7 +355,7 @@ public class FiveProvider extends ContentProvider
 
 			custom = where.toString();			
 			break;
-			
+
 		default:
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
