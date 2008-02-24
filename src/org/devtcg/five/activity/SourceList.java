@@ -172,9 +172,12 @@ public class SourceList extends Activity
 						int rev = cursor.getInt(column);
 
 						if (rev == 0)
-							revText.setText("Never synchronized");
+							revText.setText("Never synchronized.");
 						else
-							revText.setText("Last synchronized: " + DateUtils.formatTimeAgo(rev));
+						{
+							revText.setText("Last synchronized: " +
+							  DateUtils.formatTimeAgo(rev) + ", <x> changes.");
+						}
 					}
 				}
 
