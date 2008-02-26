@@ -17,6 +17,7 @@
 package org.devtcg.five.provider;
 
 import java.util.HashMap;
+import java.util.List;
 
 import android.content.ContentProvider;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -101,6 +102,17 @@ public class FiveProvider extends ContentProvider
 
 		return (mDB == null) ? false : true;
 	}
+	
+	private static String getSecondToLastPathSegment(Uri uri)
+	{
+		List<String> segments = uri.getPathSegments();
+		int size;
+		
+		if ((size = segments.size()) < 2)
+			throw new IllegalArgumentException("URI is not long enough to have a second-to-last path");
+		
+		return segments.get(size - 2);
+	}
 
 	@Override
 	public Cursor query(Uri uri, String[] projection, String selection,
@@ -162,17 +174,23 @@ public class FiveProvider extends ContentProvider
 			qb.setProjectionMap(albumsMap);
 			break;
 			
+		case ALBUMS_BY_ARTIST:
+			qb.setTables(Five.Music.Albums.SQL.TABLE);
+			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
+			qb.setProjectionMap(albumsMap);
+			break;
+
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
-		
+
 		Cursor c = qb.query(mDB, projection, selection, selectionArgs, groupBy, null, sortOrder);
 
 		c.setNotificationUri(getContext().getContentResolver(), uri);
 
 		return c;
 	}
-	
+
 	private int updateSource(Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
@@ -606,7 +624,14 @@ public class FiveProvider extends ContentProvider
 		artistsMap.put(Five.Music.Artists.FULL_NAME, "IFNULL(" + Five.Music.Artists.NAME_PREFIX + ", \"\") || " + Five.Music.Artists.NAME + " AS " + Five.Music.Artists.FULL_NAME);
 		artistsMap.put(Five.Music.Artists.PHOTO_ID, Five.Music.Artists.PHOTO_ID);
 		
-		/* TODO... */
 		albumsMap = new HashMap<String, String>();
+		albumsMap.put(Five.Music.Albums._ID, Five.Music.Albums._ID);
+		albumsMap.put(Five.Music.Albums.ARTIST_ID, Five.Music.Albums.ARTIST_ID);
+		albumsMap.put(Five.Music.Albums.ARTWORK_ID, Five.Music.Albums.ARTWORK_ID);
+		albumsMap.put(Five.Music.Albums.DISCOVERY_DATE, Five.Music.Albums.DISCOVERY_DATE);
+		albumsMap.put(Five.Music.Albums.NAME, Five.Music.Albums.NAME);
+		albumsMap.put(Five.Music.Albums.NAME_PREFIX, Five.Music.Albums.NAME_PREFIX);
+		albumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(" + Five.Music.Albums.NAME_PREFIX + ", \"\") || " + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
+		albumsMap.put(Five.Music.Albums.RELEASE_DATE, Five.Music.Albums.RELEASE_DATE);
 	}
 }
