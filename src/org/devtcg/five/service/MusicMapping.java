@@ -48,8 +48,8 @@ public class MusicMapping implements DatabaseMapping
 
 	/**
 	 * Temporary mapping id from server to client database identifiers.  This
-	 * is necessary because certain elements refer to others by id and the server can't be
-	 * bothered to synchronize its updates with our Map commands.
+	 * is necessary because certain elements refer to others by id and the server
+	 * can't be bothered to synchronize its updates with our Map commands.
 	 */
 	protected HashMap<String, Long> mArtistMap = new HashMap<String, Long>();
 	protected HashMap<String, Long> mAlbumMap = new HashMap<String, Long>();
