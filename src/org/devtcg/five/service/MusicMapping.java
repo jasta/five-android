@@ -303,7 +303,7 @@ public class MusicMapping implements DatabaseMapping
 			
 			Cursor c = mContent.query(uri, new String[] { Five.Music.Songs.CONTENT_ID },
 			  null, null, null);
-			
+
 			if (c.first() == false)
 				uri = null;
 			else
