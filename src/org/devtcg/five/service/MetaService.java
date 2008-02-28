@@ -55,7 +55,16 @@ public class MetaService extends Service
 	{
 		return mBinder;
 	}
-	
+
+	@Override
+	public void onDestroy()
+	{
+		Log.d(TAG, "onDestroy()...");
+
+		if (serviceIsActive() == true)
+			Log.d(TAG, "TODO: stop case while synching is not currently supported");
+	}
+
 	public static final int MSG_BEGIN_SOURCE = 0;
 	public static final int MSG_END_SOURCE = 1;
 	public static final int MSG_UPDATE_PROGRESS = 2;
@@ -79,6 +88,9 @@ public class MetaService extends Service
 				catch (InterruptedException e) {}
 				
 				mSyncThread = null;
+
+				Log.d(TAG, "Done syncing, calling stopSelf()...");
+				stopSelf();
 				
 				break;
 			case MSG_BEGIN_SOURCE:
@@ -130,10 +142,11 @@ public class MetaService extends Service
 
 		public boolean startSync()
 		{
+			if (serviceIsActive() == true)
+				return false;
+
 			if (mSyncThread == null)
 				mSyncThread = new SyncThread(getContentResolver(), mHandler);
-			else if (mSyncThread.isAlive() == true)
-				return false;
 			
 			mSyncThread.start();
 			return true;
@@ -141,7 +154,7 @@ public class MetaService extends Service
 
 		public boolean stopSync()
 		{
-			if (mSyncThread == null || mSyncThread.isAlive() == false)
+			if (serviceIsActive() == false)
 			{
 				Log.w(TAG, "stopSync() invoked, but the sync thread is not running.");
 				return false;
@@ -155,12 +168,17 @@ public class MetaService extends Service
 
 		public boolean isSyncing()
 		{
-			if (mSyncThread == null || mSyncThread.isAlive() == false)
-				return false;
-			
-			return true;
+			return serviceIsActive();
 		}
 	};
+
+	protected boolean serviceIsActive()
+	{
+		if (mSyncThread != null && mSyncThread.isAlive() == true)
+			return true;
+		
+		return false;
+	}
 
 	private static class SyncThread extends ThreadStoppable
 	{
