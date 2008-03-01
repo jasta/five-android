@@ -179,6 +179,12 @@ public class FiveProvider extends ContentProvider
 			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
 			qb.setProjectionMap(albumsMap);
 			break;
+			
+		case SONGS_BY_ARTIST:
+			qb.setTables(Five.Music.Songs.SQL.TABLE);
+			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
+//			qb.setProjectionMap(songsMap);
+			break;
 
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
