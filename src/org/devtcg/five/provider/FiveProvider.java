@@ -326,7 +326,7 @@ public class FiveProvider extends ContentProvider
 
 		Uri ret = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
 		getContext().getContentResolver().notifyChange(ret, null);
-
+ 
 		long artistId = v.getAsLong(Five.Music.Albums.ARTIST_ID);
 		Uri artistUri = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, artistId);
 
