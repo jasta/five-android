@@ -89,8 +89,8 @@ public class MetaService extends Service
 				
 				mSyncThread = null;
 
-				Log.d(TAG, "Done syncing, calling stopSelf()...");
-				stopSelf();
+//				Log.d(TAG, "Done syncing, calling stopSelf()...");
+//				stopSelf();
 				
 				break;
 			case MSG_BEGIN_SOURCE:
