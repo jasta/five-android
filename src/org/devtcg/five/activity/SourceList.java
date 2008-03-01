@@ -431,7 +431,7 @@ public class SourceList extends Activity
     	
     	return super.onOptionsItemSelected(item);
     }
-    
+
     public static class DateUtils
     {
     	public static String formatTimeAgo(long epoch)
@@ -446,7 +446,7 @@ public class SourceList extends Activity
     		String[] units = { "d", "h", "m" };
     		int values[] = { 86400, 3600, 60 };
     		int digits[] = { 0, 0, 0 };
-    		
+
     		for (int offs = 0; offs < values.length; offs++)
     		{    			
     			digits[offs] = (int)diff / values[offs];
