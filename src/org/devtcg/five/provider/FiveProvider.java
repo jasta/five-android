@@ -152,6 +152,18 @@ public class FiveProvider extends ContentProvider
 			qb.appendWhere("_id=" + uri.getLastPathSegment());
 			break;
 
+		case SONGS_BY_ARTIST:
+			qb.setTables(Five.Music.Songs.SQL.TABLE);
+			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
+//			qb.setProjectionMap(songsMap);
+			break;
+			
+		case SONGS_BY_ALBUM:
+			qb.setTables(Five.Music.Songs.SQL.TABLE);
+			qb.appendWhere("album_id=" + getSecondToLastPathSegment(uri));
+//			qb.setProjectionMap(songsMap);
+			break;
+
 		case ARTISTS:
 			qb.setTables(Five.Music.Artists.SQL.TABLE);
 			qb.setProjectionMap(artistsMap);
@@ -178,12 +190,6 @@ public class FiveProvider extends ContentProvider
 			qb.setTables(Five.Music.Albums.SQL.TABLE);
 			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
 			qb.setProjectionMap(albumsMap);
-			break;
-			
-		case SONGS_BY_ARTIST:
-			qb.setTables(Five.Music.Songs.SQL.TABLE);
-			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
-//			qb.setProjectionMap(songsMap);
 			break;
 
 		default:
