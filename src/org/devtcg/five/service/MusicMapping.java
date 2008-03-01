@@ -236,6 +236,7 @@ public class MusicMapping implements DatabaseMapping
 			else if (meta.hasValue("ALBUM_GUID") == true)
 				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getValue("ALBUM_GUID")));
 
+			values.put(Five.Music.Songs.TRACK, meta.getValue("TRACK"));
 			values.put(Five.Music.Songs.LENGTH, meta.getValue("LENGTH"));
 
 			values.put(Five.Music.Songs.CONTENT_ID, meta.getValue("CONTENT"));
