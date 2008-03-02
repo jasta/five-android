@@ -189,7 +189,7 @@ public class SourceList extends Activity
     		mSwitcher.showNext();
 
     		Log.e(TAG, "Failed to bind to MetaService");
-    		Toast.makeText(this, "CRITICAL: Failure to connect to service", Toast.LENGTH_LONG);
+    		Toast.makeText(this, "CRITICAL: Failure to connect to service", Toast.LENGTH_LONG).show();
     	}
 
     	super.onResume();
@@ -402,7 +402,7 @@ public class SourceList extends Activity
 
     	if (mSyncing == true)
     	{
-    		Toast.makeText(this, "Already synchronizing...", Toast.LENGTH_SHORT);
+    		Toast.makeText(this, "Already synchronizing...", Toast.LENGTH_SHORT).show();
     		return;
     	}
 
