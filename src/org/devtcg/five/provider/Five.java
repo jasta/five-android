@@ -263,7 +263,7 @@ public final class Five
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  CONTENT_SOURCE_ID + " INTEGER, " +
 				  CONTENT_ID + " INTEGER, " +
-				  TITLE + " TEXT NOT NULL, " +
+				  TITLE + " TEXT COLLATE UNICODE NOT NULL, " +
 				  ARTIST_ID + " INTEGER NOT NULL, " +
 				  ALBUM_ID + " INTEGER, " +
 				  LENGTH + " INTEGER NOT NULL, " +
@@ -313,7 +313,7 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-				  NAME + " TEXT NOT NULL, " +
+				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  GENRE + " TEXT, " +
 				  DISCOVERY_DATE + " DATETIME " +
@@ -365,7 +365,7 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-				  NAME + " TEXT NOT NULL, " +
+				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  ARTIST_ID + " INTEGER, " +
 				  RELEASE_DATE + " DATETIME, " +
