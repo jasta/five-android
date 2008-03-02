@@ -99,10 +99,10 @@ public class FiveProvider extends ContentProvider
 	{
 		DatabaseHelper dbh = new DatabaseHelper();
 		mDB = dbh.openDatabase(getContext(), DATABASE_NAME, null, DATABASE_VERSION);
-
+		
 		return (mDB == null) ? false : true;
 	}
-	
+
 	private static String getSecondToLastPathSegment(Uri uri)
 	{
 		List<String> segments = uri.getPathSegments();
