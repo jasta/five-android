@@ -176,15 +176,8 @@ public class SourceList extends Activity
         }
 
     	Intent meta = new Intent(this, MetaService.class);
-    	boolean bound = false;
 
-    	if (startService(meta, null) != null)
-    	{
-    		if (bindService(meta, mConnection, 0) == true)
-    			bound = true;
-    	}
-
-    	if (bound == false)
+   		if (bindService(meta, mConnection, BIND_AUTO_CREATE) == false)
     	{
     		mSwitcher.showNext();
 
