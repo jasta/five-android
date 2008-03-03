@@ -18,8 +18,6 @@ package org.devtcg.five.service;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Observable;
-import java.util.Vector;
 
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
@@ -61,8 +59,13 @@ public class MetaService extends Service
 	{
 		Log.d(TAG, "onDestroy()...");
 
-		if (serviceIsActive() == true)
-			Log.d(TAG, "TODO: stop case while synching is not currently supported");
+		if (syncIsActive() == true)
+		{
+			/* Should gracefully shut down and notify observing activities. */ 
+			syncShutdown();
+		}
+
+		mObservable.unregisterAll();
 	}
 
 	public static final int MSG_BEGIN_SOURCE = 0;
@@ -86,12 +89,12 @@ public class MetaService extends Service
 
 				try { mSyncThread.join(); }
 				catch (InterruptedException e) {}
-				
+
 				mSyncThread = null;
 
 				Log.d(TAG, "Done syncing, calling stopSelf()...");
 				stopSelf();
-				
+
 				break;
 			case MSG_BEGIN_SOURCE:
 				mSyncSource = msg.arg1;
@@ -142,7 +145,7 @@ public class MetaService extends Service
 
 		public boolean startSync()
 		{
-			if (serviceIsActive() == true)
+			if (syncIsActive() == true)
 				return false;
 
 			if (mSyncThread == null)
@@ -154,30 +157,38 @@ public class MetaService extends Service
 
 		public boolean stopSync()
 		{
-			if (serviceIsActive() == false)
+			if (syncIsActive() == false)
 			{
 				Log.w(TAG, "stopSync() invoked, but the sync thread is not running.");
 				return false;
 			}
-			
-			mSyncThread.interruptAndStop();
-			mSyncThread = null;
+
+			syncShutdown();
 
 			return true;
 		}
 
 		public boolean isSyncing()
 		{
-			return serviceIsActive();
+			return syncIsActive();
 		}
 	};
 
-	protected boolean serviceIsActive()
+	protected boolean syncIsActive()
 	{
 		if (mSyncThread != null && mSyncThread.isAlive() == true)
 			return true;
 		
 		return false;
+	}
+	
+	protected void syncShutdown()
+	{
+		if (mSyncThread == null)
+			return;
+
+		mSyncThread.interruptAndStop();
+		mSyncThread = null;		
 	}
 
 	private static class SyncThread extends ThreadStoppable
@@ -295,6 +306,11 @@ public class MetaService extends Service
 		public void unregisterObserver(IMetaObserver observer)
 		{
 			mObservers.remove(observer);
+		}
+		
+		public void unregisterAll()
+		{
+			mObservers.clear();
 		}
 
 		public void notifyBeginSync()
