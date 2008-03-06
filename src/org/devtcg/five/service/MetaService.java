@@ -282,10 +282,10 @@ public class MetaService extends Service
 				msg = mHandler.obtainMessage(MSG_END_SOURCE, sourceId, 0);
 				mHandler.sendMessage(msg);
 			}
-			
+
 			msg = mHandler.obtainMessage(MSG_END_SYNC);
 			mHandler.sendMessage(msg);
-			
+
 			c.close();
 		}
 	}
