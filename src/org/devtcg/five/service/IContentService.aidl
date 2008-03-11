@@ -16,9 +16,39 @@
 
 package org.devtcg.five.service;
 
-import org.devtcg.five.service.IContentReady;
+import org.devtcg.five.service.IContentObserver;
 
+/**
+ * Responsible for content retrieval through Five.  All content should be
+ * accessed through this channel, whether cached or not.  The system will
+ * appropriately respond to cache hits and misses and will offer sufficient
+ * information to the caller to design sensibly for the user's wait time.
+ */
 interface IContentService
 {
-	boolean getContent(int id, in IContentReady callback);
+	/**
+	 * Access the content object specified.  If necessary, the remote peer
+	 * will be contacted and the file downloaded.
+	 * <p>
+	 * You may use <code>callback</code> to determine when the data is either
+	 * partially or totally available on the local device.  Each Five
+	 * application is expected to determine if and when the transfer speed is
+	 * sufficient to begin streaming.
+	 *
+	 * @param id
+	 *   Local content ID.  Found in any Five provider URI that supports this
+	 *   mechanism.
+	 *
+	 * @param observer
+	 *   Observer callback to monitor download progress (if applicable).
+	 *   Will also fire when the content is locally available in any case.
+	 *   See {@link IContentObserver} for parameters particular to this
+	 *   instance.
+	 *
+	 * @return
+	 *   State of the specified content at the time of invocation.  Used as a
+	 *   hint to suggest sensible client behaviour when the content is in
+	 *   cache.
+	 */
+	ContentState getContent(long id, in IContentObserver observer);
 }

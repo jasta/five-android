@@ -28,7 +28,7 @@ public final class Five
 
 	/**
 	 * Concrete synchronization source.  Under this implementation, a TCP
-	 * server on the Internet.   
+	 * server on the Internet.
 	 */
 	public interface Sources extends BaseColumns
 	{
@@ -124,9 +124,9 @@ public final class Five
 			  	SOURCE_ID + ", " +
 			  	TIMESTAMP + " " +
 			  ");";
-			
+
 			public static final String DROP =
-			  "DROP TABLE IF EXISTS " + TABLE;
+			  "DROP TABLE IF EXISTS " + TABLE + ";";
 		}
 	}
 	
@@ -141,9 +141,37 @@ public final class Five
 		/** Access URI. */
 		public static final Uri CONTENT_URI =
 		  Uri.parse("content://" + AUTHORITY + "/cache");
-		
+
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
+
+		/** Content ID relative to the server. */
+		public static final String CONTENT_ID = "content_id";
+		
+		/** Path to file on SD card. */
+		public static final String PATH = "_data";
+
+		public static final class SQL
+		{
+			public static final String TABLE = "cache";
+
+			public static final String CREATE =
+			  "CREATE TABLE " + TABLE + " (" +
+			  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + 
+			  SOURCE_ID + " INTEGER NOT NULL, " +
+			  CONTENT_ID + " INTEGER NOT NULL, " +
+			  PATH + " TEXT " +
+			  ");" +
+			  "CREATE UNIQUE INDEX " + 
+			  	TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
+			  	" ON " + TABLE + " (" +
+			  	SOURCE_ID + ", " +
+			  	CONTENT_ID + " " +
+			  ");";
+			  
+			public static final String DROP =
+			  "DROP TABLE IF EXISTS " + TABLE + ";";
+		}
 	}
 	
 	/**
@@ -157,6 +185,9 @@ public final class Five
 		/** Access URI. */
 		public static final Uri CONTENT_URI =
 		  Uri.parse("content://" + AUTHORITY + "/content");
+		
+		/** Server content ID.  This is the item's GUID at the server. */
+		public static final String CONTENT_ID = "content_id";
 
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
@@ -164,8 +195,8 @@ public final class Five
 		/** Raw media size in bytes. */
 		public static final String SIZE = "size";
 
-		/** Locally cached file path if available offline; otherwise, null. */
-		public static final String CACHED = "cached_path";
+		/** Reference to cache table if cached; otherwise NULL. */
+		public static final String CACHED_ID = "cached_id";
 
 		public static final class SQL
 		{
@@ -174,13 +205,21 @@ public final class Five
 			public static final String CREATE =
 			  "CREATE TABLE " + TABLE + " (" +
 			  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+			  CONTENT_ID + " INTEGER NOT NULL, " +
 			  SOURCE_ID + " INTEGER NOT NULL, " +
 			  SIZE + " INTEGER NOT NULL, " +
-			  CACHED + " TEXT " +
+			  CACHED_ID + " INTEGER " +
+			  ");" +
+			  "CREATE UNIQUE INDEX " + 
+			  	TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
+			  	" ON " + TABLE + " (" +
+			  	SOURCE_ID + ", " +
+			  	CONTENT_ID + " " +
 			  ");";
 
+
 			public static final String DROP =
-			  "DROP TABLE IF EXISTS " + TABLE;
+			  "DROP TABLE IF EXISTS " + TABLE + ";";
 		}
 	}
 	
@@ -272,8 +311,14 @@ public final class Five
 				  SET + " INTEGER, " +
 				  DISCOVERY_DATE + " DATETIME, " +
 				  LAST_PLAYED + " DATETIME " +
-				  ");";
-
+				  ");" +
+				  "CREATE INDEX " + 
+				  	TABLE + "_" + ARTIST_ID +
+				  	" ON " + TABLE + " (" + ARTIST_ID + ");" +
+				  "CREATE INDEX " + 
+				  	TABLE + "_" + ALBUM_ID +
+				  	" ON " + TABLE + " (" + ALBUM_ID + ");";
+				
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}
@@ -370,8 +415,11 @@ public final class Five
 				  ARTIST_ID + " INTEGER, " +
 				  RELEASE_DATE + " DATETIME, " +
 				  DISCOVERY_DATE + " DATETIME " +
-				  ");";
-
+				  ");" +
+				  "CREATE INDEX " + 
+				  	TABLE + "_" + ARTIST_ID +
+				  	" ON " + TABLE + " (" + ARTIST_ID + ");";
+				
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}

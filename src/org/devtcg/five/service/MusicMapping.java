@@ -109,6 +109,7 @@ public class MusicMapping implements DatabaseMapping
 		/* Slow refresh from server: delete all our local content first. */
 		if (code == 210)
 		{
+			mContent.delete(Five.Cache.CONTENT_URI, Five.Cache.SOURCE_ID + '=' + mSourceId, null);
 			mContent.delete(Five.Content.CONTENT_URI, null, null);
 			mContent.delete(Five.Music.Artists.CONTENT_URI, null, null);
 			mContent.delete(Five.Music.Albums.CONTENT_URI, null, null);
@@ -212,10 +213,10 @@ public class MusicMapping implements DatabaseMapping
 			/* Create a media entry. */
 			ContentValues cvalues = new ContentValues();
 			cvalues.put(Five.Content.SIZE, meta.getValue("SIZE"));
+			cvalues.put(Five.Content.CONTENT_ID, meta.getValue("CONTENT"));
 			cvalues.put(Five.Content.SOURCE_ID, mSourceId);
 
-			Uri source = ContentUris.withAppendedId(Five.Content.CONTENT_URI, mSourceId);
-			Uri curi = mContent.insert(source, cvalues);
+			Uri curi = mContent.insert(Five.Content.CONTENT_URI, cvalues);
 
 			if (curi == null)
 			{
@@ -239,7 +240,7 @@ public class MusicMapping implements DatabaseMapping
 			values.put(Five.Music.Songs.TRACK, meta.getValue("TRACK"));
 			values.put(Five.Music.Songs.LENGTH, meta.getValue("LENGTH"));
 
-			values.put(Five.Music.Songs.CONTENT_ID, meta.getValue("CONTENT"));
+			values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
 			values.put(Five.Music.Songs.CONTENT_SOURCE_ID, mSourceId);
 
 			uri = mContent.insert(Five.Music.Songs.CONTENT_URI, values);

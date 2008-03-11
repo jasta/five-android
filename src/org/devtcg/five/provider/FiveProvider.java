@@ -16,6 +16,11 @@
 
 package org.devtcg.five.provider;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -25,9 +30,11 @@ import android.content.ContentUris;
 import android.content.UriMatcher;
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteQueryBuilder;
+import android.database.ArrayListCursor;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -37,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 13;
+	private static final int DATABASE_VERSION = 15;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -50,7 +57,8 @@ public class FiveProvider extends ContentProvider
 		ARTISTS, ARTIST,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUM,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
-		CONTENT, CONTENT_ITEM
+		CONTENT, CONTENT_ITEM,
+		CACHE, CACHE_ITEM, CACHE_ITEMS_BY_SOURCE, CACHE_ITEM_BY_SOURCE,
 		;
 
 		public static URIPatternIds get(int ordinal)
@@ -64,6 +72,7 @@ public class FiveProvider extends ContentProvider
 		@Override
 		public void onCreate(SQLiteDatabase db)
 		{
+			db.execSQL(Five.Cache.SQL.CREATE);
 			db.execSQL(Five.Sources.SQL.CREATE);
 			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 			db.execSQL(Five.SourcesLog.SQL.CREATE);
@@ -76,6 +85,7 @@ public class FiveProvider extends ContentProvider
 
 		private void onDrop(SQLiteDatabase db)
 		{
+			db.execSQL(Five.Cache.SQL.DROP);
 			db.execSQL(Five.Sources.SQL.DROP);
 			db.execSQL(Five.SourcesLog.SQL.DROP);
 			
@@ -114,6 +124,75 @@ public class FiveProvider extends ContentProvider
 		return segments.get(size - 2);
 	}
 
+	/*-***********************************************************************/
+
+	private void ensureSdCardPath(long sourceId)
+	  throws FileNotFoundException
+	{
+		File file = new File("/sdcard/five/cache/" + sourceId);
+		
+		if (file.exists() == true)
+			return;
+		
+		if (file.mkdirs() == false)
+			throw new FileNotFoundException("Could not create cache directory: " + file.getPath());
+	}
+	
+	@Override
+	public ParcelFileDescriptor openFile(Uri uri, String mode)
+	  throws FileNotFoundException
+	{
+		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
+		{
+		case CACHE_ITEM:
+			Cursor c = mDB.query(Five.Cache.SQL.TABLE, 
+			  new String[] { Five.Cache.SOURCE_ID, Five.Cache.CONTENT_ID },
+			  Five.Cache._ID + '=' + uri.getLastPathSegment(),
+			  null, null, null, null);
+			
+			if (c.count() == 0)
+				return null;
+
+			c.first();
+			long sourceId = c.getLong(0);
+			long contentId = c.getLong(1);
+			c.close();
+			
+			ensureSdCardPath(sourceId);
+
+			File file = new File("/sdcard/five/cache/" + sourceId + "/" + contentId);
+			int modeint;
+
+			/* XXX: Android bug that causes ParcelFileDescriptor.open with
+			 * MODE_CREATE to create files with mode 0, readable by no-one
+			 * but root. */
+			if (mode.equals("rw") == true)
+			{
+				try
+				{
+					if (file.exists() == false && file.createNewFile() == false)
+						throw new FileNotFoundException("Could not create file: " + file.getPath());					
+				}
+				catch (IOException e)
+				{
+					throw new FileNotFoundException("Could not create file: " + file.getPath());
+				}
+
+				modeint = ParcelFileDescriptor.MODE_READ_WRITE |
+				  ParcelFileDescriptor.MODE_TRUNCATE;
+			}
+			else
+			{
+				modeint = ParcelFileDescriptor.MODE_READ;
+			}
+
+			return ParcelFileDescriptor.open(file, modeint);
+
+		default:
+			throw new IllegalArgumentException("Unknown URL " + uri);
+		}
+	}
+	
 	@Override
 	public Cursor query(Uri uri, String[] projection, String selection,
 			String[] selectionArgs, String sortOrder)
@@ -123,6 +202,34 @@ public class FiveProvider extends ContentProvider
 
 		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
 		{
+		case CACHE_ITEMS_BY_SOURCE:
+			qb.setTables(Five.Cache.SQL.TABLE);
+			qb.appendWhere("source_id=" + getSecondToLastPathSegment(uri));
+			break;
+
+		case CACHE_ITEM_BY_SOURCE:
+			List<String> segs = uri.getPathSegments();
+
+			qb.setTables(Five.Cache.SQL.TABLE);
+			qb.appendWhere("source_id=" + segs.get(1));
+			qb.appendWhere("content_id=" + segs.get(3));
+
+			break;
+
+		case CACHE:
+			qb.setTables(Five.Cache.SQL.TABLE);
+			break;
+
+		case CACHE_ITEM:
+			qb.setTables(Five.Cache.SQL.TABLE);
+			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			break;
+
+		case CONTENT_ITEM:
+			qb.setTables(Five.Content.SQL.TABLE);			
+			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			break;
+
 		case SOURCES:
 			qb.setTables(Five.Sources.SQL.TABLE + " s " +
 			  "LEFT JOIN " + Five.SourcesLog.SQL.TABLE + " sl " +
@@ -197,25 +304,36 @@ public class FiveProvider extends ContentProvider
 		}
 
 		Cursor c = qb.query(mDB, projection, selection, selectionArgs, groupBy, null, sortOrder);
-
 		c.setNotificationUri(getContext().getContentResolver(), uri);
 
 		return c;
 	}
 
+	/*-***********************************************************************/
+
 	private int updateSource(Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
-		String id = "_id=" + uri.getLastPathSegment();
+		String custom;
 
-		if (sel == null)
-			sel = id;
-		else
-			sel = id + " AND (" + sel + ")";
+		custom = extendWhere(sel, Five.Sources._ID + '=' + uri.getLastPathSegment());
 
-		int ret = mDB.update(Five.Sources.SQL.TABLE, v, sel, selArgs);
+		int ret = mDB.update(Five.Sources.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
-		
+
+		return ret;
+	}
+
+	private int updateContent(Uri uri, URIPatternIds type, ContentValues v,
+	  String sel, String[] selArgs)
+	{
+		String custom;
+
+		custom = extendWhere(sel, Five.Content._ID + '=' + uri.getLastPathSegment());
+
+		int ret = mDB.update(Five.Content.SQL.TABLE, v, custom, selArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
 		return ret;
 	}
 
@@ -229,11 +347,15 @@ public class FiveProvider extends ContentProvider
 		{
 		case SOURCE:
 			return updateSource(uri, type, values, selection, selectionArgs);
+		case CONTENT_ITEM:
+			return updateContent(uri, type, values, selection, selectionArgs);
 		default:
-			throw new IllegalArgumentException("Cannot insert URI: " + uri);
+			throw new IllegalArgumentException("Cannot update URI: " + uri);
 		}
 	}
 	
+	/*-***********************************************************************/
+
 	private Uri insertSource(Uri uri, URIPatternIds type, ContentValues v)
 	{
 		return null;
@@ -267,19 +389,66 @@ public class FiveProvider extends ContentProvider
 		return ret;
 	}
 	
+	private Uri insertCache(Uri uri, URIPatternIds type, ContentValues v)
+	{
+		if (v.containsKey(Five.Cache.SOURCE_ID) == false)
+			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
+
+		if (v.containsKey(Five.Cache.CONTENT_ID) == false)
+			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
+
+		Cursor c = mDB.query(Five.Cache.SQL.TABLE,
+		  new String[] { Five.Cache._ID },
+		  Five.Cache.SOURCE_ID + '=' + v.getAsLong(Five.Cache.SOURCE_ID) + " AND " +
+		  Five.Cache.CONTENT_ID + '=' + v.getAsLong(Five.Cache.CONTENT_ID),
+		  null, null, null, null);
+
+		int rows;
+		long id;
+
+		if ((rows = c.count()) == 0)
+		{
+			v.put(Five.Cache.PATH,
+			  "/sdcard/five/cache/" +
+			  v.getAsLong(Five.Cache.SOURCE_ID) + "/" + 
+			  v.getAsLong(Five.Cache.CONTENT_ID));
+
+			id = mDB.insert(Five.Cache.SQL.TABLE, Five.Cache.SOURCE_ID, v);
+		}
+		else
+		{
+			c.first();
+			id = c.getLong(0);
+			c.close();
+		}
+
+		if (id == -1)
+			return null;
+
+		Uri ret = ContentUris.withAppendedId(Five.Cache.CONTENT_URI, id);
+
+		if (rows == 0)
+			getContext().getContentResolver().notifyChange(ret, null);
+
+		return ret;
+	}
+	
 	private Uri insertContent(Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Content.SOURCE_ID) == false)
 			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
-		
+
+		if (v.containsKey(Five.Content.CONTENT_ID) == false)
+			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
+
 		long id = mDB.insert(Five.Content.SQL.TABLE, Five.Content.SIZE, v);
 		
 		if (id == -1)
 			return null;
-		
+
 		Uri ret = ContentUris.withAppendedId(Five.Content.CONTENT_URI, id);
 		getContext().getContentResolver().notifyChange(ret, null);
-		
+
 		return ret;
 	}
 	
@@ -389,7 +558,9 @@ public class FiveProvider extends ContentProvider
 			return insertSource(uri, type, values);
 		case SOURCE_LOG:
 			return insertSourceLog(uri, type, values);
-		case CONTENT_ITEM:
+		case CACHE:
+			return insertCache(uri, type, values);
+		case CONTENT:
 			return insertContent(uri, type, values);
 		case ARTISTS:
 			return insertArtist(uri, type, values);
@@ -402,6 +573,37 @@ public class FiveProvider extends ContentProvider
 		}
 	}
 
+	/*-***********************************************************************/
+
+	private static String extendWhere(String old, String[] add)
+	{
+		StringBuilder ret = new StringBuilder();
+
+		int length = add.length;
+
+		if (length > 0)
+		{
+			ret.append("(" + add[0] + ")");
+
+			for (int i = 1; i < length; i++)
+			{
+				ret.append(" AND (");
+				ret.append(add[i]);
+				ret.append(')');
+			}
+		}
+
+		if (TextUtils.isEmpty(old) == false)
+			ret.append(" AND (").append(old).append(')');
+
+		return ret.toString();
+	}
+
+	private static String extendWhere(String old, String add)
+	{
+		return extendWhere(old, new String[] { add });
+	}
+
 	private int deleteSource(Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
@@ -412,7 +614,37 @@ public class FiveProvider extends ContentProvider
 
 		return count;
 	}
+	
+	private int deleteCache(Uri uri, URIPatternIds type,
+	  String selection, String[] selectionArgs)
+	{
+		String custom;
+		int count;
+		
+		switch (type)
+		{
+		case CACHE:
+			custom = selection;
+			break;
 
+		case CACHE_ITEM:
+			custom = extendWhere(selection, Five.Cache._ID + '=' + uri.getLastPathSegment());
+			break;
+
+		case CACHE_ITEMS_BY_SOURCE:
+			custom = extendWhere(selection, Five.Cache.SOURCE_ID + '=' + getSecondToLastPathSegment(uri));
+			break;
+
+		default:
+			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
+		}
+		
+		count = mDB.delete(Five.Cache.SQL.TABLE, custom, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;
+	}
+	
 	private int deleteContent(Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
@@ -426,13 +658,7 @@ public class FiveProvider extends ContentProvider
 			break;
 
 		case CONTENT_ITEM:
-			StringBuilder where = new StringBuilder();
-			where.append(Five.Content._ID).append('=').append(uri.getLastPathSegment());
-			
-			if (TextUtils.isEmpty(selection) == false)
-				where.append(" AND (").append(selection).append(')');
-
-			custom = where.toString();			
+			custom = extendWhere(selection, Five.Content._ID + '=' + uri.getLastPathSegment());
 			break;
 
 		default:
@@ -550,6 +776,10 @@ public class FiveProvider extends ContentProvider
 		{
 		case SOURCES:
 			return deleteSource(uri, type, selection, selectionArgs);
+		case CACHE:
+		case CACHE_ITEM:
+		case CACHE_ITEMS_BY_SOURCE:
+			return deleteCache(uri, type, selection, selectionArgs); 
 		case CONTENT:
 		case CONTENT_ITEM:
 			return deleteContent(uri, type, selection, selectionArgs);
@@ -567,11 +797,17 @@ public class FiveProvider extends ContentProvider
 		}
 	}
 
+	/*-***********************************************************************/
+
 	@Override
 	public String getType(Uri uri)
 	{
 		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
 		{
+		case CACHE:
+			return Five.Cache.CONTENT_TYPE;
+		case CACHE_ITEM:
+			return Five.Cache.CONTENT_ITEM_TYPE;
 		case SOURCES:
 			return Five.Sources.CONTENT_TYPE;
 		case SOURCE:
@@ -595,7 +831,9 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
 	}
-	
+
+	/*-***********************************************************************/
+
 	static
 	{
 		URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
@@ -606,19 +844,24 @@ public class FiveProvider extends ContentProvider
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "content", URIPatternIds.CONTENT.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT_ITEM.ordinal());
+		
+		URI_MATCHER.addURI(Five.AUTHORITY, "cache", URIPatternIds.CACHE.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "cache/#", URIPatternIds.CACHE_ITEM.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/cache", URIPatternIds.CACHE_ITEMS_BY_SOURCE.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/cache/#", URIPatternIds.CACHE_ITEM_BY_SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_BY_ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
-		
+
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums", URIPatternIds.ALBUMS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#", URIPatternIds.ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
-		
+
 		sourcesMap = new HashMap<String, String>();
 		sourcesMap.put(Five.Sources._ID, "s." + Five.Sources._ID + " AS " + Five.Sources._ID);
 		sourcesMap.put(Five.Sources.HOST, "s." + Five.Sources.HOST + " AS " + Five.Sources.HOST);
