@@ -24,7 +24,7 @@ import android.net.Uri;
 
 public final class SourceLog
 {
-	protected static Uri buildUri(int sourceId)
+	protected static Uri buildUri(long sourceId)
 	{
 		return Five.Sources.CONTENT_URI.buildUpon()
 		  .appendPath(String.valueOf(sourceId))
@@ -32,15 +32,15 @@ public final class SourceLog
 		  .build();
 	}
 	
-	protected static Uri buildUri(int sourceId, int id)
+	protected static Uri buildUri(long sourceId, int id)
 	{
 		return buildUri(sourceId).buildUpon().appendPath(String.valueOf(id)).build();
 	}
 	
-	public static Uri insertLog(ContentResolver c, int sourceId, int type, String msg)
+	public static Uri insertLog(ContentResolver c, long sourceId, int type, String msg)
 	{
 		ContentValues v = new ContentValues();
-		
+
 		v.put(Five.SourcesLog.TYPE, type);
 		v.put(Five.SourcesLog.MESSAGE, msg);
 
