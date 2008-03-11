@@ -66,6 +66,8 @@ public class MetaService extends Service
 		}
 
 		mObservable.unregisterAll();
+		
+		super.onDestroy();
 	}
 
 	public static final int MSG_BEGIN_SOURCE = 0;
@@ -109,6 +111,8 @@ public class MetaService extends Service
 				mSyncProgressD = msg.arg2;
 				mObservable.notifyUpdateProgress(mSyncSource, msg.arg1, msg.arg2);
 				break;
+			default:
+				super.handleMessage(msg);
 			}
 		}
 	};
