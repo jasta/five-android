@@ -154,7 +154,7 @@ public class SourceList extends Activity
         list.setOnItemClickListener(mOnClick);
         list.setAdapter(mListAdapter);
     }
-
+    
     @Override
     public void onResume()
     {
@@ -193,15 +193,18 @@ public class SourceList extends Activity
     {
     	Log.d(TAG, "!!!!!! onPause");
 
-    	try { mService.unregisterObserver(mObserver); }
-    	catch (DeadObjectException e) { }
+    	if (mService != null)
+    	{
+    		try { mService.unregisterObserver(mObserver); }
+    		catch (DeadObjectException e) { }
+    	}
 
     	unbindService(mConnection);
     	mService = null;
-    	
+
     	super.onPause();    	
     }
-    
+
     private void presentUI()
     {
     	if (mSwitcher.getDisplayedChild() == 0)
