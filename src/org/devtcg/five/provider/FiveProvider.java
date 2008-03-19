@@ -44,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 15;
+	private static final int DATABASE_VERSION = 17;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -54,8 +54,8 @@ public class FiveProvider extends ContentProvider
 	private static enum URIPatternIds
 	{
 		SOURCES, SOURCE, SOURCE_LOG,
-		ARTISTS, ARTIST,
-		ALBUMS, ALBUMS_BY_ARTIST, ALBUM,
+		ARTISTS, ARTIST, ARTIST_PHOTO,
+		ALBUMS, ALBUMS_BY_ARTIST, ALBUM, ALBUM_ARTWORK,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
 		CONTENT, CONTENT_ITEM,
 		CACHE, CACHE_ITEM, CACHE_ITEMS_BY_SOURCE, CACHE_ITEM_BY_SOURCE,
@@ -126,22 +126,58 @@ public class FiveProvider extends ContentProvider
 
 	/*-***********************************************************************/
 
-	private void ensureSdCardPath(long sourceId)
+	private static StringBuilder ensureSdCardPath(String path)
 	  throws FileNotFoundException
 	{
-		File file = new File("/sdcard/five/cache/" + sourceId);
+		StringBuilder b = new StringBuilder("/sdcard/five/");
+
+		b.append(path);
+		File file = new File(b.toString());
 		
 		if (file.exists() == true)
-			return;
+			return b;
 		
 		if (file.mkdirs() == false)
-			throw new FileNotFoundException("Could not create cache directory: " + file.getPath());
+			throw new FileNotFoundException("Could not create cache directory: " + b.toString());
+
+		return b;
 	}
-	
+
+	private static int stringModeToInt(File file, String mode)
+	  throws FileNotFoundException
+	{
+		if (mode.equals("rw") == true)
+		{
+			/* XXX: Android bug that causes ParcelFileDescriptor.open with
+			 * MODE_CREATE to create files with mode 0, readable by no-one
+			 * but root. */
+			try
+			{
+				if (file.exists() == false && file.createNewFile() == false)
+					throw new FileNotFoundException("Could not create file: " + file.getPath());					
+			}
+			catch (IOException e)
+			{
+				throw new FileNotFoundException("Could not create file: " + file.getPath());
+			}
+
+			return ParcelFileDescriptor.MODE_READ_WRITE |
+			  ParcelFileDescriptor.MODE_TRUNCATE;
+		}
+		else
+		{
+			return ParcelFileDescriptor.MODE_READ;
+		}
+	}
+
 	@Override
 	public ParcelFileDescriptor openFile(Uri uri, String mode)
 	  throws FileNotFoundException
 	{
+		File file;
+		StringBuilder path;
+		int modeint;
+		
 		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
 		{
 		case CACHE_ITEM:
@@ -158,35 +194,32 @@ public class FiveProvider extends ContentProvider
 			long contentId = c.getLong(1);
 			c.close();
 			
-			ensureSdCardPath(sourceId);
+			path = ensureSdCardPath("cache/" + sourceId + "/");
 
-			File file = new File("/sdcard/five/cache/" + sourceId + "/" + contentId);
-			int modeint;
-
-			/* XXX: Android bug that causes ParcelFileDescriptor.open with
-			 * MODE_CREATE to create files with mode 0, readable by no-one
-			 * but root. */
-			if (mode.equals("rw") == true)
-			{
-				try
-				{
-					if (file.exists() == false && file.createNewFile() == false)
-						throw new FileNotFoundException("Could not create file: " + file.getPath());					
-				}
-				catch (IOException e)
-				{
-					throw new FileNotFoundException("Could not create file: " + file.getPath());
-				}
-
-				modeint = ParcelFileDescriptor.MODE_READ_WRITE |
-				  ParcelFileDescriptor.MODE_TRUNCATE;
-			}
-			else
-			{
-				modeint = ParcelFileDescriptor.MODE_READ;
-			}
+			file = new File(path.append(contentId).toString());
+			modeint = stringModeToInt(file, mode);
 
 			return ParcelFileDescriptor.open(file, modeint);
+
+		case ALBUM_ARTWORK:
+			String albumId = getSecondToLastPathSegment(uri);
+
+			path = ensureSdCardPath("music/album/");
+
+			file = new File(path.append(albumId).toString());
+			modeint = stringModeToInt(file, mode);
+
+			return ParcelFileDescriptor.open(file, modeint);
+			
+		case ARTIST_PHOTO:
+			String artistId = getSecondToLastPathSegment(uri);
+
+			path = ensureSdCardPath("music/artist/");
+
+			file = new File(path.append(artistId).toString());
+			modeint = stringModeToInt(file, mode);
+
+			return ParcelFileDescriptor.open(file, modeint);			
 
 		default:
 			throw new IllegalArgumentException("Unknown URL " + uri);
@@ -311,6 +344,32 @@ public class FiveProvider extends ContentProvider
 
 	/*-***********************************************************************/
 
+	private int updateAlbum(Uri uri, URIPatternIds type, ContentValues v,
+	  String sel, String[] selArgs)
+	{
+		String custom;
+
+		custom = extendWhere(sel, Five.Music.Albums._ID + '=' + uri.getLastPathSegment());
+
+		int ret = mDB.update(Five.Music.Albums.SQL.TABLE, v, custom, selArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return ret;
+	}
+	
+	private int updateArtist(Uri uri, URIPatternIds type, ContentValues v,
+	  String sel, String[] selArgs)
+	{
+		String custom;
+
+		custom = extendWhere(sel, Five.Music.Artists._ID + '=' + uri.getLastPathSegment());
+
+		int ret = mDB.update(Five.Music.Artists.SQL.TABLE, v, custom, selArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return ret;
+	}
+	
 	private int updateSource(Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
@@ -345,6 +404,10 @@ public class FiveProvider extends ContentProvider
 		
 		switch (type)
 		{
+		case ALBUM:
+			return updateAlbum(uri, type, values, selection, selectionArgs);
+		case ARTIST:
+			return updateArtist(uri, type, values, selection, selectionArgs);
 		case SOURCE:
 			return updateSource(uri, type, values, selection, selectionArgs);
 		case CONTENT_ITEM:
@@ -854,10 +917,12 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_BY_ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums", URIPatternIds.ALBUMS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#", URIPatternIds.ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork", URIPatternIds.ALBUM_ARTWORK.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
@@ -869,7 +934,7 @@ public class FiveProvider extends ContentProvider
 		sourcesMap.put(Five.Sources.PORT, "s." + Five.Sources.PORT + " AS " + Five.Sources.PORT);
 		sourcesMap.put(Five.Sources.REVISION, "s." + Five.Sources.REVISION + " AS " + Five.Sources.REVISION);
 		sourcesMap.put(Five.Sources.LAST_ERROR, "sl." + Five.SourcesLog.MESSAGE + " AS " + Five.Sources.LAST_ERROR);
-		
+
 		artistsMap = new HashMap<String, String>();
 		artistsMap.put(Five.Music.Artists._ID, Five.Music.Artists._ID);
 		artistsMap.put(Five.Music.Artists.DISCOVERY_DATE, Five.Music.Artists.DISCOVERY_DATE);
@@ -877,12 +942,12 @@ public class FiveProvider extends ContentProvider
 		artistsMap.put(Five.Music.Artists.NAME, Five.Music.Artists.NAME);
 		artistsMap.put(Five.Music.Artists.NAME_PREFIX, Five.Music.Artists.NAME_PREFIX);
 		artistsMap.put(Five.Music.Artists.FULL_NAME, "IFNULL(" + Five.Music.Artists.NAME_PREFIX + ", \"\") || " + Five.Music.Artists.NAME + " AS " + Five.Music.Artists.FULL_NAME);
-		artistsMap.put(Five.Music.Artists.PHOTO_ID, Five.Music.Artists.PHOTO_ID);
-		
+		artistsMap.put(Five.Music.Artists.PHOTO, Five.Music.Artists.PHOTO);
+
 		albumsMap = new HashMap<String, String>();
 		albumsMap.put(Five.Music.Albums._ID, Five.Music.Albums._ID);
 		albumsMap.put(Five.Music.Albums.ARTIST_ID, Five.Music.Albums.ARTIST_ID);
-		albumsMap.put(Five.Music.Albums.ARTWORK_ID, Five.Music.Albums.ARTWORK_ID);
+		albumsMap.put(Five.Music.Albums.ARTWORK, Five.Music.Albums.ARTWORK);
 		albumsMap.put(Five.Music.Albums.DISCOVERY_DATE, Five.Music.Albums.DISCOVERY_DATE);
 		albumsMap.put(Five.Music.Albums.NAME, Five.Music.Albums.NAME);
 		albumsMap.put(Five.Music.Albums.NAME_PREFIX, Five.Music.Albums.NAME_PREFIX);

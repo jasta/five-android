@@ -79,7 +79,7 @@ public final class Five
 			  "5545, " +
 			  "0 " +
 			  ");";
-			  
+
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE;
 		}
@@ -277,7 +277,7 @@ public final class Five
 			/** Lead performer / Soloist / Composer. */
 			public static final String ARTIST = "artist";
 			public static final String ARTIST_ID = "artist_id";
-			
+
 			/** Running time in seconds. */
 			public static final String LENGTH = "length";
 
@@ -342,8 +342,8 @@ public final class Five
 			/** Leading text not included for sorting purposes. */
 			public static final String NAME_PREFIX = "name_prefix";
 
-			/** Band or performer photograph. */
-			public static final String PHOTO_ID = "image_id";
+			/** Band or performer photograph (content URI). */
+			public static final String PHOTO = "photo";
 
 			/** General musical style, if applicable. */
 			public static final String GENRE = "genre";
@@ -360,6 +360,7 @@ public final class Five
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
+				  PHOTO + " TEXT, " +
 				  GENRE + " TEXT, " +
 				  DISCOVERY_DATE + " DATETIME " +
 				  ");";
@@ -391,8 +392,8 @@ public final class Five
 			public static final String ARTIST = "artist";
 			public static final String ARTIST_ID = "artist_id";
 			
-			/** Album artwork / Cover photo. */
-			public static final String ARTWORK_ID = "image_id";
+			/** Album artwork / Cover photo (content URI). */
+			public static final String ARTWORK = "artwork";
 			
 			/** Original release date. */
 			public static final String RELEASE_DATE = "release_date";
@@ -413,13 +414,14 @@ public final class Five
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  ARTIST_ID + " INTEGER, " +
+				  ARTWORK + " TEXT, " +
 				  RELEASE_DATE + " DATETIME, " +
 				  DISCOVERY_DATE + " DATETIME " +
 				  ");" +
 				  "CREATE INDEX " + 
 				  	TABLE + "_" + ARTIST_ID +
 				  	" ON " + TABLE + " (" + ARTIST_ID + ");";
-				
+
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}

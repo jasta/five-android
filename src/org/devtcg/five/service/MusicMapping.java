@@ -16,6 +16,8 @@
 
 package org.devtcg.five.service;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -31,6 +33,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Base64Utils;
 import android.util.Log;
 
 public class MusicMapping implements DatabaseMapping
@@ -152,7 +155,7 @@ public class MusicMapping implements DatabaseMapping
 		Message msg = mHandler.obtainMessage(MetaService.MSG_UPDATE_PROGRESS, mCounter, mNumChanges);
 		mHandler.sendMessage(msg);
 	}
-	
+
 	private static String getBaseType(String mime)
 	{
 		int typeIndex = mime.indexOf(mimePrefix);
@@ -169,7 +172,7 @@ public class MusicMapping implements DatabaseMapping
 
 		String mime = item.getMimeType();
 		String format = getBaseType(mime);
-		
+
 		if (format == null)
 		{
 			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
@@ -192,21 +195,83 @@ public class MusicMapping implements DatabaseMapping
 			uri = mContent.insert(Five.Music.Artists.CONTENT_URI, values);
 
 			if (uri != null)
-				mArtistMap.put(item.getSourceId(), Long.valueOf(uri.getLastPathSegment()));
+			{
+				mArtistMap.put(item.getSourceId(),
+				  Long.valueOf(uri.getLastPathSegment()));
+				
+				if (meta.hasValue("PHOTO") == true)
+				{
+					Uri photo = uri.buildUpon().appendPath("photo").build();
+
+					ContentValues v = new ContentValues();
+					v.put(Five.Music.Artists.PHOTO, photo.toString());
+					
+					int n = mContent.update(uri, v, null, null);
+
+					if (n > 0)
+					{
+						try
+						{
+							OutputStream out = mContent.openOutputStream(photo);
+							out.write(meta.getBytes("PHOTO"));
+							out.close();
+						}
+						catch (IOException e)
+						{
+							Log.d(TAG, "Failed to store artist photo", e);
+						}
+					}
+					else
+					{
+						Log.d(TAG, "Failed to create " + photo.toString() + ", huh?");
+					}
+				}
+			}
 		}
 		else if (format.equals("album") == true)
 		{
 			values.put(Five.Music.Albums.NAME, meta.getValue("N"));
 
 			if (meta.hasValue("ARTIST") == true)
-				values.put(Five.Music.Songs.ARTIST_ID, meta.getValue("ARTIST"));
+				values.put(Five.Music.Albums.ARTIST_ID, meta.getValue("ARTIST"));
 			else if (meta.hasValue("ARTIST_GUID") == true)
-				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
+				values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
 
 			uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
 
 			if (uri != null)
-				mAlbumMap.put(item.getSourceId(), Long.valueOf(uri.getLastPathSegment()));
+			{
+				mAlbumMap.put(item.getSourceId(),
+				  Long.valueOf(uri.getLastPathSegment()));
+
+				if (meta.hasValue("ARTWORK") == true)
+				{
+					Uri artwork = uri.buildUpon().appendPath("artwork").build();
+
+					ContentValues v = new ContentValues();
+					v.put(Five.Music.Albums.ARTWORK, artwork.toString());
+					
+					int n = mContent.update(uri, v, null, null);
+
+					if (n > 0)
+					{
+						try
+						{
+							OutputStream out = mContent.openOutputStream(artwork);
+							out.write(meta.getBytes("ARTWORK"));
+							out.close();
+						}
+						catch (IOException e)
+						{
+							Log.d(TAG, "Failed to store album artwork", e);
+						}
+					}
+					else
+					{
+						Log.d(TAG, "Failed to create " + artwork.toString() + ", huh?");
+					}
+				}
+			}
 		}
 		else if (format.equals("song") == true)
 		{
@@ -356,9 +421,9 @@ public class MusicMapping implements DatabaseMapping
 				String old = mData.put(keyvalue[0], keyvalue[1]);
 				
 				if (old != null)
-					Log.d(TAG, "Encountered unusual meta data input for key '" + keyvalue[0] + "' while parsing: " + data);
+					Log.d(TAG, "Encountered unusual meta data input for key '" + keyvalue[0] + "'");
 			}
-			
+
 			if (mData.isEmpty() == true)
 				throw new IllegalArgumentException("No keys found in meta data");
 		}
@@ -371,6 +436,12 @@ public class MusicMapping implements DatabaseMapping
 		public String getValue(String key)
 		{
 			return mData.get(key);
+		}
+
+		public byte[] getBytes(String key)
+		{
+			/* TODO: This format should be binary, not Base64 encoded! */
+			return Base64Utils.decodeBase64(mData.get(key));
 		}
 	}
 }
