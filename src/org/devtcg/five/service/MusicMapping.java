@@ -16,8 +16,11 @@
 
 package org.devtcg.five.service;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -165,6 +168,22 @@ public class MusicMapping implements DatabaseMapping
 
 		return mime.substring(typeIndex + mimePrefix.length());		
 	}
+	
+	private static void logFailure(String data, String path)
+	{
+		File f = new File(path);
+		
+		try
+		{
+			FileOutputStream out = new FileOutputStream(f);
+			out.write(data.getBytes());
+			out.close();
+		}
+		catch (Exception e)
+		{
+			Log.d(TAG, "Damn", e);
+		}
+	}
 
 	public int insert(SyncItem item)
 	{
@@ -181,7 +200,22 @@ public class MusicMapping implements DatabaseMapping
 		}
 
 		Log.i(TAG, "Inserting item (" + mime + "): " + item.getSourceId());
-		MetaDataFormat meta = new MetaDataFormat(item.getData());
+		
+		MetaDataFormat meta;
+
+		try
+		{
+			meta = new MetaDataFormat(item.getData());
+		}
+		catch (ParseException e)
+		{
+			logFailure(item.getData(),
+			  "/sdcard/five/" + mSourceId + "-" + item.getSourceId() + ".item");
+			Log.d(TAG, "Failed to parse data=" + item.getData());
+
+			/* Not executed. */
+			return 215;
+		}
 
 		Uri uri = null;
 		ContentValues values = new ContentValues();
@@ -404,22 +438,23 @@ public class MusicMapping implements DatabaseMapping
 	{
 		private HashMap<String, String> mData =
 		  new HashMap<String, String>();
-
+		
 		public MetaDataFormat(String data)
+		  throws ParseException
 		{
 			Scanner scanner = new Scanner(data);
 			
-			while (scanner.hasNextLine() == true)
+			for (int i = 0; scanner.hasNextLine() == true; i++)
 			{
 				String line = scanner.nextLine();
 				
 				String keyvalue[] = line.split(":", 2);
 				
 				if (keyvalue.length < 2)
-					throw new IllegalArgumentException("Parse error on line '" + line + "'");
-				
+					throw new ParseException("Parse error on line '" + line + "'", i);
+
 				String old = mData.put(keyvalue[0], keyvalue[1]);
-				
+
 				if (old != null)
 					Log.d(TAG, "Encountered unusual meta data input for key '" + keyvalue[0] + "'");
 			}
