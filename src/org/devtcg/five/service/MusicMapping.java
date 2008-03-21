@@ -16,10 +16,14 @@
 
 package org.devtcg.five.service;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -102,7 +106,7 @@ public class MusicMapping implements DatabaseMapping
 	public void setLastAnchor(long anchor)
 	{
 	}
-	
+
 	public void setNextAnchor(long anchor)
 	{
 		/* TODO: This shouldn't be part of the interface. */
@@ -199,7 +203,7 @@ public class MusicMapping implements DatabaseMapping
 			return 404;
 		}
 
-		Log.i(TAG, "Inserting item (" + mime + "): " + item.getSourceId());
+		Log.i(TAG, "Inserting item (" + mime + "; " + item.getData().length() + " bytes): " + item.getSourceId());
 		
 		MetaDataFormat meta;
 
@@ -222,7 +226,9 @@ public class MusicMapping implements DatabaseMapping
 
 		if (format.equals("artist") == true)
 		{
-			values.put(Five.Music.Artists.NAME, meta.getValue("N"));			
+			values.put(Five.Music.Artists.NAME,
+			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
+			
 //			values.put(Five.Music.Artists.GENRE, meta.getValue("GENRE"));
 //			values.put(Five.Music.Artists.PHOTO_ID, meta.getValue("ARTWORK"));
 
@@ -233,7 +239,9 @@ public class MusicMapping implements DatabaseMapping
 				mArtistMap.put(item.getSourceId(),
 				  Long.valueOf(uri.getLastPathSegment()));
 				
-				if (meta.hasValue("PHOTO") == true)
+				byte[] photoData = meta.getBytes(MetaDataFormat.ITEM_FIELD_PHOTO);
+				
+				if (photoData != null)
 				{
 					Uri photo = uri.buildUpon().appendPath("photo").build();
 
@@ -247,7 +255,7 @@ public class MusicMapping implements DatabaseMapping
 						try
 						{
 							OutputStream out = mContent.openOutputStream(photo);
-							out.write(meta.getBytes("PHOTO"));
+							out.write(photoData);
 							out.close();
 						}
 						catch (IOException e)
@@ -264,12 +272,13 @@ public class MusicMapping implements DatabaseMapping
 		}
 		else if (format.equals("album") == true)
 		{
-			values.put(Five.Music.Albums.NAME, meta.getValue("N"));
+			values.put(Five.Music.Albums.NAME,
+			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
 
 			if (meta.hasValue("ARTIST") == true)
-				values.put(Five.Music.Albums.ARTIST_ID, meta.getValue("ARTIST"));
+				values.put(Five.Music.Albums.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
 			else if (meta.hasValue("ARTIST_GUID") == true)
-				values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
+				values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
 
 			uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
 
@@ -277,8 +286,10 @@ public class MusicMapping implements DatabaseMapping
 			{
 				mAlbumMap.put(item.getSourceId(),
 				  Long.valueOf(uri.getLastPathSegment()));
+				
+				byte[] artworkData = meta.getBytes(MetaDataFormat.ITEM_FIELD_ARTWORK);
 
-				if (meta.hasValue("ARTWORK") == true)
+				if (artworkData != null)
 				{
 					Uri artwork = uri.buildUpon().appendPath("artwork").build();
 
@@ -292,7 +303,7 @@ public class MusicMapping implements DatabaseMapping
 						try
 						{
 							OutputStream out = mContent.openOutputStream(artwork);
-							out.write(meta.getBytes("ARTWORK"));
+							out.write(artworkData);
 							out.close();
 						}
 						catch (IOException e)
@@ -311,8 +322,11 @@ public class MusicMapping implements DatabaseMapping
 		{
 			/* Create a media entry. */
 			ContentValues cvalues = new ContentValues();
-			cvalues.put(Five.Content.SIZE, meta.getValue("SIZE"));
-			cvalues.put(Five.Content.CONTENT_ID, meta.getValue("CONTENT"));
+			
+			cvalues.put(Five.Content.SIZE,
+			  meta.getString(MetaDataFormat.ITEM_FIELD_SIZE));
+			cvalues.put(Five.Content.CONTENT_ID,
+			  meta.getString(MetaDataFormat.ITEM_FIELD_CONTENT));
 			cvalues.put(Five.Content.SOURCE_ID, mSourceId);
 
 			Uri curi = mContent.insert(Five.Content.CONTENT_URI, cvalues);
@@ -324,20 +338,21 @@ public class MusicMapping implements DatabaseMapping
 			}
 
 			/* And the meta data... */
-			values.put(Five.Music.Songs.TITLE, meta.getValue("N"));
+			values.put(Five.Music.Songs.TITLE,
+			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
 
 			if (meta.hasValue("ARTIST") == true)
-				values.put(Five.Music.Songs.ARTIST_ID, meta.getValue("ARTIST"));
+				values.put(Five.Music.Songs.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
 			else if (meta.hasValue("ARTIST_GUID") == true)
-				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getValue("ARTIST_GUID")));
+				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
 
 			if (meta.hasValue("ALBUM") == true)
-				values.put(Five.Music.Songs.ALBUM_ID, meta.getValue("ALBUM"));
+				values.put(Five.Music.Songs.ALBUM_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM));
 			else if (meta.hasValue("ALBUM_GUID") == true)
-				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getValue("ALBUM_GUID")));
+				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM_GUID)));
 
-			values.put(Five.Music.Songs.TRACK, meta.getValue("TRACK"));
-			values.put(Five.Music.Songs.LENGTH, meta.getValue("LENGTH"));
+			values.put(Five.Music.Songs.TRACK, meta.getString(MetaDataFormat.ITEM_FIELD_TRACK));
+			values.put(Five.Music.Songs.LENGTH, meta.getString(MetaDataFormat.ITEM_FIELD_LENGTH));
 
 			values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
 			values.put(Five.Music.Songs.CONTENT_SOURCE_ID, mSourceId);
@@ -436,47 +451,123 @@ public class MusicMapping implements DatabaseMapping
 	
 	private static class MetaDataFormat
 	{
-		private HashMap<String, String> mData =
-		  new HashMap<String, String>();
+		private HashMap<Integer, byte[]> mData =
+		  new HashMap<Integer, byte[]>();
+		  
+		private HashMap<String, byte[]> mDataCustom;
 		
+		public static final int ITEM_FIELD_CUSTOM = 0;
+		public static final int ITEM_FIELD_NAME = 1;
+		public static final int ITEM_FIELD_GENRE = 2;
+		public static final int ITEM_FIELD_DISCOVERY = 3;
+		public static final int ITEM_FIELD_PHOTO = 10;
+		public static final int ITEM_FIELD_ARTWORK = 20;
+		public static final int ITEM_FIELD_RELEASE = 21;
+		public static final int ITEM_FIELD_ARTIST = 30;
+		public static final int ITEM_FIELD_ARTIST_GUID = 31;
+		public static final int ITEM_FIELD_CONTENT = 40;
+		public static final int ITEM_FIELD_ALBUM = 41;
+		public static final int ITEM_FIELD_ALBUM_GUID = 42;
+		public static final int ITEM_FIELD_LENGTH = 43;
+		public static final int ITEM_FIELD_TRACK = 44;
+		public static final int ITEM_FIELD_SIZE = 45;
+
 		public MetaDataFormat(String data)
 		  throws ParseException
 		{
-			Scanner scanner = new Scanner(data);
-			
-			for (int i = 0; scanner.hasNextLine() == true; i++)
+			DataInputStream stream =
+			  new DataInputStream(new ByteArrayInputStream(data.getBytes()));
+
+			int pos = 0;
+
+			byte[] value = new byte[1024];
+
+			while (true)
 			{
-				String line = scanner.nextLine();
-				
-				String keyvalue[] = line.split(":", 2);
-				
-				if (keyvalue.length < 2)
-					throw new ParseException("Parse error on line '" + line + "'", i);
+				try
+				{
+					int field;
+					byte[] name = null;
 
-				String old = mData.put(keyvalue[0], keyvalue[1]);
+					try
+					{
+						field = stream.readInt();
+						pos += 4;
+					}
+					catch (EOFException e)
+					{
+						break;
+					}
 
-				if (old != null)
-					Log.d(TAG, "Encountered unusual meta data input for key '" + keyvalue[0] + "'");
+					/* XXX: This feature is not currently used by the server. */
+					if (field == ITEM_FIELD_CUSTOM)
+					{
+						int nameLen = stream.readInt();
+						name = new byte[nameLen];
+
+						stream.readFully(name);
+					}
+
+					int valueLen = stream.readInt();
+
+					if (valueLen > value.length)
+					{
+						int newLen = value.length;
+						
+						while (newLen < valueLen)
+							newLen *= 2;
+						
+						value = new byte[newLen];
+					}
+
+					stream.readFully(value, 0, valueLen);
+
+					if (field == ITEM_FIELD_CUSTOM)
+						mDataCustom.put(String.valueOf(name), value);
+					else
+						mData.put(field, value);
+				}
+				catch (IOException e)
+				{
+					try { stream.close(); } catch (Exception ein) { }
+					throw new ParseException("Insufficient data; bogus data item", pos);
+				}
 			}
 
-			if (mData.isEmpty() == true)
-				throw new IllegalArgumentException("No keys found in meta data");
-		}
+			try { stream.close(); } catch (Exception e) { }
 
-		public boolean hasValue(String key)
+			if (mData.isEmpty() == true)
+				throw new ParseException("No keys found in meta data", pos);
+		}
+		
+		public boolean hasValue(Integer key)
 		{
 			return mData.containsKey(key);
 		}
+		
+		public boolean hasValue(String key)
+		{
+			return mDataCustom.containsKey(key);
+		}
 
-		public String getValue(String key)
+		public String getString(Integer key)
+		{
+			return String.valueOf(mData.get(key));
+		}
+		
+		public String getString(String key)
+		{
+			return String.valueOf(mDataCustom.get(key));
+		}
+		
+		public byte[] getBytes(Integer key)
 		{
 			return mData.get(key);
 		}
-
+		
 		public byte[] getBytes(String key)
 		{
-			/* TODO: This format should be binary, not Base64 encoded! */
-			return Base64Utils.decodeBase64(mData.get(key));
+			return mDataCustom.get(key);
 		}
 	}
 }
