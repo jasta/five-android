@@ -45,7 +45,7 @@ public class ThreadStoppable extends Thread
 
 		while (true)
 		{
-			try { join(); }
+			try { join(); break; }
 			catch (InterruptedException e) { }
 		}
 	}
