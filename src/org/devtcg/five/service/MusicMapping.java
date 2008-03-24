@@ -24,12 +24,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Scanner;
 
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
+import org.devtcg.five.util.Base64;
 import org.devtcg.syncml.model.DatabaseMapping;
 import org.devtcg.syncml.protocol.SyncItem;
 
@@ -68,9 +70,9 @@ public class MusicMapping implements DatabaseMapping
 	 * Total number of items synchronizing from server.
 	 */
 	protected int mNumChanges;
-	
+
 	private static final String mimePrefix = "application/x-fivedb-";
-	
+
 	public MusicMapping(ContentResolver content, Handler handler, long sourceId, long lastAnchor)
 	{
 		mContent = content;
@@ -451,123 +453,172 @@ public class MusicMapping implements DatabaseMapping
 	
 	private static class MetaDataFormat
 	{
-		private HashMap<Integer, byte[]> mData =
-		  new HashMap<Integer, byte[]>();
-		  
-		private HashMap<String, byte[]> mDataCustom;
+//		private HashMap<Integer, byte[]> mData =
+//		  new HashMap<Integer, byte[]>();
+//		  
+//		private HashMap<String, byte[]> mDataCustom;
+//		
+//		public static final int ITEM_FIELD_CUSTOM = 0;
+//		public static final int ITEM_FIELD_NAME = 1;
+//		public static final int ITEM_FIELD_GENRE = 2;
+//		public static final int ITEM_FIELD_DISCOVERY = 3;
+//		public static final int ITEM_FIELD_PHOTO = 10;
+//		public static final int ITEM_FIELD_ARTWORK = 20;
+//		public static final int ITEM_FIELD_RELEASE = 21;
+//		public static final int ITEM_FIELD_ARTIST = 30;
+//		public static final int ITEM_FIELD_ARTIST_GUID = 31;
+//		public static final int ITEM_FIELD_CONTENT = 40;
+//		public static final int ITEM_FIELD_ALBUM = 41;
+//		public static final int ITEM_FIELD_ALBUM_GUID = 42;
+//		public static final int ITEM_FIELD_LENGTH = 43;
+//		public static final int ITEM_FIELD_TRACK = 44;
+//		public static final int ITEM_FIELD_SIZE = 45;
 		
-		public static final int ITEM_FIELD_CUSTOM = 0;
-		public static final int ITEM_FIELD_NAME = 1;
-		public static final int ITEM_FIELD_GENRE = 2;
-		public static final int ITEM_FIELD_DISCOVERY = 3;
-		public static final int ITEM_FIELD_PHOTO = 10;
-		public static final int ITEM_FIELD_ARTWORK = 20;
-		public static final int ITEM_FIELD_RELEASE = 21;
-		public static final int ITEM_FIELD_ARTIST = 30;
-		public static final int ITEM_FIELD_ARTIST_GUID = 31;
-		public static final int ITEM_FIELD_CONTENT = 40;
-		public static final int ITEM_FIELD_ALBUM = 41;
-		public static final int ITEM_FIELD_ALBUM_GUID = 42;
-		public static final int ITEM_FIELD_LENGTH = 43;
-		public static final int ITEM_FIELD_TRACK = 44;
-		public static final int ITEM_FIELD_SIZE = 45;
+		private final HashMap<String, String> mData =
+		  new HashMap<String, String>();
 
+		public static final String ITEM_FIELD_NAME = "N";
+		public static final String ITEM_FIELD_GENRE = "GENRE";
+		public static final String ITEM_FIELD_DISCOVERY = "DISCOVERY";
+		public static final String ITEM_FIELD_PHOTO = "PHOTO";
+		public static final String ITEM_FIELD_ARTWORK = "ARTWORK";
+		public static final String ITEM_FIELD_RELEASE = "RELEASE";
+		public static final String ITEM_FIELD_ARTIST = "ARTIST";
+		public static final String ITEM_FIELD_ARTIST_GUID = "ARTIST_GUID";
+		public static final String ITEM_FIELD_CONTENT = "CONTENT";
+		public static final String ITEM_FIELD_ALBUM = "ALBUM";
+		public static final String ITEM_FIELD_ALBUM_GUID = "ALBUM_GUID";
+		public static final String ITEM_FIELD_LENGTH = "LENGTH";
+		public static final String ITEM_FIELD_TRACK = "TRACK";
+		public static final String ITEM_FIELD_SIZE = "SIZE";
+		
 		public MetaDataFormat(String data)
 		  throws ParseException
 		{
-			DataInputStream stream =
-			  new DataInputStream(new ByteArrayInputStream(data.getBytes()));
-
-			int pos = 0;
-
-			byte[] value = new byte[1024];
-
-			while (true)
+			Scanner scanner = new Scanner(data);
+			
+			for (int pos = 0; scanner.hasNextLine() == true; pos++)
 			{
-				try
-				{
-					int field;
-					byte[] name = null;
+				String line = scanner.nextLine();
+				
+				String keyvalue[] = line.split(":", 2);
 
-					try
-					{
-						field = stream.readInt();
-						pos += 4;
-					}
-					catch (EOFException e)
-					{
-						break;
-					}
+				if (keyvalue.length < 2)
+					throw new IllegalArgumentException("Parse error on line '" + line + "'");
 
-					/* XXX: This feature is not currently used by the server. */
-					if (field == ITEM_FIELD_CUSTOM)
-					{
-						int nameLen = stream.readInt();
-						name = new byte[nameLen];
-
-						stream.readFully(name);
-					}
-
-					int valueLen = stream.readInt();
-
-					if (valueLen > value.length)
-					{
-						int newLen = value.length;
-						
-						while (newLen < valueLen)
-							newLen *= 2;
-						
-						value = new byte[newLen];
-					}
-
-					stream.readFully(value, 0, valueLen);
-
-					if (field == ITEM_FIELD_CUSTOM)
-						mDataCustom.put(String.valueOf(name), value);
-					else
-						mData.put(field, value);
-				}
-				catch (IOException e)
-				{
-					try { stream.close(); } catch (Exception ein) { }
-					throw new ParseException("Insufficient data; bogus data item", pos);
-				}
+				mData.put(keyvalue[0], keyvalue[1]);
 			}
-
-			try { stream.close(); } catch (Exception e) { }
-
-			if (mData.isEmpty() == true)
-				throw new ParseException("No keys found in meta data", pos);
+			
+//			DataInputStream stream =
+//			  new DataInputStream(new ByteArrayInputStream(data.getBytes()));
+//
+//			int pos = 0;
+//
+//			byte[] value = new byte[1024];
+//
+//			while (true)
+//			{
+//				try
+//				{
+//					int field;
+//					byte[] name = null;
+//
+//					try
+//					{
+//						field = stream.readInt();
+//						pos += 4;
+//					}
+//					catch (EOFException e)
+//					{
+//						break;
+//					}
+//
+//					/* XXX: This feature is not currently used by the server. */
+//					if (field == ITEM_FIELD_CUSTOM)
+//					{
+//						int nameLen = stream.readInt();
+//						name = new byte[nameLen];
+//
+//						stream.readFully(name);
+//					}
+//
+//					int valueLen = stream.readInt();
+//
+//					if (valueLen > value.length)
+//					{
+//						int newLen = value.length;
+//						
+//						while (newLen < valueLen)
+//							newLen *= 2;
+//						
+//						value = new byte[newLen];
+//					}
+//
+//					stream.readFully(value, 0, valueLen);
+//
+//					if (field == ITEM_FIELD_CUSTOM)
+//						mDataCustom.put(String.valueOf(name), value);
+//					else
+//						mData.put(field, value);
+//				}
+//				catch (IOException e)
+//				{
+//					try { stream.close(); } catch (Exception ein) { }
+//					throw new ParseException("Insufficient data; bogus data item", pos);
+//				}
+//			}
+//
+//			try { stream.close(); } catch (Exception e) { }
+//
+//			if (mData.isEmpty() == true)
+//				throw new ParseException("No keys found in meta data", pos);
 		}
-		
-		public boolean hasValue(Integer key)
+
+//		public boolean hasValue(Integer key)
+//		{
+//			return mData.containsKey(key);
+//		}
+
+		public boolean hasValue(String key)
 		{
 			return mData.containsKey(key);
 		}
-		
-		public boolean hasValue(String key)
-		{
-			return mDataCustom.containsKey(key);
-		}
 
-		public String getString(Integer key)
-		{
-			return String.valueOf(mData.get(key));
-		}
-		
+//		public String getString(Integer key)
+//		{
+//			return String.valueOf(mData.get(key));
+//		}
+
 		public String getString(String key)
-		{
-			return String.valueOf(mDataCustom.get(key));
-		}
-		
-		public byte[] getBytes(Integer key)
 		{
 			return mData.get(key);
 		}
-		
+
+//		public byte[] getBytes(Integer key)
+//		{
+//			return mData.get(key);
+//		}
+
 		public byte[] getBytes(String key)
 		{
-			return mDataCustom.get(key);
+			String data = getString(key);
+
+			if (data == null)
+				return null;
+
+			/* Can't use Base64Utils.decodeBase64 because it leaks horribly
+			 * in M5. */
+//			return Base64Utils.decodeBase64(data);
+
+			byte[] src;
+
+			try {
+				src = data.getBytes("UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				src = data.getBytes();
+			}
+
+			return Base64.decode(src, 0, src.length, Base64.NO_OPTIONS);
 		}
 	}
 }
