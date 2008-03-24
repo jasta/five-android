@@ -51,4 +51,15 @@ interface IContentService
 	 *   cache.
 	 */
 	ContentState getContent(long id, in IContentObserver observer);
+
+	/**
+	 * Stop any active download threads operating on this content id.  Please
+	 * note that you cannot stop a download that is also being processed by
+	 * another connected client.  Reference counting is in place, however, so if
+	 * both clients stop the download it will be halted.
+	 *
+	 * @param id
+	 *   Local content ID.
+	 */
+	void stopDownload(long id);
 }

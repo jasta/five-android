@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.Sources;
@@ -43,10 +44,10 @@ import android.util.Log;
 public class ContentService extends Service
 {
 	private static final String TAG = "ContentService";
-	
+
 	private Map<String, DownloadThread> mDownloads =
-	  new HashMap<String, DownloadThread>();
-	
+	  new ConcurrentHashMap<String, DownloadThread>();
+
 	private static final int DOWNLOAD_THREAD_DONE = 0;
 
 	@Override
@@ -58,6 +59,8 @@ public class ContentService extends Service
 	@Override
 	public void onDestroy()
 	{
+		Log.d(TAG, "onDestroy");
+
 		for (DownloadThread t : mDownloads.values())
 			t.interruptAndStop();
 
@@ -80,8 +83,8 @@ public class ContentService extends Service
 					try { t.join(); break; }
 					catch (InterruptedException e) { }
 				}
-				
-				if (mDownloads.size() == 0)
+
+				if (mDownloads.isEmpty() == true)
 					stopSelf();
 
 				break;
@@ -127,7 +130,7 @@ public class ContentService extends Service
 
 	private final IContentService.Stub mBinder = new IContentService.Stub()
 	{
-		public ContentState getContent(final long id, final IContentObserver callback)
+		private Cursor getContentCursor(long id)
 		{
 			Uri item = ContentUris.withAppendedId(Five.Content.CONTENT_URI, id);
 
@@ -140,7 +143,20 @@ public class ContentService extends Service
 
 			if (cursor.count() == 0)
 			{
-				Log.d(TAG, "Request for invalid content: " + item);
+				cursor.close();
+				return null;
+			}
+
+			return cursor;
+		}
+
+		public ContentState getContent(final long id, final IContentObserver callback)
+		{
+			Cursor cursor = getContentCursor(id);
+
+			if (cursor == null)
+			{
+				Log.d(TAG, "Request for invalid content: " + id);
 				return new ContentState(ContentState.NOT_FOUND);
 			}
 
@@ -199,8 +215,37 @@ public class ContentService extends Service
 
 			return ret;
 		}
+
+		public void stopDownload(long id)
+		{
+			Cursor c = getContentCursor(id);
+
+			if (c == null)
+			{
+				Log.d(TAG, "No such content id: " + id);
+				return;
+			}
+
+			c.first();
+			
+			long sourceId = c.getLong(3);
+			long remoteId = c.getLong(4);
+
+			/* Ugh, lame. */
+			String key = sourceId + "-" + remoteId;
+
+			Log.d(TAG, "stopDownload(" + key + ")");
+
+			DownloadThread t = mDownloads.remove(key);
+
+			if (t != null)
+				t.interruptAndStop();
+
+			if (mDownloads.isEmpty() == true)
+				stopSelf();
+		}
 	};
-	
+
 	private static class DownloadThread extends ThreadStoppable
 	{
 		private ContentResolver mContent;
@@ -232,7 +277,7 @@ public class ContentService extends Service
 		{
 			mObservers.register(o);
 		}
-
+		
 		public void run()
 		{
 			URL url = Sources.getContentURL(mContent, mSourceId, mContentId);
@@ -241,7 +286,7 @@ public class ContentService extends Service
 			{
 				Uri cache = downloadToCache(url);
 				assert cache != null;
-				
+
 				commitToContentDB(cache);
 
 				mState.state = ContentState.IN_CACHE;
@@ -255,10 +300,16 @@ public class ContentService extends Service
 				broadcastError(e.toString());
 			}
 
-			Message msg = mHandler.obtainMessage(DOWNLOAD_THREAD_DONE,
-			  mSourceId + "-" + mContentId);
+			/* If we were interrupted we do not need to do any cleanup.  The
+			 * caller will have done that for us at the time of interrupt. */
+			if (isStopped() == false)
+			{
+				/* Let our handler know to clean up this thread. */
+				Message msg = mHandler.obtainMessage(DOWNLOAD_THREAD_DONE,
+				  mSourceId + "-" + mContentId);
 
-			mHandler.sendMessage(msg);
+				mHandler.sendMessage(msg);
+			}
 
 			mObservers.kill();
 		}
@@ -283,10 +334,10 @@ public class ContentService extends Service
 			v.put(Five.Cache.CONTENT_ID, mContentId);
 
 			Uri cacheUri = mContent.insert(Five.Cache.CONTENT_URI, v);
-			
+
 			if (cacheUri == null)
 				throw new IllegalStateException("Failed to insert cache row: download aborted");
-			
+
 			Log.d(TAG, "got cacheUri=" + cacheUri);
 			
 			OutputStream out = mContent.openOutputStream(cacheUri);
@@ -317,7 +368,7 @@ public class ContentService extends Service
 				Log.d(TAG, "Warning, expected total does not match downloaded size (" + mState.ready + " / " + mState.total + ")");
 				mState.total = mState.ready;
 			}
-			
+
 			return cacheUri;
 		}
 
@@ -338,7 +389,7 @@ public class ContentService extends Service
 		public void broadcastError(String msg)
 		{
 			int n = mObservers.beginBroadcast();
-			
+
 			while (n-- > 0)
 			{
 				try {
