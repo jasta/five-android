@@ -177,12 +177,26 @@ public class SourceList extends Activity
 
     	Intent meta = new Intent(this, MetaService.class);
 
-   		if (bindService(meta, mConnection, BIND_AUTO_CREATE) == false)
+    	try
     	{
-    		mSwitcher.showNext();
+    		ComponentName name = startService(meta, null);
+    		
+    		if (name == null)
+    			throw new IllegalStateException("Couldn't start service");
 
-    		Log.e(TAG, "Failed to bind to MetaService");
-    		Toast.makeText(this, "CRITICAL: Failure to connect to service", Toast.LENGTH_LONG).show();
+    		boolean bound = bindService(new Intent().setComponent(name),
+   		      mConnection, BIND_AUTO_CREATE);
+    		
+    		if (bound == false)
+    			throw new IllegalStateException("Couldn't bind to service");
+    	}
+    	catch (IllegalStateException e)
+    	{
+   			mSwitcher.showNext();
+
+    		Log.e(TAG, "Damn", e);
+    		Toast.makeText(this, "CRITICAL: Failure to connect to service",
+    		  Toast.LENGTH_LONG).show();
     	}
 
     	super.onResume();
