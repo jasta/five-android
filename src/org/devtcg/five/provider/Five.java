@@ -391,7 +391,7 @@ public final class Five
 			/** Artist. */
 			public static final String ARTIST = "artist";
 			public static final String ARTIST_ID = "artist_id";
-			
+
 			/** Album artwork / Cover photo (content URI). */
 			public static final String ARTWORK = "artwork";
 			
