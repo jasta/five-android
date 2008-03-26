@@ -117,13 +117,17 @@ public final class Five
 			  	TIMESTAMP + " DATETIME NOT NULL, " +
 			  	TYPE + " INTEGER NOT NULL, " +
 			  	MESSAGE + " TEXT " +
-			  ");" +
-			  "CREATE INDEX " + 
-			  	TABLE + "_" + SOURCE_ID + "_" + TIMESTAMP + 
-			  	" ON " + TABLE + " (" +
-			  	SOURCE_ID + ", " +
-			  	TIMESTAMP + " " +
 			  ");";
+			
+			public static final String[] INDEX =
+			{
+				"CREATE INDEX " + 
+			  	  TABLE + "_" + SOURCE_ID + "_" + TIMESTAMP + 
+			  	  " ON " + TABLE + " (" +
+			  	  SOURCE_ID + ", " +
+			  	  TIMESTAMP + " " +
+			  	");",
+			};
 
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE + ";";
@@ -161,13 +165,17 @@ public final class Five
 			  SOURCE_ID + " INTEGER NOT NULL, " +
 			  CONTENT_ID + " INTEGER NOT NULL, " +
 			  PATH + " TEXT " +
-			  ");" +
-			  "CREATE UNIQUE INDEX " + 
-			  	TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
-			  	" ON " + TABLE + " (" +
-			  	SOURCE_ID + ", " +
-			  	CONTENT_ID + " " +
 			  ");";
+			
+			public static final String[] INDEX =
+			{
+				"CREATE UNIQUE INDEX " + 
+			  	  TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
+			  	  " ON " + TABLE + " (" +
+			  	  SOURCE_ID + ", " +
+			  	  CONTENT_ID + " " +
+			  	");",
+			};
 			  
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE + ";";
@@ -209,14 +217,17 @@ public final class Five
 			  SOURCE_ID + " INTEGER NOT NULL, " +
 			  SIZE + " INTEGER NOT NULL, " +
 			  CACHED_ID + " INTEGER " +
-			  ");" +
-			  "CREATE UNIQUE INDEX " + 
-			  	TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
-			  	" ON " + TABLE + " (" +
-			  	SOURCE_ID + ", " +
-			  	CONTENT_ID + " " +
 			  ");";
-
+			
+			public static final String[] INDEX =
+			{
+				"CREATE UNIQUE INDEX " + 
+			  	  TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
+			  	  " ON " + TABLE + " (" +
+			  	  SOURCE_ID + ", " +
+			  	  CONTENT_ID + " " +
+			  	");",
+			};
 
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE + ";";
@@ -311,13 +322,17 @@ public final class Five
 				  SET + " INTEGER, " +
 				  DISCOVERY_DATE + " DATETIME, " +
 				  LAST_PLAYED + " DATETIME " +
-				  ");" +
-				  "CREATE INDEX " + 
-				  	TABLE + "_" + ARTIST_ID +
-				  	" ON " + TABLE + " (" + ARTIST_ID + ");" +
-				  "CREATE INDEX " + 
-				  	TABLE + "_" + ALBUM_ID +
-				  	" ON " + TABLE + " (" + ALBUM_ID + ");";
+				  ");";
+				
+				public static final String[] INDEX =
+				{
+					"CREATE INDEX " + 
+				  	  TABLE + "_" + ARTIST_ID +
+				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
+				  	"CREATE INDEX " + 
+				  	  TABLE + "_" + ALBUM_ID +
+				  	  " ON " + TABLE + " (" + ALBUM_ID + ");",
+				};
 				
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
@@ -417,10 +432,14 @@ public final class Five
 				  ARTWORK + " TEXT, " +
 				  RELEASE_DATE + " DATETIME, " +
 				  DISCOVERY_DATE + " DATETIME " +
-				  ");" +
-				  "CREATE INDEX " + 
-				  	TABLE + "_" + ARTIST_ID +
-				  	" ON " + TABLE + " (" + ARTIST_ID + ");";
+				  ");";
+				
+				public static final String[] INDEX =
+				{
+					"CREATE INDEX " + 
+				  	  TABLE + "_" + ARTIST_ID +
+				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
+				};
 
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;

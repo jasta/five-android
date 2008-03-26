@@ -44,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 17;
+	private static final int DATABASE_VERSION = 18;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -55,7 +55,7 @@ public class FiveProvider extends ContentProvider
 	{
 		SOURCES, SOURCE, SOURCE_LOG,
 		ARTISTS, ARTIST, ARTIST_PHOTO,
-		ALBUMS, ALBUMS_BY_ARTIST, ALBUM, ALBUM_ARTWORK,
+		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_COMPLETE, ALBUM, ALBUM_ARTWORK,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
 		CONTENT, CONTENT_ITEM,
 		CACHE, CACHE_ITEM, CACHE_ITEMS_BY_SOURCE, CACHE_ITEM_BY_SOURCE,
@@ -73,14 +73,25 @@ public class FiveProvider extends ContentProvider
 		public void onCreate(SQLiteDatabase db)
 		{
 			db.execSQL(Five.Cache.SQL.CREATE);
+			execIndex(db, Five.Cache.SQL.INDEX);
 			db.execSQL(Five.Sources.SQL.CREATE);
 			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 			db.execSQL(Five.SourcesLog.SQL.CREATE);
+			execIndex(db, Five.SourcesLog.SQL.INDEX);
 
 			db.execSQL(Five.Content.SQL.CREATE);
+			execIndex(db, Five.Content.SQL.INDEX);
 			db.execSQL(Five.Music.Artists.SQL.CREATE);
 			db.execSQL(Five.Music.Albums.SQL.CREATE);
+			execIndex(db, Five.Music.Albums.SQL.INDEX);
 			db.execSQL(Five.Music.Songs.SQL.CREATE);
+			execIndex(db, Five.Music.Songs.SQL.INDEX);
+		}
+		
+		private void execIndex(SQLiteDatabase db, String[] idx)
+		{
+			for (int i = 0; i < idx.length; i++)
+				db.execSQL(idx[i]);
 		}
 
 		private void onDrop(SQLiteDatabase db)
@@ -98,9 +109,21 @@ public class FiveProvider extends ContentProvider
 		@Override
 		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
 		{
-			Log.w(TAG, "Version too old, wiping out database contents...");
-			onDrop(db);
-			onCreate(db);
+			if (oldVersion == 17 && newVersion == 18)
+			{
+				Log.w(TAG, "Attempting to upgrade to " + newVersion);
+				execIndex(db, Five.Cache.SQL.INDEX);
+				execIndex(db, Five.SourcesLog.SQL.INDEX);
+				execIndex(db, Five.Content.SQL.INDEX);
+				execIndex(db, Five.Music.Albums.SQL.INDEX);
+				execIndex(db, Five.Music.Songs.SQL.INDEX);				
+			}
+			else
+			{
+				Log.w(TAG, "Version too old, wiping out database contents...");
+				onDrop(db);
+				onCreate(db);
+			}
 		}
 	}
 
@@ -232,8 +255,10 @@ public class FiveProvider extends ContentProvider
 	{
 		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
 		String groupBy = null;
+		
+		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
-		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
+		switch (type)
 		{
 		case CACHE_ITEMS_BY_SOURCE:
 			qb.setTables(Five.Cache.SQL.TABLE);
@@ -314,24 +339,32 @@ public class FiveProvider extends ContentProvider
 			qb.appendWhere("_id=" + uri.getLastPathSegment());
 			qb.setProjectionMap(artistsMap);
 			break;
-			
-		case ALBUMS:
-			qb.setTables(Five.Music.Albums.SQL.TABLE);
+
+		case ALBUMS_COMPLETE:
+			qb.setTables(Five.Music.Albums.SQL.TABLE + " a " +
+			  "LEFT JOIN " + Five.Music.Artists.SQL.TABLE + " AS artists " +
+			  "ON artists." + Five.Music.Artists._ID + " = a." + Five.Music.Albums.ARTIST_ID + " " +
+			  "LEFT JOIN " + Five.Music.Songs.SQL.TABLE + " AS songs " +
+			  "ON songs." + Five.Music.Songs.ALBUM_ID + " = a." + Five.Music.Albums._ID);
+			groupBy = "a." + Five.Music.Albums._ID + " HAVING COUNT(*) > 2";
 			qb.setProjectionMap(albumsMap);
 			break;
 
 		case ALBUM:
-			qb.setTables(Five.Music.Albums.SQL.TABLE);
-			qb.appendWhere("_id=" + uri.getLastPathSegment());
+		case ALBUMS:
+		case ALBUMS_BY_ARTIST:
+			qb.setTables(Five.Music.Albums.SQL.TABLE + " a " +
+			  "LEFT JOIN " + Five.Music.Artists.SQL.TABLE + " artists " +
+			  "ON artists." + Five.Music.Artists._ID + " = a." + Five.Music.Albums.ARTIST_ID);
+			
+			if (type == URIPatternIds.ALBUM)
+				qb.appendWhere("a._id=" + uri.getLastPathSegment());
+			else if (type == URIPatternIds.ALBUMS_BY_ARTIST)
+				qb.appendWhere("a.artist_id=" + getSecondToLastPathSegment(uri));
+
 			qb.setProjectionMap(albumsMap);
 			break;
 			
-		case ALBUMS_BY_ARTIST:
-			qb.setTables(Five.Music.Albums.SQL.TABLE);
-			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
-			qb.setProjectionMap(albumsMap);
-			break;
-
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
@@ -446,7 +479,7 @@ public class FiveProvider extends ContentProvider
 		  .appendPath("log")
 		  .appendPath(String.valueOf(id))
 		  .build();
-
+		
 		getContext().getContentResolver().notifyChange(ret, null);
 
 		return ret;
@@ -920,6 +953,7 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums", URIPatternIds.ALBUMS.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/complete", URIPatternIds.ALBUMS_COMPLETE.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#", URIPatternIds.ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork", URIPatternIds.ALBUM_ARTWORK.ordinal());
@@ -945,13 +979,14 @@ public class FiveProvider extends ContentProvider
 		artistsMap.put(Five.Music.Artists.PHOTO, Five.Music.Artists.PHOTO);
 
 		albumsMap = new HashMap<String, String>();
-		albumsMap.put(Five.Music.Albums._ID, Five.Music.Albums._ID);
-		albumsMap.put(Five.Music.Albums.ARTIST_ID, Five.Music.Albums.ARTIST_ID);
-		albumsMap.put(Five.Music.Albums.ARTWORK, Five.Music.Albums.ARTWORK);
-		albumsMap.put(Five.Music.Albums.DISCOVERY_DATE, Five.Music.Albums.DISCOVERY_DATE);
-		albumsMap.put(Five.Music.Albums.NAME, Five.Music.Albums.NAME);
-		albumsMap.put(Five.Music.Albums.NAME_PREFIX, Five.Music.Albums.NAME_PREFIX);
-		albumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(" + Five.Music.Albums.NAME_PREFIX + ", \"\") || " + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
-		albumsMap.put(Five.Music.Albums.RELEASE_DATE, Five.Music.Albums.RELEASE_DATE);
+		albumsMap.put(Five.Music.Albums._ID, "a." + Five.Music.Albums._ID + " AS " + Five.Music.Albums._ID);
+		albumsMap.put(Five.Music.Albums.ARTIST_ID, "a." + Five.Music.Albums.ARTIST_ID + " AS " + Five.Music.Albums.ARTIST_ID);
+		albumsMap.put(Five.Music.Albums.ARTIST, "artists." + Five.Music.Artists.NAME + " AS " + Five.Music.Albums.ARTIST);
+		albumsMap.put(Five.Music.Albums.ARTWORK, "a." + Five.Music.Albums.ARTWORK + " AS " + Five.Music.Albums.ARTWORK);
+		albumsMap.put(Five.Music.Albums.DISCOVERY_DATE, "a." + Five.Music.Albums.DISCOVERY_DATE + " AS " + Five.Music.Albums.DISCOVERY_DATE);
+		albumsMap.put(Five.Music.Albums.NAME, "a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.NAME);
+		albumsMap.put(Five.Music.Albums.NAME_PREFIX, "a." + Five.Music.Albums.NAME_PREFIX + " AS " + Five.Music.Albums.NAME_PREFIX);
+		albumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(a." + Five.Music.Albums.NAME_PREFIX + ", \"\") || a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
+		albumsMap.put(Five.Music.Albums.RELEASE_DATE, "a." + Five.Music.Albums.RELEASE_DATE + " AS " + Five.Music.Albums.RELEASE_DATE);
 	}
 }
