@@ -338,7 +338,7 @@ public class MusicMapping implements DatabaseMapping
 				Log.e(TAG, "Failed to insert content");
 				return 400;
 			}
-
+			
 			/* And the meta data... */
 			values.put(Five.Music.Songs.TITLE,
 			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
@@ -496,11 +496,11 @@ public class MusicMapping implements DatabaseMapping
 		  throws ParseException
 		{
 			Scanner scanner = new Scanner(data);
-			
+
 			for (int pos = 0; scanner.hasNextLine() == true; pos++)
 			{
 				String line = scanner.nextLine();
-				
+
 				String keyvalue[] = line.split(":", 2);
 
 				if (keyvalue.length < 2)
@@ -508,7 +508,7 @@ public class MusicMapping implements DatabaseMapping
 
 				mData.put(keyvalue[0], keyvalue[1]);
 			}
-			
+
 //			DataInputStream stream =
 //			  new DataInputStream(new ByteArrayInputStream(data.getBytes()));
 //
