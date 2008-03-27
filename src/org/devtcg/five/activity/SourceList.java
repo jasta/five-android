@@ -175,6 +175,12 @@ public class SourceList extends Activity
         	findViewById(android.R.id.list).setVisibility(View.GONE);
         }
 
+        bindService();
+    	super.onResume();
+    }
+    
+    private void bindService()
+    {
     	Intent meta = new Intent(this, MetaService.class);
 
     	try
@@ -197,16 +203,11 @@ public class SourceList extends Activity
     		Log.e(TAG, "Damn", e);
     		Toast.makeText(this, "CRITICAL: Failure to connect to service",
     		  Toast.LENGTH_LONG).show();
-    	}
-
-    	super.onResume();
+    	}    	
     }
-
-    @Override
-    public void onPause()
+    
+    private void unbindService()
     {
-    	Log.d(TAG, "!!!!!! onPause");
-
     	if (mService != null)
     	{
     		try { mService.unregisterObserver(mObserver); }
@@ -214,8 +215,15 @@ public class SourceList extends Activity
     	}
 
     	unbindService(mConnection);
-    	mService = null;
+    	mService = null;    	
+    }
 
+    @Override
+    public void onPause()
+    {
+    	Log.d(TAG, "!!!!!! onPause");
+
+    	unbindService();
     	super.onPause();    	
     }
 
