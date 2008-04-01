@@ -76,9 +76,9 @@ public class SourceInfo extends Activity
     	mCursor = managedQuery(uri, PROJECTION, null, null);
 
     	/* XXX: This should be re-arranged to show up in onResume(). */
-    	int rev = 0;
+    	long rev = 0;
     	if (mCursor.first() == true)
-    		rev = mCursor.getInt(2);
+    		rev = mCursor.getLong(2);
 
     	Uri uriLog = uri.buildUpon().appendPath("log").build();
     	mCursorLog = managedQuery(uriLog, PROJECTION_LOG,
@@ -91,7 +91,7 @@ public class SourceInfo extends Activity
     	  new String[] { Five.SourcesLog.TIMESTAMP, Five.SourcesLog.MESSAGE },
     	  new int[] { R.id.source_log_timestamp, R.id.source_log_message }
     	);
-    	
+
     	adapter.setViewBinder(new ViewBinder() {
 			public boolean setViewValue(View view, Cursor c, int col)
 			{
@@ -126,8 +126,8 @@ public class SourceInfo extends Activity
   	  
     	mStatus.setText("Synchronized");
     	
-    	int rev = mCursor.getInt(2);
-    	
+    	long rev = mCursor.getLong(2);
+
     	if (rev > 0)
     	{
     		DateFormat fmt = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
