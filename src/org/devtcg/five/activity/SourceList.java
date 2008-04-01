@@ -142,7 +142,7 @@ public class SourceList extends Activity
 						else
 						{
 							revText.setText("Last synchronized: " +
-							  DateUtils.formatTimeAgo(rev) + ", <x> changes.");
+							  DateUtils.formatTimeAgo(rev) + ".");
 						}
 					}
 				}
