@@ -345,7 +345,9 @@ public class ContentService extends Service
 
 			byte[] b = new byte[1024];
 			int n;
-
+			
+			long then = 0;
+			
 			while (mStopped == false && (n = in.read(b)) != -1)
 			{
 				mState.ready += n;
@@ -353,7 +355,11 @@ public class ContentService extends Service
 				if (mState.ready > mState.total)
 					mState.total = -1;
 
-				broadcastUpdate(cacheUri);
+				if (System.currentTimeMillis() > then + 1000)
+				{
+					broadcastUpdate(cacheUri);
+					then = System.currentTimeMillis();
+				}
 
 				out.write(b, 0, n);
 			}
