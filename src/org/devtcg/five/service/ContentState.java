@@ -78,6 +78,11 @@ public class ContentState implements Parcelable
 		readFromParcel(in);
 	}
 
+	public float getPercentage()
+	{
+		return (float)ready / (float)total;
+	}
+
 	public void writeToParcel(Parcel out)
 	{
 		out.writeInt(state);
