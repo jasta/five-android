@@ -355,7 +355,7 @@ public class ContentService extends Service
 				if (mState.ready > mState.total)
 					mState.total = -1;
 
-				if (System.currentTimeMillis() > then + 1000)
+				if (System.currentTimeMillis() >= then + 1000)
 				{
 					broadcastUpdate(cacheUri);
 					then = System.currentTimeMillis();
