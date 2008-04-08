@@ -231,6 +231,8 @@ public class ContentService extends Service
 			long sourceId = c.getLong(3);
 			long remoteId = c.getLong(4);
 
+			c.close();
+
 			/* Ugh, lame. */
 			String key = sourceId + "-" + remoteId;
 
@@ -339,20 +341,20 @@ public class ContentService extends Service
 				throw new IllegalStateException("Failed to insert cache row: download aborted");
 
 			Log.d(TAG, "got cacheUri=" + cacheUri);
-			
+
 			OutputStream out = mContent.openOutputStream(cacheUri);
 			InputStream in = url.openStream();
 
-			byte[] b = new byte[1024];
+			byte[] b = new byte[4096];
 			int n;
-			
+
 			long then = 0;
 			
 			/* TODO: Figure out a way to play nice. */
 			mObservers.beginBroadcast();
 			long interval = mObservers.getBroadcastItem(0).updateInterval();
 			mObservers.finishBroadcast();
-			
+
 			while (mStopped == false && (n = in.read(b)) != -1)
 			{
 				mState.ready += n;
@@ -360,10 +362,12 @@ public class ContentService extends Service
 				if (mState.ready > mState.total)
 					mState.total = -1;
 
-				if (System.currentTimeMillis() >= then + interval)
+				long now = System.currentTimeMillis();
+
+				if (now >= then + interval)
 				{
 					broadcastUpdate(cacheUri);
-					then = System.currentTimeMillis();
+					then = now;
 				}
 
 				out.write(b, 0, n);
@@ -421,7 +425,7 @@ public class ContentService extends Service
 					mObservers.getBroadcastItem(n).updateProgress(mLocalId, cache, mState);
 				} catch (DeadObjectException e) { }
 			}
-			
+
 			mObservers.finishBroadcast();			
 		}
 	}
