@@ -277,7 +277,7 @@ public class ContentService extends Service
 		{
 			mObservers.register(o);
 		}
-		
+
 		public void run()
 		{
 			URL url = Sources.getContentURL(mContent, mSourceId, mContentId);
@@ -348,6 +348,11 @@ public class ContentService extends Service
 			
 			long then = 0;
 			
+			/* TODO: Figure out a way to play nice. */
+			mObservers.beginBroadcast();
+			long interval = mObservers.getBroadcastItem(0).updateInterval();
+			mObservers.finishBroadcast();
+			
 			while (mStopped == false && (n = in.read(b)) != -1)
 			{
 				mState.ready += n;
@@ -355,7 +360,7 @@ public class ContentService extends Service
 				if (mState.ready > mState.total)
 					mState.total = -1;
 
-				if (System.currentTimeMillis() >= then + 1000)
+				if (System.currentTimeMillis() >= then + interval)
 				{
 					broadcastUpdate(cacheUri);
 					then = System.currentTimeMillis();
