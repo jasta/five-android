@@ -48,7 +48,7 @@ public class ContentService extends Service
 	private Map<String, DownloadThread> mDownloads =
 	  new ConcurrentHashMap<String, DownloadThread>();
 
-	private static final int DOWNLOAD_THREAD_DONE = 0;
+	private static final int MSG_DOWNLOAD_THREAD_DONE = 0;
 
 	@Override
 	public IBinder onBind(Intent intent)
@@ -75,7 +75,7 @@ public class ContentService extends Service
 		{
 			switch (msg.what)
 			{
-			case DOWNLOAD_THREAD_DONE:
+			case MSG_DOWNLOAD_THREAD_DONE:
 				DownloadThread t = mDownloads.remove(msg.obj);
 
 				while (true)
@@ -307,7 +307,7 @@ public class ContentService extends Service
 			if (isStopped() == false)
 			{
 				/* Let our handler know to clean up this thread. */
-				Message msg = mHandler.obtainMessage(DOWNLOAD_THREAD_DONE,
+				Message msg = mHandler.obtainMessage(MSG_DOWNLOAD_THREAD_DONE,
 				  mSourceId + "-" + mContentId);
 
 				mHandler.sendMessage(msg);
