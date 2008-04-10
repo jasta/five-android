@@ -230,7 +230,7 @@ public class MusicMapping implements DatabaseMapping
 		{
 			values.put(Five.Music.Artists.NAME,
 			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
-			
+
 //			values.put(Five.Music.Artists.GENRE, meta.getValue("GENRE"));
 //			values.put(Five.Music.Artists.PHOTO_ID, meta.getValue("ARTWORK"));
 
