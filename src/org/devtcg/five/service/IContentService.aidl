@@ -53,6 +53,19 @@ interface IContentService
 	ContentState getContent(long id, in IContentObserver observer);
 
 	/**
+	 * Peek at the state of the content.  Is able to determine if the song
+	 * would need to (or is currently) downloading, or if it exists in the
+	 * cache.
+	 *
+	 * @param id
+	 *
+	 * @return
+	 *   The state that would be returned had this call been to
+	 *   {@link getContent}.
+	 */
+	ContentState testContent(long id);
+
+	/**
 	 * Stop any active download threads operating on this content id.  Please
 	 * note that you cannot stop a download that is also being processed by
 	 * another connected client.  Reference counting is in place, however, so if

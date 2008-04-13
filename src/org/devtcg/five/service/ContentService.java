@@ -117,6 +117,8 @@ public class ContentService extends Service
 
 		Uri uri = ContentUris.withAppendedId(Five.Cache.CONTENT_URI, cont.getLong(idx));
 
+		long size = cont.getLong(cont.getColumnIndex(Five.Content.SIZE));
+
 		if (isCacheStale(uri) == true)
 		{
 			cont.updateToNull(idx);
@@ -150,8 +152,61 @@ public class ContentService extends Service
 			return cursor;
 		}
 
+		/* TODO: Too much code duplication with getContent. */
+		public ContentState testContent(long id)
+		{
+			Cursor cursor = getContentCursor(id);
+
+			if (cursor == null)
+			{
+				Log.d(TAG, "Request for invalid content: " + id);
+				return new ContentState(ContentState.NOT_FOUND);
+			}
+
+			cursor.first();
+
+			long size = cursor.getLong(2);
+			long sourceId = cursor.getLong(3);
+			long remoteId = cursor.getLong(4);
+
+			final Uri cacheHit = getCacheHit(cursor);
+
+			cursor.close();
+
+			ContentState ret;
+
+			if (cacheHit != null)
+			{
+				ret = new ContentState();
+
+				ret.state = ContentState.IN_CACHE;
+				ret.ready = size;
+				ret.total = size;
+			}
+			else
+			{
+				/* Ugh, lame. */
+				String key = sourceId + "-" + remoteId;
+
+				DownloadThread t = mDownloads.get(key);
+
+				if (t != null)
+					ret = t.mState;
+				else
+				{
+					ret = new ContentState();
+					ret.state = ContentState.IN_PROCESS;
+					ret.ready = 0;
+					ret.total = size;
+				}
+			}
+
+			return ret;
+		}
+
 		public ContentState getContent(final long id, final IContentObserver callback)
 		{
+			Log.d(TAG, "getContent(id=" + id + ")");
 			Cursor cursor = getContentCursor(id);
 
 			if (cursor == null)
@@ -179,13 +234,12 @@ public class ContentService extends Service
 				ret.state = ContentState.IN_CACHE;
 				ret.ready = size;
 				ret.total = size;
-
+				
 				mHandler.post(new Runnable() {
 					public void run()
 					{
-						try {
-							callback.finished(id, cacheHit, ret);
-						} catch (DeadObjectException e) {}
+						try { callback.finished(id, cacheHit, ret); }
+						catch (DeadObjectException e) {}
 					}
 				});
 			}
@@ -349,7 +403,7 @@ public class ContentService extends Service
 			int n;
 
 			long then = 0;
-			
+
 			/* TODO: Figure out a way to play nice. */
 			mObservers.beginBroadcast();
 			long interval = mObservers.getBroadcastItem(0).updateInterval();
