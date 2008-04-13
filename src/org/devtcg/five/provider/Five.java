@@ -84,7 +84,7 @@ public final class Five
 			  "DROP TABLE IF EXISTS " + TABLE;
 		}
 	}
-	
+
 	public interface SourcesLog extends BaseColumns
 	{
 		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.sourcelog";
@@ -92,20 +92,20 @@ public final class Five
 
 		/** Corresponding source for this log entry. */
 		public static final String SOURCE_ID = "source_id";
-		
+
 		/** Time the log entry was generated. */
 		public static final String TIMESTAMP = "timestamp";
-		
+
 		/** Severity of message. */
 		public static final String TYPE = "type";
-		
+
 		public static final int TYPE_ERROR = 1;
 		public static final int TYPE_WARNING = 2;
 		public static final int TYPE_INFO = 3;
-		
+
 		/** Log text, may contain LF characters which should be handled on display. */
 		public static final String MESSAGE = "message";
-		
+
 		public static final class SQL
 		{
 			public static final String TABLE = "sources_log";
@@ -118,7 +118,7 @@ public final class Five
 			  	TYPE + " INTEGER NOT NULL, " +
 			  	MESSAGE + " TEXT " +
 			  ");";
-			
+
 			public static final String[] INDEX =
 			{
 				"CREATE INDEX " + 
@@ -133,7 +133,7 @@ public final class Five
 			  "DROP TABLE IF EXISTS " + TABLE + ";";
 		}
 	}
-	
+
 	/**
 	 * Provider to access actual cached content.
 	 */
@@ -277,6 +277,9 @@ public final class Five
 			/** Key to access potentially cached or remote data. */
 			public static final String CONTENT_SOURCE_ID = "content_source_id";
 			public static final String CONTENT_ID = "content_id";
+			
+			/** MusicBrainz identifier. */
+			public static final String MBID = "mbid";
 
 			/** Title / Song / Content description. */
 			public static final String TITLE = "title";
@@ -313,6 +316,7 @@ public final class Five
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  CONTENT_SOURCE_ID + " INTEGER, " +
 				  CONTENT_ID + " INTEGER, " +
+				  MBID + " INTEGER UNIQUE, " +
 				  TITLE + " TEXT COLLATE UNICODE NOT NULL, " +
 				  ARTIST_ID + " INTEGER NOT NULL, " +
 				  ALBUM_ID + " INTEGER, " +
@@ -348,6 +352,9 @@ public final class Five
 			public static final Uri CONTENT_URI =
 				Uri.parse("content://" + AUTHORITY + "/media/music/artists");
 
+			/** MusicBrainz identifier. */
+			public static final String MBID = "mbid";
+
 			/** Performing name (significant portion for sort purposes; excludes "The"). */
 			public static final String NAME = "name";
 
@@ -373,6 +380,7 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  MBID + " INTEGER UNIQUE, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  PHOTO + " TEXT, " +
@@ -393,6 +401,9 @@ public final class Five
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
+			
+			/** MusicBrainz identifier. */
+			public static final String MBID = "mbid";
 
 			/** Album name (less prefix). */
 			public static final String NAME = "name";
@@ -426,6 +437,7 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  MBID + " INTEGER UNIQUE, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  ARTIST_ID + " INTEGER, " +

@@ -44,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 18;
+	private static final int DATABASE_VERSION = 19;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -970,6 +970,7 @@ public class FiveProvider extends ContentProvider
 		sourcesMap.put(Five.Sources.LAST_ERROR, "sl." + Five.SourcesLog.MESSAGE + " AS " + Five.Sources.LAST_ERROR);
 
 		artistsMap = new HashMap<String, String>();
+		artistsMap.put(Five.Music.Artists.MBID, "a." + Five.Music.Artists.MBID + " AS " + Five.Music.Artists.MBID);
 		artistsMap.put(Five.Music.Artists._ID, Five.Music.Artists._ID);
 		artistsMap.put(Five.Music.Artists.DISCOVERY_DATE, Five.Music.Artists.DISCOVERY_DATE);
 		artistsMap.put(Five.Music.Artists.GENRE, Five.Music.Artists.GENRE);
@@ -980,6 +981,7 @@ public class FiveProvider extends ContentProvider
 
 		albumsMap = new HashMap<String, String>();
 		albumsMap.put(Five.Music.Albums._ID, "a." + Five.Music.Albums._ID + " AS " + Five.Music.Albums._ID);
+		albumsMap.put(Five.Music.Albums.MBID, "a." + Five.Music.Albums.MBID + " AS " + Five.Music.Albums.MBID);
 		albumsMap.put(Five.Music.Albums.ARTIST_ID, "a." + Five.Music.Albums.ARTIST_ID + " AS " + Five.Music.Albums.ARTIST_ID);
 		albumsMap.put(Five.Music.Albums.ARTIST, "artists." + Five.Music.Artists.NAME + " AS " + Five.Music.Albums.ARTIST);
 		albumsMap.put(Five.Music.Albums.ARTWORK, "a." + Five.Music.Albums.ARTWORK + " AS " + Five.Music.Albums.ARTWORK);
