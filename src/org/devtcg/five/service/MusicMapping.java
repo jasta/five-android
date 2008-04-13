@@ -230,9 +230,11 @@ public class MusicMapping implements DatabaseMapping
 		{
 			values.put(Five.Music.Artists.NAME,
 			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
+			
+			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_MBID) == true)
+				values.put(Five.Music.Artists.MBID, meta.getString(MetaDataFormat.ITEM_FIELD_MBID));
 
 //			values.put(Five.Music.Artists.GENRE, meta.getValue("GENRE"));
-//			values.put(Five.Music.Artists.PHOTO_ID, meta.getValue("ARTWORK"));
 
 			uri = mContent.insert(Five.Music.Artists.CONTENT_URI, values);
 
@@ -277,9 +279,12 @@ public class MusicMapping implements DatabaseMapping
 			values.put(Five.Music.Albums.NAME,
 			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
 
-			if (meta.hasValue("ARTIST") == true)
+			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_MBID) == true)
+				values.put(Five.Music.Albums.MBID, meta.getString(MetaDataFormat.ITEM_FIELD_MBID));
+
+			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST) == true)
 				values.put(Five.Music.Albums.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
-			else if (meta.hasValue("ARTIST_GUID") == true)
+			else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST_GUID) == true)
 				values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
 
 			uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
@@ -343,14 +348,14 @@ public class MusicMapping implements DatabaseMapping
 			values.put(Five.Music.Songs.TITLE,
 			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
 
-			if (meta.hasValue("ARTIST") == true)
+			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST) == true)
 				values.put(Five.Music.Songs.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
-			else if (meta.hasValue("ARTIST_GUID") == true)
+			else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST_GUID) == true)
 				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
 
-			if (meta.hasValue("ALBUM") == true)
+			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ALBUM) == true)
 				values.put(Five.Music.Songs.ALBUM_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM));
-			else if (meta.hasValue("ALBUM_GUID") == true)
+			else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ALBUM_GUID) == true)
 				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM_GUID)));
 
 			values.put(Five.Music.Songs.TRACK, meta.getString(MetaDataFormat.ITEM_FIELD_TRACK));
@@ -478,6 +483,7 @@ public class MusicMapping implements DatabaseMapping
 		  new HashMap<String, String>();
 
 		public static final String ITEM_FIELD_NAME = "N";
+		public static final String ITEM_FIELD_MBID = "MBID";
 		public static final String ITEM_FIELD_GENRE = "GENRE";
 		public static final String ITEM_FIELD_DISCOVERY = "DISCOVERY";
 		public static final String ITEM_FIELD_PHOTO = "PHOTO";
@@ -491,7 +497,7 @@ public class MusicMapping implements DatabaseMapping
 		public static final String ITEM_FIELD_LENGTH = "LENGTH";
 		public static final String ITEM_FIELD_TRACK = "TRACK";
 		public static final String ITEM_FIELD_SIZE = "SIZE";
-		
+
 		public MetaDataFormat(String data)
 		  throws ParseException
 		{
