@@ -39,6 +39,12 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.Bitmap.CompressFormat;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -252,7 +258,7 @@ public class MusicMapping implements DatabaseMapping
 
 					ContentValues v = new ContentValues();
 					v.put(Five.Music.Artists.PHOTO, photo.toString());
-					
+
 					int n = mContent.update(uri, v, null, null);
 
 					if (n > 0)
@@ -300,23 +306,46 @@ public class MusicMapping implements DatabaseMapping
 				if (artworkData != null)
 				{
 					Uri artwork = uri.buildUpon().appendPath("artwork").build();
+					Uri artworkBig = uri.buildUpon().appendPath("artwork").appendPath("big").build();
 
 					ContentValues v = new ContentValues();
+					v.put(Five.Music.Albums.ARTWORK_BIG, artworkBig.toString());
 					v.put(Five.Music.Albums.ARTWORK, artwork.toString());
-					
+
 					int n = mContent.update(uri, v, null, null);
 
 					if (n > 0)
 					{
+						OutputStream outBig = null;
+						OutputStream out = null;
+
 						try
 						{
-							OutputStream out = mContent.openOutputStream(artwork);
-							out.write(artworkData);
+							outBig =
+							  mContent.openOutputStream(artworkBig);
+
+							outBig.write(artworkData);
+							outBig.close();
+							outBig = null;
+
+							out = mContent.openOutputStream(artwork);
+							scaleBitmapHack(artworkData, 84, 84, out);
 							out.close();
+							out = null;
 						}
 						catch (IOException e)
 						{
 							Log.d(TAG, "Failed to store album artwork", e);
+						}
+						finally
+						{
+							if (outBig != null) {
+								try { outBig.close(); } catch (Exception e) {}
+							}
+
+							if (out != null) {
+								try { out.close(); } catch (Exception e) {}
+							}
 						}
 					}
 					else
@@ -627,5 +656,17 @@ public class MusicMapping implements DatabaseMapping
 
 			return Base64.decode(src, 0, src.length, Base64.NO_OPTIONS);
 		}
+	}
+
+	public static boolean scaleBitmapHack(byte[] data, int w, int h, OutputStream out)
+	{
+		Bitmap src = BitmapFactory.decodeByteArray(data, 0, data.length);
+
+		Bitmap dst = Bitmap.createBitmap(w, h, src.hasAlpha());
+		Canvas tmp = new Canvas(dst);
+		tmp.drawBitmap(src, null, new Rect(0, 0, w, h),
+		  new Paint(Paint.FILTER_BITMAP_FLAG));
+
+		return dst.compress(CompressFormat.JPEG, 75, out);
 	}
 }

@@ -420,6 +420,7 @@ public final class Five
 
 			/** Album artwork / Cover photo (content URI). */
 			public static final String ARTWORK = "artwork";
+			public static final String ARTWORK_BIG = "artwork_big";
 			
 			/** Original release date. */
 			public static final String RELEASE_DATE = "release_date";
@@ -442,6 +443,7 @@ public final class Five
 				  NAME_PREFIX + " TEXT, " +
 				  ARTIST_ID + " INTEGER, " +
 				  ARTWORK + " TEXT, " +
+				  ARTWORK_BIG + " TEXT, " +
 				  RELEASE_DATE + " DATETIME, " +
 				  DISCOVERY_DATE + " DATETIME " +
 				  ");";

@@ -44,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 19;
+	private static final int DATABASE_VERSION = 20;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -55,7 +55,7 @@ public class FiveProvider extends ContentProvider
 	{
 		SOURCES, SOURCE, SOURCE_LOG,
 		ARTISTS, ARTIST, ARTIST_PHOTO,
-		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_COMPLETE, ALBUM, ALBUM_ARTWORK,
+		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_COMPLETE, ALBUM, ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
 		CONTENT, CONTENT_ITEM,
 		CACHE, CACHE_ITEM, CACHE_ITEMS_BY_SOURCE, CACHE_ITEM_BY_SOURCE,
@@ -201,7 +201,9 @@ public class FiveProvider extends ContentProvider
 		StringBuilder path;
 		int modeint;
 		
-		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
+		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+		
+		switch (type)
 		{
 		case CACHE_ITEM:
 			Cursor c = mDB.query(Five.Cache.SQL.TABLE, 
@@ -225,15 +227,23 @@ public class FiveProvider extends ContentProvider
 			return ParcelFileDescriptor.open(file, modeint);
 
 		case ALBUM_ARTWORK:
-			String albumId = getSecondToLastPathSegment(uri);
+		case ALBUM_ARTWORK_BIG:
+			String albumId = uri.getPathSegments().get(3);
 
 			path = ensureSdCardPath("music/album/");
 
-			file = new File(path.append(albumId).toString());
+			String filename;
+
+			if (type == URIPatternIds.ALBUM_ARTWORK)
+				filename = path.append(albumId).toString();
+			else
+				filename = path.append(albumId).append("-big").toString();
+
+			file = new File(filename);
 			modeint = stringModeToInt(file, mode);
 
 			return ParcelFileDescriptor.open(file, modeint);
-			
+
 		case ARTIST_PHOTO:
 			String artistId = getSecondToLastPathSegment(uri);
 
@@ -957,6 +967,7 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#", URIPatternIds.ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork", URIPatternIds.ALBUM_ARTWORK.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork/big", URIPatternIds.ALBUM_ARTWORK_BIG.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
@@ -985,6 +996,7 @@ public class FiveProvider extends ContentProvider
 		albumsMap.put(Five.Music.Albums.ARTIST_ID, "a." + Five.Music.Albums.ARTIST_ID + " AS " + Five.Music.Albums.ARTIST_ID);
 		albumsMap.put(Five.Music.Albums.ARTIST, "artists." + Five.Music.Artists.NAME + " AS " + Five.Music.Albums.ARTIST);
 		albumsMap.put(Five.Music.Albums.ARTWORK, "a." + Five.Music.Albums.ARTWORK + " AS " + Five.Music.Albums.ARTWORK);
+		albumsMap.put(Five.Music.Albums.ARTWORK_BIG, "a." + Five.Music.Albums.ARTWORK_BIG + " AS " + Five.Music.Albums.ARTWORK_BIG);
 		albumsMap.put(Five.Music.Albums.DISCOVERY_DATE, "a." + Five.Music.Albums.DISCOVERY_DATE + " AS " + Five.Music.Albums.DISCOVERY_DATE);
 		albumsMap.put(Five.Music.Albums.NAME, "a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.NAME);
 		albumsMap.put(Five.Music.Albums.NAME_PREFIX, "a." + Five.Music.Albums.NAME_PREFIX + " AS " + Five.Music.Albums.NAME_PREFIX);
