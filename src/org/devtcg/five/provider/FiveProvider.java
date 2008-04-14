@@ -356,7 +356,7 @@ public class FiveProvider extends ContentProvider
 			qb.setTables(Five.Music.Albums.SQL.TABLE + " a " +
 			  "LEFT JOIN " + Five.Music.Artists.SQL.TABLE + " artists " +
 			  "ON artists." + Five.Music.Artists._ID + " = a." + Five.Music.Albums.ARTIST_ID);
-			
+
 			if (type == URIPatternIds.ALBUM)
 				qb.appendWhere("a._id=" + uri.getLastPathSegment());
 			else if (type == URIPatternIds.ALBUMS_BY_ARTIST)
