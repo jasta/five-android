@@ -78,7 +78,7 @@
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceMedium"
 			android:textAlign="center"
-			android:text="Please note that the first-time sync process will take a very long time.  See the README file under the CAVEATS section for a discussion on this topic.  There is much room for optimization here."
+			android:text="Please note that the first-time sync process will take a very long time, though not as long as the progress bar indicates.  See the README file under the CAVEATS section for a discussion on this topic, and why it was left unoptimized for the ADC."
 			/>
 		
 	</LinearLayout>
