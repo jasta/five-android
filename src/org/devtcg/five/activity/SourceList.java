@@ -55,6 +55,7 @@ public class SourceList extends Activity
 
 	private ViewSwitcher mSwitcher;
 	private ProgressBar mProgress;
+	private View mWarning;
 	private Button mSyncAll;
 	private boolean mSyncing;
 
@@ -68,7 +69,7 @@ public class SourceList extends Activity
         super.onCreate(icicle);
         setTitle(R.string.source_list_title);
         setContentView(R.layout.source_list);
-        
+
         /* Work around a lame bug in M5 that causes the second progress bar animation to
          * not work correctly. */
         ((ViewGroup)findViewById(R.id.source_list_top)).setAnimationCacheEnabled(false);
@@ -97,6 +98,7 @@ public class SourceList extends Activity
 //        list.addFooterView(footer, null, false);
 
         mProgress = (ProgressBar)findViewById(R.id.sync_progress);
+        mWarning = findViewById(R.id.warning);
         mSyncAll = (Button)findViewById(R.id.source_sync_all);
 
         mSyncAll.setOnClickListener(new OnClickListener() {
@@ -399,9 +401,12 @@ public class SourceList extends Activity
     	{
     		mProgress.startAnimation(AnimationUtils.loadAnimation(this,
     		  android.R.anim.fade_in));
+    		mWarning.startAnimation(AnimationUtils.loadAnimation(this,
+    		  android.R.anim.fade_in));
     	}
 
     	mProgress.setVisibility(View.VISIBLE);
+    	mWarning.setVisibility(View.VISIBLE);
     }
 
     protected void stopSyncUI()
@@ -412,6 +417,10 @@ public class SourceList extends Activity
     	mProgress.startAnimation(AnimationUtils.loadAnimation(this,
     	  android.R.anim.fade_out));
     	mProgress.setVisibility(View.INVISIBLE);
+    	
+    	mWarning.startAnimation(AnimationUtils.loadAnimation(this,
+    	  android.R.anim.fade_out));
+    	mWarning.setVisibility(View.INVISIBLE);
     }
     
     protected void menuSync()
