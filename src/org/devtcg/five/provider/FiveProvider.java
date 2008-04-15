@@ -332,7 +332,7 @@ public class FiveProvider extends ContentProvider
 			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
 //			qb.setProjectionMap(songsMap);
 			break;
-			
+
 		case SONGS_BY_ALBUM:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
 			qb.appendWhere("album_id=" + getSecondToLastPathSegment(uri));
