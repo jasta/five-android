@@ -63,26 +63,6 @@
 
 	</LinearLayout>
 
-	<LinearLayout
-		android:id="@+id/warning"
-		android:orientation="horizontal"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:layout_gravity="bottom"
-		android:padding="30dip"
-		android:visibility="gone"
-		>
-
-		<TextView
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceMedium"
-			android:textAlign="center"
-			android:text="Please note that the first-time sync process will take a very long time, though not as long as the progress bar indicates.  See the README file under the CAVEATS section for a discussion on this topic, and why it was left unoptimized for the ADC."
-			/>
-		
-	</LinearLayout>
-    	
 </LinearLayout>
 
 </ViewSwitcher>

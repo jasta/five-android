@@ -55,7 +55,6 @@ public class SourceList extends Activity
 
 	private ViewSwitcher mSwitcher;
 	private ProgressBar mProgress;
-	private View mWarning;
 	private Button mSyncAll;
 	private boolean mSyncing;
 
@@ -98,7 +97,6 @@ public class SourceList extends Activity
 //        list.addFooterView(footer, null, false);
 
         mProgress = (ProgressBar)findViewById(R.id.sync_progress);
-        mWarning = findViewById(R.id.warning);
         mSyncAll = (Button)findViewById(R.id.source_sync_all);
 
         mSyncAll.setOnClickListener(new OnClickListener() {
@@ -401,26 +399,19 @@ public class SourceList extends Activity
     	{
     		mProgress.startAnimation(AnimationUtils.loadAnimation(this,
     		  android.R.anim.fade_in));
-    		mWarning.startAnimation(AnimationUtils.loadAnimation(this,
-    		  android.R.anim.fade_in));
     	}
 
     	mProgress.setVisibility(View.VISIBLE);
-    	mWarning.setVisibility(View.VISIBLE);
     }
 
     protected void stopSyncUI()
     {
     	mSyncing = false;
     	mSyncAll.setEnabled(true);
-    	
+
     	mProgress.startAnimation(AnimationUtils.loadAnimation(this,
     	  android.R.anim.fade_out));
     	mProgress.setVisibility(View.INVISIBLE);
-    	
-    	mWarning.startAnimation(AnimationUtils.loadAnimation(this,
-    	  android.R.anim.fade_out));
-    	mWarning.setVisibility(View.INVISIBLE);
     }
     
     protected void menuSync()
