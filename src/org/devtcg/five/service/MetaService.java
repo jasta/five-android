@@ -230,17 +230,18 @@ public class MetaService extends Service
 
 			while (c.next() == true)
 			{
-				String url = "http://" + c.getString(2) + ":" + c.getInt(3) + "/sync";
+				String base = "http://" + c.getString(2) + ":" + c.getInt(3);
+				String url = base + "/sync";
 				
 				Log.i(TAG, "Synchronizing with " + c.getString(1) +
 				  " (" + url + "), " +
 				  "currently at revision " + c.getInt(4) + "...");
 
-				SyncConnection server = new SyncHttpConnection(url);
-				
+				SyncHttpConnection server = new SyncHttpConnection(url);
+
 				SyncAuthInfo info = 
 				  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);
-				
+
 				server.setAuthentication(info);
 				server.setSourceURI("IMEI:" + android.os.SystemProperties.get(android.telephony.TelephonyProperties.PROPERTY_IMEI));
 				
@@ -262,8 +263,8 @@ public class MetaService extends Service
 					else
 						code = SyncSession.ALERT_CODE_ONE_WAY_FROM_SERVER;
 					
-					db = new MusicMapping(mContent, mHandler, sourceId,
-					  c.getInt(4));
+					db = new MusicMapping(server, base,
+					  mContent, mHandler, sourceId, c.getInt(4));
 					
 					sess.sync(db, code);
 				}

@@ -22,6 +22,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
@@ -29,11 +30,16 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Scanner;
 
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.five.util.Base64;
 import org.devtcg.syncml.model.DatabaseMapping;
 import org.devtcg.syncml.protocol.SyncItem;
+import org.devtcg.syncml.transport.SyncHttpConnection;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -55,6 +61,9 @@ public class MusicMapping implements DatabaseMapping
 {
 	private static final String TAG = "MusicMapping";
 	
+	private SyncHttpConnection mConn;
+	private String mBaseUrl;
+
 	protected Handler mHandler;
 	protected ContentResolver mContent;
 	protected long mSourceId;
@@ -80,8 +89,11 @@ public class MusicMapping implements DatabaseMapping
 
 	private static final String mimePrefix = "application/x-fivedb-";
 
-	public MusicMapping(ContentResolver content, Handler handler, long sourceId, long lastAnchor)
+	public MusicMapping(SyncHttpConnection conn, String baseUrl,
+	  ContentResolver content, Handler handler, long sourceId, long lastAnchor)
 	{
+		mConn = conn;
+		mBaseUrl = baseUrl;
 		mContent = content;
 		mHandler = handler;
 		mSourceId = sourceId;
@@ -250,12 +262,14 @@ public class MusicMapping implements DatabaseMapping
 				mArtistMap.put(item.getSourceId(),
 				  Long.valueOf(uri.getLastPathSegment()));
 				
-				byte[] photoData = meta.getBytes(MetaDataFormat.ITEM_FIELD_PHOTO);
+				HttpMethod photoData = null;
 				
-				if (photoData != null)
+				try 
 				{
-					Uri photo = uri.buildUpon().appendPath("photo").build();
+					photoData = downloadArtistPhoto(item.getSourceId());
 
+					Uri photo = uri.buildUpon().appendPath("photo").build();
+					
 					ContentValues v = new ContentValues();
 					v.put(Five.Music.Artists.PHOTO, photo.toString());
 
@@ -263,21 +277,23 @@ public class MusicMapping implements DatabaseMapping
 
 					if (n > 0)
 					{
-						try
-						{
-							OutputStream out = mContent.openOutputStream(photo);
-							out.write(photoData);
-							out.close();
-						}
-						catch (IOException e)
-						{
-							Log.d(TAG, "Failed to store artist photo", e);
-						}
+						OutputStream out = mContent.openOutputStream(photo);
+						connectIO(out, photoData.getResponseBodyAsStream());
 					}
-					else
-					{
-						Log.d(TAG, "Failed to create " + photo.toString() + ", huh?");
-					}
+				}
+				catch (Exception e)
+				{
+					Log.d(TAG, "Failed to store artist photo for " + uri, e);
+
+					ContentValues v = new ContentValues();
+					v.put(Five.Music.Artists.PHOTO, (String)null);
+					
+					mContent.update(uri, v, null, null);
+				}
+				finally
+				{
+					if (photoData != null)
+						photoData.releaseConnection();
 				}
 			}
 		}
@@ -300,11 +316,13 @@ public class MusicMapping implements DatabaseMapping
 			{
 				mAlbumMap.put(item.getSourceId(),
 				  Long.valueOf(uri.getLastPathSegment()));
-				
-				byte[] artworkData = meta.getBytes(MetaDataFormat.ITEM_FIELD_ARTWORK);
 
-				if (artworkData != null)
+				HttpMethod artworkData = null;
+				
+				try
 				{
+					artworkData = downloadAlbumArtwork(item.getSourceId());
+
 					Uri artwork = uri.buildUpon().appendPath("artwork").build();
 					Uri artworkBig = uri.buildUpon().appendPath("artwork").appendPath("big").build();
 
@@ -316,42 +334,43 @@ public class MusicMapping implements DatabaseMapping
 
 					if (n > 0)
 					{
-						OutputStream outBig = null;
+						OutputStream outBig = mContent.openOutputStream(artworkBig);
+						connectIO(outBig, artworkData.getResponseBodyAsStream());
+
+						InputStream inBig = null;
+						inBig = mContent.openInputStream(artworkBig);
+
 						OutputStream out = null;
+						out = mContent.openOutputStream(artwork);
 
 						try
 						{
-							outBig =
-							  mContent.openOutputStream(artworkBig);
-
-							outBig.write(artworkData);
-							outBig.close();
-							outBig = null;
-
-							out = mContent.openOutputStream(artwork);
-							scaleBitmapHack(artworkData, 84, 84, out);
-							out.close();
-							out = null;
-						}
-						catch (IOException e)
-						{
-							Log.d(TAG, "Failed to store album artwork", e);
+							scaleBitmapHack(inBig, 64, 64, out);
 						}
 						finally
 						{
-							if (outBig != null) {
-								try { outBig.close(); } catch (Exception e) {}
-							}
+							if (out != null)
+								out.close();
 
-							if (out != null) {
-								try { out.close(); } catch (Exception e) {}
-							}
+							if (inBig != null)
+								inBig.close();
 						}
 					}
-					else
-					{
-						Log.d(TAG, "Failed to create " + artwork.toString() + ", huh?");
-					}
+				}
+				catch (Exception e)
+				{
+					Log.d(TAG, "Failed to store album artwork for " + uri, e);
+
+					ContentValues v = new ContentValues();
+					v.put(Five.Music.Albums.ARTWORK_BIG, (String)null);
+					v.put(Five.Music.Albums.ARTWORK, (String)null);
+
+					mContent.update(uri, v, null, null);
+				}
+				finally
+				{
+					if (artworkData != null)
+						artworkData.releaseConnection();
 				}
 			}
 		}
@@ -657,10 +676,10 @@ public class MusicMapping implements DatabaseMapping
 			return Base64.decode(src, 0, src.length, Base64.NO_OPTIONS);
 		}
 	}
-
-	public static boolean scaleBitmapHack(byte[] data, int w, int h, OutputStream out)
+	
+	public static boolean scaleBitmapHack(InputStream in, int w, int h, OutputStream out)
 	{
-		Bitmap src = BitmapFactory.decodeByteArray(data, 0, data.length);
+		Bitmap src = BitmapFactory.decodeStream(in);
 
 		Bitmap dst = Bitmap.createBitmap(w, h, src.hasAlpha());
 		Canvas tmp = new Canvas(dst);
@@ -668,5 +687,64 @@ public class MusicMapping implements DatabaseMapping
 		  new Paint(Paint.FILTER_BITMAP_FLAG));
 
 		return dst.compress(CompressFormat.JPEG, 75, out);
+	}
+
+	public HttpMethod reuseClientOpenStream(String url)
+	  throws IOException
+	{
+		HttpClient client = mConn.getHttpClient();
+		HttpMethod get = new GetMethod(url);
+
+		int status = client.executeMethod(get);
+
+		if (status != HttpStatus.SC_OK)
+		{
+			get.releaseConnection();
+			throw new IOException("Unexpected HTTP status " + status);
+		}
+
+		return get;
+	}
+
+	public HttpMethod downloadAlbumArtwork(String id)
+	  throws IOException
+	{
+		return reuseClientOpenStream(mBaseUrl + "/meta/music/album/" + id + "/artwork/large");
+	}
+	
+	public HttpMethod downloadArtistPhoto(String id)
+	  throws IOException
+	{
+		return reuseClientOpenStream(mBaseUrl + "/meta/music/artist/" + id + "/photo/thumb");
+	}
+	
+	public static void connectIO(OutputStream out, InputStream in)
+	  throws IOException
+	{
+		connectIO(out, in, 4096);
+	}
+	
+	public static void connectIO(OutputStream out, InputStream in, int blksize)
+	  throws IOException
+	{
+		if (out == null)
+			throw new IllegalArgumentException("OutputStream is null");
+		
+		if (in == null)
+			throw new IllegalArgumentException("InputStream is null");
+		
+		byte[] b = new byte[blksize];
+		int n;
+
+		try 
+		{
+			while ((n = in.read(b)) != -1)
+				out.write(b,0 , n);		
+		}
+		finally
+		{
+			out.close();
+			in.close();
+		}
 	}
 }
