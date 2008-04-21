@@ -36,7 +36,6 @@ import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
-import org.devtcg.five.util.Base64;
 import org.devtcg.syncml.model.DatabaseMapping;
 import org.devtcg.syncml.protocol.SyncItem;
 import org.devtcg.syncml.transport.SyncHttpConnection;
@@ -209,6 +208,198 @@ public class MusicMapping implements DatabaseMapping
 			Log.d(TAG, "Damn", e);
 		}
 	}
+	
+	private Uri insertArtist(SyncItem item, MetaDataFormat meta)
+	{
+		ContentValues values = new ContentValues();
+
+		values.put(Five.Music.Artists.NAME,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
+
+		if (meta.hasValue(MetaDataFormat.ITEM_FIELD_MBID) == true)
+		  values.put(Five.Music.Artists.MBID, meta.getString(MetaDataFormat.ITEM_FIELD_MBID));
+
+		Uri uri = mContent.insert(Five.Music.Artists.CONTENT_URI, values);
+
+		if (uri == null)
+			return null;
+
+		mArtistMap.put(item.getSourceId(),
+		  Long.valueOf(uri.getLastPathSegment()));
+
+		HttpMethod photoData = null;
+
+		try 
+		{
+			photoData = downloadArtistPhoto(item.getSourceId());
+
+			Uri photo = uri.buildUpon().appendPath("photo").build();
+						
+			ContentValues v = new ContentValues();
+			v.put(Five.Music.Artists.PHOTO, photo.toString());
+
+			int n = mContent.update(uri, v, null, null);
+
+			if (n > 0)
+			{
+				OutputStream out = mContent.openOutputStream(photo);
+				connectIO(out, photoData.getResponseBodyAsStream());
+			}
+		}
+		catch (Exception e)
+		{
+			Log.d(TAG, "Failed to store artist photo for " + uri, e);
+
+			ContentValues v = new ContentValues();
+			v.put(Five.Music.Artists.PHOTO, (String)null);
+
+			mContent.update(uri, v, null, null);
+		}
+		finally
+		{
+			if (photoData != null)
+				photoData.releaseConnection();
+		}
+
+		return uri;
+	}
+	
+	private Uri insertAlbum(SyncItem item, MetaDataFormat meta)
+	{
+		ContentValues values = new ContentValues();
+
+		values.put(Five.Music.Albums.NAME,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
+
+		if (meta.hasValue(MetaDataFormat.ITEM_FIELD_MBID) == true)
+			values.put(Five.Music.Albums.MBID, meta.getString(MetaDataFormat.ITEM_FIELD_MBID));
+
+		if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST) == true)
+			values.put(Five.Music.Albums.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
+		else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST_GUID) == true)
+			values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
+
+		Uri uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
+
+		if (uri == null)
+			return null;
+
+		mAlbumMap.put(item.getSourceId(),
+		  Long.valueOf(uri.getLastPathSegment()));
+
+		HttpMethod artworkData = null;
+					
+		try
+		{
+			artworkData = downloadAlbumArtwork(item.getSourceId());
+
+			Uri artwork = uri.buildUpon().appendPath("artwork").build();
+			Uri artworkBig = uri.buildUpon().appendPath("artwork").appendPath("big").build();
+
+			ContentValues v = new ContentValues();
+			v.put(Five.Music.Albums.ARTWORK_BIG, artworkBig.toString());
+			v.put(Five.Music.Albums.ARTWORK, artwork.toString());
+
+			int n = mContent.update(uri, v, null, null);
+
+			if (n > 0)
+			{
+				OutputStream outBig = mContent.openOutputStream(artworkBig);
+				connectIO(outBig, artworkData.getResponseBodyAsStream());
+
+				InputStream inBig = null;
+				inBig = mContent.openInputStream(artworkBig);
+
+				OutputStream out = null;
+				out = mContent.openOutputStream(artwork);
+
+				try
+				{
+					scaleBitmapHack(inBig, 64, 64, out);
+				}
+				finally
+				{
+					if (out != null)
+						out.close();
+
+					if (inBig != null)
+						inBig.close();
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			Log.d(TAG, "Failed to store album artwork for " + uri, e);
+
+			ContentValues v = new ContentValues();
+			v.put(Five.Music.Albums.ARTWORK_BIG, (String)null);
+			v.put(Five.Music.Albums.ARTWORK, (String)null);
+
+			mContent.update(uri, v, null, null);
+		}
+		finally
+		{
+			if (artworkData != null)
+				artworkData.releaseConnection();
+		}
+		
+		return uri;
+	}
+	
+	private Uri insertSongContent(SyncItem item, MetaDataFormat meta)
+	{
+		ContentValues values = new ContentValues();
+		
+		values.put(Five.Content.SIZE,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_SIZE));
+		values.put(Five.Content.CONTENT_ID,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_CONTENT));
+		values.put(Five.Content.SOURCE_ID, mSourceId);
+
+		Uri uri = mContent.insert(Five.Content.CONTENT_URI, values);
+		
+		return uri;
+	}
+	
+	private Uri insertSong(SyncItem item, MetaDataFormat meta)
+	{
+		Uri curi = insertSongContent(item, meta);
+
+		if (curi == null)
+		{
+			Log.e(TAG, "Failed to insert content");
+			return null;
+		}
+		
+		ContentValues values = new ContentValues();
+
+		/* And the meta data... */
+		values.put(Five.Music.Songs.TITLE,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
+
+		if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST) == true)
+			values.put(Five.Music.Songs.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
+		else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST_GUID) == true)
+			values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
+
+		if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ALBUM) == true)
+			values.put(Five.Music.Songs.ALBUM_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM));
+		else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ALBUM_GUID) == true)
+			values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM_GUID)));
+
+		values.put(Five.Music.Songs.TRACK, meta.getString(MetaDataFormat.ITEM_FIELD_TRACK));
+		values.put(Five.Music.Songs.LENGTH, meta.getString(MetaDataFormat.ITEM_FIELD_LENGTH));
+
+		values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
+		values.put(Five.Music.Songs.CONTENT_SOURCE_ID, mSourceId);
+
+		Uri uri = mContent.insert(Five.Music.Songs.CONTENT_URI, values);
+
+		if (uri == null)
+			Log.d(TAG, "TODO: Rollback content entry!");
+		
+		return uri;
+	}
 
 	public int insert(SyncItem item)
 	{
@@ -224,7 +415,8 @@ public class MusicMapping implements DatabaseMapping
 			return 404;
 		}
 
-		Log.i(TAG, "Inserting item (" + mime + "; " + item.getData().length() + " bytes): " + item.getSourceId());
+		Log.i(TAG, "Inserting item (" + item.getMimeType() + "; " +
+		  item.getData().length() + " bytes): " + item.getSourceId());
 		
 		MetaDataFormat meta;
 
@@ -243,195 +435,25 @@ public class MusicMapping implements DatabaseMapping
 		}
 
 		Uri uri = null;
-		ContentValues values = new ContentValues();
 
 		if (format.equals("artist") == true)
-		{
-			values.put(Five.Music.Artists.NAME,
-			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
-			
-			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_MBID) == true)
-				values.put(Five.Music.Artists.MBID, meta.getString(MetaDataFormat.ITEM_FIELD_MBID));
-
-//			values.put(Five.Music.Artists.GENRE, meta.getValue("GENRE"));
-
-			uri = mContent.insert(Five.Music.Artists.CONTENT_URI, values);
-
-			if (uri != null)
-			{
-				mArtistMap.put(item.getSourceId(),
-				  Long.valueOf(uri.getLastPathSegment()));
-				
-				HttpMethod photoData = null;
-				
-				try 
-				{
-					photoData = downloadArtistPhoto(item.getSourceId());
-
-					Uri photo = uri.buildUpon().appendPath("photo").build();
-					
-					ContentValues v = new ContentValues();
-					v.put(Five.Music.Artists.PHOTO, photo.toString());
-
-					int n = mContent.update(uri, v, null, null);
-
-					if (n > 0)
-					{
-						OutputStream out = mContent.openOutputStream(photo);
-						connectIO(out, photoData.getResponseBodyAsStream());
-					}
-				}
-				catch (Exception e)
-				{
-					Log.d(TAG, "Failed to store artist photo for " + uri, e);
-
-					ContentValues v = new ContentValues();
-					v.put(Five.Music.Artists.PHOTO, (String)null);
-					
-					mContent.update(uri, v, null, null);
-				}
-				finally
-				{
-					if (photoData != null)
-						photoData.releaseConnection();
-				}
-			}
-		}
+			uri = insertArtist(item, meta);
 		else if (format.equals("album") == true)
-		{
-			values.put(Five.Music.Albums.NAME,
-			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
-
-			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_MBID) == true)
-				values.put(Five.Music.Albums.MBID, meta.getString(MetaDataFormat.ITEM_FIELD_MBID));
-
-			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST) == true)
-				values.put(Five.Music.Albums.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
-			else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST_GUID) == true)
-				values.put(Five.Music.Albums.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
-
-			uri = mContent.insert(Five.Music.Albums.CONTENT_URI, values);
-
-			if (uri != null)
-			{
-				mAlbumMap.put(item.getSourceId(),
-				  Long.valueOf(uri.getLastPathSegment()));
-
-				HttpMethod artworkData = null;
-				
-				try
-				{
-					artworkData = downloadAlbumArtwork(item.getSourceId());
-
-					Uri artwork = uri.buildUpon().appendPath("artwork").build();
-					Uri artworkBig = uri.buildUpon().appendPath("artwork").appendPath("big").build();
-
-					ContentValues v = new ContentValues();
-					v.put(Five.Music.Albums.ARTWORK_BIG, artworkBig.toString());
-					v.put(Five.Music.Albums.ARTWORK, artwork.toString());
-
-					int n = mContent.update(uri, v, null, null);
-
-					if (n > 0)
-					{
-						OutputStream outBig = mContent.openOutputStream(artworkBig);
-						connectIO(outBig, artworkData.getResponseBodyAsStream());
-
-						InputStream inBig = null;
-						inBig = mContent.openInputStream(artworkBig);
-
-						OutputStream out = null;
-						out = mContent.openOutputStream(artwork);
-
-						try
-						{
-							scaleBitmapHack(inBig, 64, 64, out);
-						}
-						finally
-						{
-							if (out != null)
-								out.close();
-
-							if (inBig != null)
-								inBig.close();
-						}
-					}
-				}
-				catch (Exception e)
-				{
-					Log.d(TAG, "Failed to store album artwork for " + uri, e);
-
-					ContentValues v = new ContentValues();
-					v.put(Five.Music.Albums.ARTWORK_BIG, (String)null);
-					v.put(Five.Music.Albums.ARTWORK, (String)null);
-
-					mContent.update(uri, v, null, null);
-				}
-				finally
-				{
-					if (artworkData != null)
-						artworkData.releaseConnection();
-				}
-			}
-		}
+			uri = insertAlbum(item, meta);
 		else if (format.equals("song") == true)
-		{
-			/* Create a media entry. */
-			ContentValues cvalues = new ContentValues();
-			
-			cvalues.put(Five.Content.SIZE,
-			  meta.getString(MetaDataFormat.ITEM_FIELD_SIZE));
-			cvalues.put(Five.Content.CONTENT_ID,
-			  meta.getString(MetaDataFormat.ITEM_FIELD_CONTENT));
-			cvalues.put(Five.Content.SOURCE_ID, mSourceId);
-
-			Uri curi = mContent.insert(Five.Content.CONTENT_URI, cvalues);
-
-			if (curi == null)
-			{
-				Log.e(TAG, "Failed to insert content");
-				return 400;
-			}
-			
-			/* And the meta data... */
-			values.put(Five.Music.Songs.TITLE,
-			  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));
-
-			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST) == true)
-				values.put(Five.Music.Songs.ARTIST_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST));
-			else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ARTIST_GUID) == true)
-				values.put(Five.Music.Songs.ARTIST_ID, mArtistMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ARTIST_GUID)));
-
-			if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ALBUM) == true)
-				values.put(Five.Music.Songs.ALBUM_ID, meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM));
-			else if (meta.hasValue(MetaDataFormat.ITEM_FIELD_ALBUM_GUID) == true)
-				values.put(Five.Music.Songs.ALBUM_ID, mAlbumMap.get(meta.getString(MetaDataFormat.ITEM_FIELD_ALBUM_GUID)));
-
-			values.put(Five.Music.Songs.TRACK, meta.getString(MetaDataFormat.ITEM_FIELD_TRACK));
-			values.put(Five.Music.Songs.LENGTH, meta.getString(MetaDataFormat.ITEM_FIELD_LENGTH));
-
-			values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
-			values.put(Five.Music.Songs.CONTENT_SOURCE_ID, mSourceId);
-
-			uri = mContent.insert(Five.Music.Songs.CONTENT_URI, values);
-
-			if (uri == null)
-			{
-				/* TODO: Rollback the inserted content entry. */
-			}
-		}
+			uri = insertSong(item, meta);
 		else
 		{
 			Log.e(TAG, "Unknown mime type: " + mime);
 			return 400;
 		}
-		
+
 		if (uri == null)
 		{
 			Log.e(TAG, "Failed to insert meta data");
 			return 400;
 		}
-		
+
 		item.setTargetId(Long.valueOf(uri.getLastPathSegment()));
 
 		notifyChange();
@@ -441,6 +463,7 @@ public class MusicMapping implements DatabaseMapping
 
 	public int update(SyncItem item)
 	{
+		Log.d(TAG, "TODO: update(item): STUB!");
 		return 0;
 	}
 
@@ -563,117 +586,16 @@ public class MusicMapping implements DatabaseMapping
 
 				mData.put(keyvalue[0], keyvalue[1]);
 			}
-
-//			DataInputStream stream =
-//			  new DataInputStream(new ByteArrayInputStream(data.getBytes()));
-//
-//			int pos = 0;
-//
-//			byte[] value = new byte[1024];
-//
-//			while (true)
-//			{
-//				try
-//				{
-//					int field;
-//					byte[] name = null;
-//
-//					try
-//					{
-//						field = stream.readInt();
-//						pos += 4;
-//					}
-//					catch (EOFException e)
-//					{
-//						break;
-//					}
-//
-//					/* XXX: This feature is not currently used by the server. */
-//					if (field == ITEM_FIELD_CUSTOM)
-//					{
-//						int nameLen = stream.readInt();
-//						name = new byte[nameLen];
-//
-//						stream.readFully(name);
-//					}
-//
-//					int valueLen = stream.readInt();
-//
-//					if (valueLen > value.length)
-//					{
-//						int newLen = value.length;
-//						
-//						while (newLen < valueLen)
-//							newLen *= 2;
-//						
-//						value = new byte[newLen];
-//					}
-//
-//					stream.readFully(value, 0, valueLen);
-//
-//					if (field == ITEM_FIELD_CUSTOM)
-//						mDataCustom.put(String.valueOf(name), value);
-//					else
-//						mData.put(field, value);
-//				}
-//				catch (IOException e)
-//				{
-//					try { stream.close(); } catch (Exception ein) { }
-//					throw new ParseException("Insufficient data; bogus data item", pos);
-//				}
-//			}
-//
-//			try { stream.close(); } catch (Exception e) { }
-//
-//			if (mData.isEmpty() == true)
-//				throw new ParseException("No keys found in meta data", pos);
 		}
-
-//		public boolean hasValue(Integer key)
-//		{
-//			return mData.containsKey(key);
-//		}
 
 		public boolean hasValue(String key)
 		{
 			return mData.containsKey(key);
 		}
 
-//		public String getString(Integer key)
-//		{
-//			return String.valueOf(mData.get(key));
-//		}
-
 		public String getString(String key)
 		{
 			return mData.get(key);
-		}
-
-//		public byte[] getBytes(Integer key)
-//		{
-//			return mData.get(key);
-//		}
-
-		public byte[] getBytes(String key)
-		{
-			String data = getString(key);
-
-			if (data == null)
-				return null;
-
-			/* Can't use Base64Utils.decodeBase64 because it leaks horribly
-			 * in M5. */
-//			return Base64Utils.decodeBase64(data);
-
-			byte[] src;
-
-			try {
-				src = data.getBytes("UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				src = data.getBytes();
-			}
-
-			return Base64.decode(src, 0, src.length, Base64.NO_OPTIONS);
 		}
 	}
 	
