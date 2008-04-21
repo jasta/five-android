@@ -31,10 +31,7 @@ import android.app.Service;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
-import android.os.DeadObjectException;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
+import android.os.*;
 import android.util.Log;
 
 public class MetaService extends Service
@@ -266,7 +263,9 @@ public class MetaService extends Service
 					db = new MusicMapping(server, base,
 					  mContent, mHandler, sourceId, c.getInt(4));
 					
+					Debug.startMethodTracing("/tmp/sync-trace");
 					sess.sync(db, code);
+					Debug.stopMethodTracing();
 				}
 				catch (Exception e)
 				{

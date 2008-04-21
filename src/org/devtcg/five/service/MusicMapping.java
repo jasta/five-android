@@ -370,7 +370,7 @@ public class MusicMapping implements DatabaseMapping
 			Log.e(TAG, "Failed to insert content");
 			return null;
 		}
-		
+
 		ContentValues values = new ContentValues();
 
 		/* And the meta data... */
