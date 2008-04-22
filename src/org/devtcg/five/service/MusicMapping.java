@@ -193,22 +193,6 @@ public class MusicMapping implements DatabaseMapping
 		return mime.substring(typeIndex + mimePrefix.length());		
 	}
 	
-	private static void logFailure(String data, String path)
-	{
-		File f = new File(path);
-		
-		try
-		{
-			FileOutputStream out = new FileOutputStream(f);
-			out.write(data.getBytes());
-			out.close();
-		}
-		catch (Exception e)
-		{
-			Log.d(TAG, "Damn", e);
-		}
-	}
-	
 	private Uri insertArtist(SyncItem item, MetaDataFormat meta)
 	{
 		ContentValues values = new ContentValues();
@@ -416,18 +400,16 @@ public class MusicMapping implements DatabaseMapping
 		}
 
 		Log.i(TAG, "Inserting item (" + item.getMimeType() + "; " +
-		  item.getData().length() + " bytes): " + item.getSourceId());
-		
+		  item.getData().length + " bytes): " + item.getSourceId());
+
 		MetaDataFormat meta;
 
 		try
 		{
-			meta = new MetaDataFormat(item.getData());
+			meta = new MetaDataFormat(new String(item.getData()));
 		}
 		catch (ParseException e)
 		{
-			logFailure(item.getData(),
-			  "/sdcard/five/" + mSourceId + "-" + item.getSourceId() + ".item");
 			Log.d(TAG, "Failed to parse data=" + item.getData());
 
 			/* Not executed. */
@@ -527,78 +509,7 @@ public class MusicMapping implements DatabaseMapping
 		
 		return 200;
 	}
-	
-	private static class MetaDataFormat
-	{
-//		private HashMap<Integer, byte[]> mData =
-//		  new HashMap<Integer, byte[]>();
-//		  
-//		private HashMap<String, byte[]> mDataCustom;
-//		
-//		public static final int ITEM_FIELD_CUSTOM = 0;
-//		public static final int ITEM_FIELD_NAME = 1;
-//		public static final int ITEM_FIELD_GENRE = 2;
-//		public static final int ITEM_FIELD_DISCOVERY = 3;
-//		public static final int ITEM_FIELD_PHOTO = 10;
-//		public static final int ITEM_FIELD_ARTWORK = 20;
-//		public static final int ITEM_FIELD_RELEASE = 21;
-//		public static final int ITEM_FIELD_ARTIST = 30;
-//		public static final int ITEM_FIELD_ARTIST_GUID = 31;
-//		public static final int ITEM_FIELD_CONTENT = 40;
-//		public static final int ITEM_FIELD_ALBUM = 41;
-//		public static final int ITEM_FIELD_ALBUM_GUID = 42;
-//		public static final int ITEM_FIELD_LENGTH = 43;
-//		public static final int ITEM_FIELD_TRACK = 44;
-//		public static final int ITEM_FIELD_SIZE = 45;
-		
-		private final HashMap<String, String> mData =
-		  new HashMap<String, String>();
 
-		public static final String ITEM_FIELD_NAME = "N";
-		public static final String ITEM_FIELD_MBID = "MBID";
-		public static final String ITEM_FIELD_GENRE = "GENRE";
-		public static final String ITEM_FIELD_DISCOVERY = "DISCOVERY";
-		public static final String ITEM_FIELD_PHOTO = "PHOTO";
-		public static final String ITEM_FIELD_ARTWORK = "ARTWORK";
-		public static final String ITEM_FIELD_RELEASE = "RELEASE";
-		public static final String ITEM_FIELD_ARTIST = "ARTIST";
-		public static final String ITEM_FIELD_ARTIST_GUID = "ARTIST_GUID";
-		public static final String ITEM_FIELD_CONTENT = "CONTENT";
-		public static final String ITEM_FIELD_ALBUM = "ALBUM";
-		public static final String ITEM_FIELD_ALBUM_GUID = "ALBUM_GUID";
-		public static final String ITEM_FIELD_LENGTH = "LENGTH";
-		public static final String ITEM_FIELD_TRACK = "TRACK";
-		public static final String ITEM_FIELD_SIZE = "SIZE";
-
-		public MetaDataFormat(String data)
-		  throws ParseException
-		{
-			Scanner scanner = new Scanner(data);
-
-			for (int pos = 0; scanner.hasNextLine() == true; pos++)
-			{
-				String line = scanner.nextLine();
-
-				String keyvalue[] = line.split(":", 2);
-
-				if (keyvalue.length < 2)
-					throw new IllegalArgumentException("Parse error on line '" + line + "'");
-
-				mData.put(keyvalue[0], keyvalue[1]);
-			}
-		}
-
-		public boolean hasValue(String key)
-		{
-			return mData.containsKey(key);
-		}
-
-		public String getString(String key)
-		{
-			return mData.get(key);
-		}
-	}
-	
 	public static boolean scaleBitmapHack(InputStream in, int w, int h, OutputStream out)
 	{
 		Bitmap src = BitmapFactory.decodeStream(in);
@@ -667,6 +578,56 @@ public class MusicMapping implements DatabaseMapping
 		{
 			out.close();
 			in.close();
+		}
+	}
+	
+	private static class MetaDataFormat
+	{
+		protected HashMap<String, String> mData =
+		  new HashMap<String, String>();
+
+		public static final String ITEM_FIELD_NAME = "N";
+		public static final String ITEM_FIELD_MBID = "MBID";
+		public static final String ITEM_FIELD_GENRE = "GENRE";
+		public static final String ITEM_FIELD_DISCOVERY = "DISCOVERY";
+		public static final String ITEM_FIELD_PHOTO = "PHOTO";
+		public static final String ITEM_FIELD_ARTWORK = "ARTWORK";
+		public static final String ITEM_FIELD_RELEASE = "RELEASE";
+		public static final String ITEM_FIELD_ARTIST = "ARTIST";
+		public static final String ITEM_FIELD_ARTIST_GUID = "ARTIST_GUID";
+		public static final String ITEM_FIELD_CONTENT = "CONTENT";
+		public static final String ITEM_FIELD_ALBUM = "ALBUM";
+		public static final String ITEM_FIELD_ALBUM_GUID = "ALBUM_GUID";
+		public static final String ITEM_FIELD_LENGTH = "LENGTH";
+		public static final String ITEM_FIELD_TRACK = "TRACK";
+		public static final String ITEM_FIELD_SIZE = "SIZE";
+
+		public MetaDataFormat(String data)
+		  throws ParseException
+		{
+			Scanner scanner = new Scanner(data);
+
+			for (int pos = 0; scanner.hasNextLine() == true; pos++)
+			{
+				String line = scanner.nextLine();
+
+				String keyvalue[] = line.split(":", 2);
+
+				if (keyvalue.length < 2)
+					throw new IllegalArgumentException("Parse error on line '" + line + "'");
+
+				mData.put(keyvalue[0], keyvalue[1]);
+			}
+		}
+
+		public boolean hasValue(String key)
+		{
+			return mData.containsKey(key);
+		}
+
+		public String getString(String key)
+		{
+			return mData.get(key);
 		}
 	}
 }
