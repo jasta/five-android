@@ -74,10 +74,10 @@ public class SourceList extends Activity
 
         /* Work around a lame bug in M5 that causes the second progress bar animation to
          * not work correctly. */
-        ((ViewGroup)findViewById(R.id.source_list_top)).setAnimationCacheEnabled(false);
-        
+        ((ViewGroup)findViewById(R.id.source_list_top).getParent()).setAnimationCacheEnabled(false);
+
         mEmptySwitcher = (ViewSwitcher)findViewById(R.id.empty_list_switcher);
-        
+
         Button add = (Button)findViewById(R.id.add_server);
         add.setOnClickListener(new OnClickListener() {
         	public void onClick(View v)
