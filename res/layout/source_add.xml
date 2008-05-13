@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+  	android:layout_width="fill_parent"
+  	android:layout_height="fill_parent"
+  	android:paddingLeft="14dip"
+  	android:paddingRight="14dip"
+	>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Repository Label"
+		/>
+
+	<EditText
+		android:id="@+id/source_label"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:text="Home"
+		android:singleLine="true"
+		/>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Hostname (e.g. jasta.dyndns.org)"
+		/>
+
+	<EditText
+		android:id="@+id/source_host"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:singleLine="true"
+		/>
+
+<!-- 
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Username"
+		android:enabled="false"
+		/>
+
+	<EditText
+		android:id="@+id/source_username"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:singleLine="true"
+		android:enabled="false"
+		android:focusable="false"
+		/>
+  -->
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Password"
+		android:enabled="false"
+		/>
+
+	<EditText
+		android:id="@+id/source_password"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:singleLine="true"
+		android:enabled="false"
+		android:focusable="false"
+		/>
+		
+	<LinearLayout
+		android:orientation="horizontal"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:paddingTop="14dip"
+		>
+
+		<Button
+			android:id="@+id/add"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Add"
+			android:paddingRight="14dip"
+			/>
+
+		<Button
+			android:id="@+id/cancel"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Cancel"
+			/>
+		
+	</LinearLayout>
+ 
+</LinearLayout>

@@ -44,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private SQLiteDatabase mDB;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 21;
+	private static final int DATABASE_VERSION = 22;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -75,7 +75,7 @@ public class FiveProvider extends ContentProvider
 			db.execSQL(Five.Cache.SQL.CREATE);
 			execIndex(db, Five.Cache.SQL.INDEX);
 			db.execSQL(Five.Sources.SQL.CREATE);
-			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
+//			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 			db.execSQL(Five.SourcesLog.SQL.CREATE);
 			execIndex(db, Five.SourcesLog.SQL.INDEX);
 
@@ -464,7 +464,24 @@ public class FiveProvider extends ContentProvider
 
 	private Uri insertSource(Uri uri, URIPatternIds type, ContentValues v)
 	{
-		return null;
+		if (v.containsKey(Five.Sources.HOST) == false)
+			throw new IllegalArgumentException("HOST cannot be NULL");
+
+		if (v.containsKey(Five.Sources.PORT) == false)
+			throw new IllegalArgumentException("PORT cannot be NULL");
+
+		if (v.containsKey(Five.Sources.REVISION) == false)
+			v.put(Five.Sources.REVISION, 0);
+
+		long id = mDB.insert(Five.Sources.SQL.TABLE, Five.Sources.HOST, v);
+
+		if (id == -1)
+			return null;
+
+		Uri ret = ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id);
+		getContext().getContentResolver().notifyChange(ret, null);
+
+		return ret;
 	}
 	
 	private Uri insertSourceLog(Uri uri, URIPatternIds type, ContentValues v)

@@ -67,18 +67,18 @@ public final class Five
 			  REVISION + " INTEGER " +
 			  ");";
 
-			public static final String INSERT_DUMMY =
-			  "INSERT INTO " + TABLE + " (" +
-			  NAME + ", " +
-			  HOST + ", " +
-			  PORT + ", " +
-			  REVISION +
-			  ") VALUES (" +
-			  "\"Home\", " +
-			  "\"10.1.0.175\", " +
-			  "5545, " +
-			  "0 " +
-			  ");";
+//			public static final String INSERT_DUMMY =
+//			  "INSERT INTO " + TABLE + " (" +
+//			  NAME + ", " +
+//			  HOST + ", " +
+//			  PORT + ", " +
+//			  REVISION +
+//			  ") VALUES (" +
+//			  "\"Home\", " +
+//			  "\"10.1.0.175\", " +
+//			  "5545, " +
+//			  "0 " +
+//			  ");";
 
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE;

@@ -263,7 +263,9 @@ public class MetaService extends Service
 					db = new MusicMapping(server, base,
 					  mContent, mHandler, sourceId, c.getInt(4));
 					
+					Debug.startMethodTracing("/tmp/sync-trace");
 					sess.sync(db, code);
+					Debug.stopMethodTracing();
 				}
 				catch (Exception e)
 				{

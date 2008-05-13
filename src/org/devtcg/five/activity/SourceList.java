@@ -19,6 +19,7 @@ package org.devtcg.five.activity;
 import java.util.HashMap;
 
 import org.devtcg.five.R;
+import org.devtcg.five.activity.SourceAddDialog.OnSourceAddListener;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IMetaObserver;
 import org.devtcg.five.service.IMetaService;
@@ -43,6 +44,7 @@ public class SourceList extends Activity
 	private static final String TAG = "SourceList";
 
 	private static final int MENU_SYNC = Menu.FIRST;
+	private static final int MENU_ADD_SERVER = Menu.FIRST + 1;
 
 	private SimpleCursorAdapter mListAdapter;
 	private Cursor mCursor;
@@ -53,6 +55,7 @@ public class SourceList extends Activity
 
 	private IMetaService mService;
 
+	private ViewSwitcher mEmptySwitcher;
 	private ViewSwitcher mSwitcher;
 	private ProgressBar mProgress;
 	private Button mSyncAll;
@@ -72,6 +75,16 @@ public class SourceList extends Activity
         /* Work around a lame bug in M5 that causes the second progress bar animation to
          * not work correctly. */
         ((ViewGroup)findViewById(R.id.source_list_top)).setAnimationCacheEnabled(false);
+        
+        mEmptySwitcher = (ViewSwitcher)findViewById(R.id.empty_list_switcher);
+        
+        Button add = (Button)findViewById(R.id.add_server);
+        add.setOnClickListener(new OnClickListener() {
+        	public void onClick(View v)
+        	{
+        		menuAddServer();
+        	}
+        });
 
         mSwitcher = (ViewSwitcher)findViewById(R.id.loading_switcher);
 
@@ -124,9 +137,7 @@ public class SourceList extends Activity
 				String status = mStatus.get(cursor.getInt(0));
 
 				if (status != null)
-				{
 					revText.setText(status);
-				}
 				else
 				{
 					String lasterr = cursor.getString(cursor.getColumnIndex(Five.Sources.LAST_ERROR));
@@ -155,6 +166,14 @@ public class SourceList extends Activity
         list.setAdapter(mListAdapter);
     }
     
+    public void adjustEmptySwitcher()
+    {
+        if (mCursor.count() > 0)
+     	   mEmptySwitcher.setDisplayedChild(1);
+        else
+     	   mEmptySwitcher.setDisplayedChild(0);
+    }
+
     @Override
     public void onResume()
     {
@@ -164,21 +183,12 @@ public class SourceList extends Activity
 
     	Log.d(TAG, "!!!!!! onResume");
 
-        if (mCursor.count() > 0)
-        {
-        	findViewById(android.R.id.empty).setVisibility(View.GONE);
-        	findViewById(android.R.id.list).setVisibility(View.VISIBLE);
-        }
-        else
-        {
-        	findViewById(android.R.id.empty).setVisibility(View.VISIBLE);
-        	findViewById(android.R.id.list).setVisibility(View.GONE);
-        }
+    	adjustEmptySwitcher();
 
-        bindService();
+       bindService();
     	super.onResume();
     }
-    
+
     private void bindService()
     {
     	Intent meta = new Intent(this, MetaService.class);
@@ -372,14 +382,15 @@ public class SourceList extends Activity
 			  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
 		}
     };
-    
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
     	super.onCreateOptionsMenu(menu);
-    	
-    	menu.add(0, MENU_SYNC, "Synchronize");
-    	
+
+//    	menu.add(0, MENU_SYNC, "Synchronize");
+    	menu.add(0, MENU_ADD_SERVER, "Add Server");
+
     	return true;
     }
 
@@ -413,7 +424,7 @@ public class SourceList extends Activity
     	  android.R.anim.fade_out));
     	mProgress.setVisibility(View.INVISIBLE);
     }
-    
+
     protected void menuSync()
     {
     	Log.i(TAG, "menuSync(), here we go!");
@@ -436,14 +447,35 @@ public class SourceList extends Activity
 			stopSyncUI();
 		}
     }
-    
+
+    protected void menuAddServer()
+    {
+    	OnSourceAddListener l = new OnSourceAddListener()
+    	{
+			public void sourceAdd(SourceAddDialog dialog, String name,
+			  String host, String password)
+			{
+				mCursor.requery();
+				adjustEmptySwitcher();
+				Log.d(TAG, "Test");
+			}
+    	};
+
+    	SourceAddDialog d = new SourceAddDialog(this, l);
+    	
+    	d.show();
+    }
+
     @Override
     public boolean onOptionsItemSelected(Menu.Item item)
     {
     	switch (item.getId())
     	{
-    	case MENU_SYNC:
-    		menuSync();
+//    	case MENU_SYNC:
+//    		menuSync();
+//    		return true;
+    	case MENU_ADD_SERVER:
+    		menuAddServer();
     		return true;
     	}
     	

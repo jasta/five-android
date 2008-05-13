@@ -4,7 +4,7 @@
    	android:layout_width="fill_parent"
    	android:layout_height="fill_parent"
 	>
-	
+
 	<TextView
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
@@ -12,57 +12,82 @@
 		android:textAlign="center"
 		android:text="Loading..."
 		/>
-		
-	<LinearLayout
-		android:id="@+id/source_list_top"
-	    android:orientation="vertical"
-	    android:layout_width="fill_parent"
-	    android:layout_height="fill_parent"
-	   	android:paddingTop="2px"
-   		>   	
-   		
-    <ListView android:id="@android:id/list"
-    	android:layout_width="fill_parent"
-    	android:layout_height="wrap_content"
-    	/>
 
-    <TextView android:id="@android:id/empty"
-    	android:layout_width="fill_parent"
-    	android:layout_height="wrap_content"
-    	android:text="No sources.  Press [Menu] to start."
-    	android:padding="20dip"
-    	/>
+	<ViewSwitcher
+		android:id="@+id/empty_list_switcher"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:paddingTop="2px"
+		>
 
-    <LinearLayout
-		android:orientation="horizontal"
-	    android:layout_width="fill_parent"
-	    android:layout_height="wrap_content"
-	    android:paddingTop="8dip"
-	   	>
+		<LinearLayout
+			android:orientation="vertical"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:gravity="center_horizontal"
+			>
 
-	   	<ProgressBar
-	   		android:id="@+id/sync_progress"
-	   		android:visibility="invisible"
-	   		android:layout_width="wrap_content"
-   			android:layout_height="wrap_content"
-	   		style="?android:attr/progressBarStyleHorizontal"
-			android:layout_gravity="center_vertical"
-	   		android:progress="0"
-	   		android:layout_weight="1"
-	   		android:layout_marginLeft="12dip"
-	   		android:layout_marginRight="12dip"
-		   	/>
+			<TextView
+		    	android:layout_width="wrap_content"
+		    	android:layout_height="wrap_content"
+		    	android:text="No server sources configured."
+		    	android:padding="20dip"
+		    	android:textAppearance="?android:attr/textAppearanceMedium"
+		    	/>
 
-		<Button
-			android:id="@+id/source_sync_all"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="Sync"
-			android:layout_marginRight="12dip"
-			/>
+		    <Button
+		    	android:id="@+id/add_server"
+		    	android:layout_width="wrap_content"
+		    	android:layout_height="wrap_content"
+		    	android:text="Add Server"
+		    	/>
 
-	</LinearLayout>
+	    </LinearLayout>
 
-</LinearLayout>
+		<LinearLayout
+			android:id="@+id/source_list_top"
+		    android:orientation="vertical"
+		    android:layout_width="fill_parent"
+		    android:layout_height="fill_parent"
+	   		>
+
+		    <ListView android:id="@android:id/list"
+		    	android:layout_width="fill_parent"
+	    		android:layout_height="wrap_content"
+	    		/>
+
+		    <LinearLayout
+				android:orientation="horizontal"
+			    android:layout_width="fill_parent"
+			    android:layout_height="wrap_content"
+			    android:paddingTop="8dip"
+			   	>
+
+			   	<ProgressBar
+			   		android:id="@+id/sync_progress"
+			   		android:visibility="invisible"
+			   		android:layout_width="wrap_content"
+		   			android:layout_height="wrap_content"
+			   		style="?android:attr/progressBarStyleHorizontal"
+					android:layout_gravity="center_vertical"
+			   		android:progress="0"
+			   		android:layout_weight="1"
+			   		android:layout_marginLeft="12dip"
+			   		android:layout_marginRight="12dip"
+				   	/>
+
+				<Button
+					android:id="@+id/source_sync_all"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="Sync"
+					android:layout_marginRight="12dip"
+					/>
+
+			</LinearLayout>
+
+		</LinearLayout>
+
+	</ViewSwitcher>
 
 </ViewSwitcher>
