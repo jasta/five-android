@@ -38,12 +38,12 @@
             </configuration>
          </plugin>
          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
+            <groupId>org.jvending.masa.plugins</groupId>
             <artifactId>maven-dx-plugin</artifactId>
             <extensions>true</extensions>
          </plugin>
          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
+            <groupId>org.jvending.masa.plugins</groupId>
             <artifactId>maven-aapt-plugin</artifactId>
             <configuration>
                <androidVersion>m5-rc14</androidVersion>
