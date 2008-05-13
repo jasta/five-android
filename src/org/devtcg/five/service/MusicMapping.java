@@ -406,11 +406,11 @@ public class MusicMapping implements DatabaseMapping
 
 		try
 		{
-			meta = new MetaDataFormat(new String(item.getData()));
+			meta = new MetaDataFormat(new String(item.getData(), "UTF-8"));
 		}
-		catch (ParseException e)
+		catch (Exception e)
 		{
-			Log.d(TAG, "Failed to parse data=" + item.getData());
+			Log.d(TAG, "Failed to parse data=" + item.getData(), e);
 
 			/* Not executed. */
 			return 215;
