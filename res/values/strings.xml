@@ -5,9 +5,6 @@
     <string name="source_list_title">Five Sync</string>
 
     <!-- Permissions -->
-    <string name="perm_label_contentService">Access Five cached media</string>
-    <string name="perm_desc_contentService">...</string>
-
-    <string name="perm_label_metaService">Access Five stored meta data</string>
-    <string name="perm_desc_metaService">...</string>
+    <string name="perm_label_fiveServices">Access Five media services</string>
+    <string name="perm_desc_fiveServices">...</string>
 </resources>

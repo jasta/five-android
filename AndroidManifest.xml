@@ -8,24 +8,18 @@
     <!-- Obviously... -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Why do we have to define permission to access our own services? -->
-    <uses-permission android:name="org.devtcg.five.permission.CONTENT_SERVICE" />
-    <uses-permission android:name="org.devtcg.five.permission.META_SERVICE" />
-     
-    <permission android:name="org.devtcg.five.permission.CONTENT_SERVICE"
-        android:label="@string/perm_label_contentService"
-        android:description="@string/perm_desc_contentService" />
+    <!-- Why do we have to ask for permission to access our own services? -->
+    <uses-permission android:name="org.devtcg.five.permission.FIVE_SERVICES" />
 
-    <permission android:name="org.devtcg.five.permission.META_SERVICE"
-        android:label="@string/perm_label_metaService"
-        android:description="@string/perm_desc_metaService" />
+    <permission android:name="org.devtcg.five.permission.FIVE_SERVICES"
+        android:label="@string/perm_label_fiveServices"
+        android:description="@string/perm_desc_fiveServices" />
 
     <application android:icon="@drawable/icon" android:label="@string/app_name">
-    
 
        <provider android:name=".provider.FiveProvider"
          android:authorities="org.devtcg.five" />
-    
+
         <activity android:name=".activity.SourceList" android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -38,7 +32,7 @@
                <data android:mimeType="vnc.android.cursor.dir/vnd.five.source" />
             </intent-filter>
         </activity>
-        
+
         <activity android:name=".activity.SourceInfo" android:label="@string/source_info_title">
             <intent-filter>
                <action android:name="android.intent.action.VIEW" />
@@ -46,12 +40,14 @@
                <data android:mimeType="vnd.android.cursor.item/vnd.five.source" />
             </intent-filter>
         </activity>
-      
+
         <service android:name=".service.MetaService" 
-            android:permission="org.devtcg.five.permission.META_SERVICE" />
+            android:exported="true"
+            android:permission="org.devtcg.five.permission.FIVE_SERVICES" />
 
         <service android:name=".service.ContentService" 
-            android:permission="org.devtcg.five.permission.CONTENT_SERVICE" />
-        
+            android:exported="true"
+            android:permission="org.devtcg.five.permission.FIVE_SERVICES" />
+
    </application>
 </manifest> 
