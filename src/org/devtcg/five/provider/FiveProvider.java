@@ -18,19 +18,17 @@ package org.devtcg.five.provider;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import android.content.ContentProvider;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.content.ContentUris;
+import android.content.Context;
 import android.content.UriMatcher;
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteQueryBuilder;
-import android.database.ArrayListCursor;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -42,7 +40,7 @@ public class FiveProvider extends ContentProvider
 {
 	private static final String TAG = "FiveProvider";
 
-	private SQLiteDatabase mDB;
+	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
 	private static final int DATABASE_VERSION = 22;
 
@@ -69,6 +67,11 @@ public class FiveProvider extends ContentProvider
 
 	private static class DatabaseHelper extends SQLiteOpenHelper
 	{
+		public DatabaseHelper(Context ctx)
+		{
+			super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
+		}
+		
 		@Override
 		public void onCreate(SQLiteDatabase db)
 		{
@@ -130,10 +133,8 @@ public class FiveProvider extends ContentProvider
 	@Override
 	public boolean onCreate()
 	{
-		DatabaseHelper dbh = new DatabaseHelper();
-		mDB = dbh.openDatabase(getContext(), DATABASE_NAME, null, DATABASE_VERSION);
-		
-		return (mDB == null) ? false : true;
+		mHelper = new DatabaseHelper(getContext());
+		return true;
 	}
 
 	private static String getSecondToLastPathSegment(Uri uri)
@@ -189,7 +190,7 @@ public class FiveProvider extends ContentProvider
 		}
 		else
 		{
-			return ParcelFileDescriptor.MODE_READ;
+			return ParcelFileDescriptor.MODE_READ_ONLY;
 		}
 	}
 
@@ -201,20 +202,22 @@ public class FiveProvider extends ContentProvider
 		StringBuilder path;
 		int modeint;
 		
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 		
 		switch (type)
 		{
 		case CACHE_ITEM:
-			Cursor c = mDB.query(Five.Cache.SQL.TABLE, 
+			Cursor c = db.query(Five.Cache.SQL.TABLE, 
 			  new String[] { Five.Cache.SOURCE_ID, Five.Cache.CONTENT_ID },
 			  Five.Cache._ID + '=' + uri.getLastPathSegment(),
 			  null, null, null, null);
 			
-			if (c.count() == 0)
+			if (c.getCount() == 0)
 				return null;
 
-			c.first();
+			c.moveToFirst();
 			long sourceId = c.getLong(0);
 			long contentId = c.getLong(1);
 			c.close();
@@ -379,7 +382,8 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
 
-		Cursor c = qb.query(mDB, projection, selection, selectionArgs, groupBy, null, sortOrder);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		Cursor c = qb.query(db, projection, selection, selectionArgs, groupBy, null, sortOrder);
 		c.setNotificationUri(getContext().getContentResolver(), uri);
 
 		return c;
@@ -394,7 +398,8 @@ public class FiveProvider extends ContentProvider
 
 		custom = extendWhere(sel, Five.Music.Albums._ID + '=' + uri.getLastPathSegment());
 
-		int ret = mDB.update(Five.Music.Albums.SQL.TABLE, v, custom, selArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		int ret = db.update(Five.Music.Albums.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
@@ -407,7 +412,8 @@ public class FiveProvider extends ContentProvider
 
 		custom = extendWhere(sel, Five.Music.Artists._ID + '=' + uri.getLastPathSegment());
 
-		int ret = mDB.update(Five.Music.Artists.SQL.TABLE, v, custom, selArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		int ret = db.update(Five.Music.Artists.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
@@ -420,7 +426,8 @@ public class FiveProvider extends ContentProvider
 
 		custom = extendWhere(sel, Five.Sources._ID + '=' + uri.getLastPathSegment());
 
-		int ret = mDB.update(Five.Sources.SQL.TABLE, v, custom, selArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		int ret = db.update(Five.Sources.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
@@ -433,7 +440,8 @@ public class FiveProvider extends ContentProvider
 
 		custom = extendWhere(sel, Five.Content._ID + '=' + uri.getLastPathSegment());
 
-		int ret = mDB.update(Five.Content.SQL.TABLE, v, custom, selArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		int ret = db.update(Five.Content.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
@@ -473,7 +481,8 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Sources.REVISION) == false)
 			v.put(Five.Sources.REVISION, 0);
 
-		long id = mDB.insert(Five.Sources.SQL.TABLE, Five.Sources.HOST, v);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		long id = db.insert(Five.Sources.SQL.TABLE, Five.Sources.HOST, v);
 
 		if (id == -1)
 			return null;
@@ -496,7 +505,8 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.SourcesLog.TIMESTAMP) == false)
 			v.put(Five.SourcesLog.TIMESTAMP, System.currentTimeMillis() / 1000);
 
-		long id = mDB.insert(Five.SourcesLog.SQL.TABLE, Five.SourcesLog.SOURCE_ID, v);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		long id = db.insert(Five.SourcesLog.SQL.TABLE, Five.SourcesLog.SOURCE_ID, v);
 
 		if (id == -1)
 			return null;
@@ -520,7 +530,8 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Cache.CONTENT_ID) == false)
 			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
-		Cursor c = mDB.query(Five.Cache.SQL.TABLE,
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		Cursor c = db.query(Five.Cache.SQL.TABLE,
 		  new String[] { Five.Cache._ID },
 		  Five.Cache.SOURCE_ID + '=' + v.getAsLong(Five.Cache.SOURCE_ID) + " AND " +
 		  Five.Cache.CONTENT_ID + '=' + v.getAsLong(Five.Cache.CONTENT_ID),
@@ -529,18 +540,18 @@ public class FiveProvider extends ContentProvider
 		int rows;
 		long id;
 
-		if ((rows = c.count()) == 0)
+		if ((rows = c.getCount()) == 0)
 		{
 			v.put(Five.Cache.PATH,
 			  "/sdcard/five/cache/" +
 			  v.getAsLong(Five.Cache.SOURCE_ID) + "/" + 
 			  v.getAsLong(Five.Cache.CONTENT_ID));
 
-			id = mDB.insert(Five.Cache.SQL.TABLE, Five.Cache.SOURCE_ID, v);
+			id = db.insert(Five.Cache.SQL.TABLE, Five.Cache.SOURCE_ID, v);
 		}
 		else
 		{
-			c.first();
+			c.moveToFirst();
 			id = c.getLong(0);
 			c.close();
 		}
@@ -564,7 +575,8 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Content.CONTENT_ID) == false)
 			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
-		long id = mDB.insert(Five.Content.SQL.TABLE, Five.Content.SIZE, v);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		long id = db.insert(Five.Content.SQL.TABLE, Five.Content.SIZE, v);
 		
 		if (id == -1)
 			return null;
@@ -597,7 +609,8 @@ public class FiveProvider extends ContentProvider
 		
 		adjustNameWithPrefix(v);
 
-		long id = mDB.insert(Five.Music.Artists.SQL.TABLE, Five.Music.Artists.NAME, v);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		long id = db.insert(Five.Music.Artists.SQL.TABLE, Five.Music.Artists.NAME, v);
 
 		if (id == -1)
 			return null;
@@ -617,7 +630,8 @@ public class FiveProvider extends ContentProvider
 
 		adjustNameWithPrefix(v);
 
-		long id = mDB.insert(Five.Music.Albums.SQL.TABLE, Five.Music.Albums.NAME, v);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		long id = db.insert(Five.Music.Albums.SQL.TABLE, Five.Music.Albums.NAME, v);
 
 		if (id == -1)
 			return null;
@@ -641,7 +655,8 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Music.Songs.CONTENT_ID) == false)
 			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
-		long id = mDB.insert(Five.Music.Songs.SQL.TABLE, Five.Music.Songs.TITLE, v);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		long id = db.insert(Five.Music.Songs.SQL.TABLE, Five.Music.Songs.TITLE, v);
 
 		if (id == -1)
 			return null;
@@ -732,7 +747,8 @@ public class FiveProvider extends ContentProvider
 	{
 		int count;
 
-		count = mDB.delete(Five.Sources.SQL.TABLE, selection, selectionArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		count = db.delete(Five.Sources.SQL.TABLE, selection, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -762,7 +778,8 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
 		
-		count = mDB.delete(Five.Cache.SQL.TABLE, custom, selectionArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		count = db.delete(Five.Cache.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -788,7 +805,8 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
 
-		count = mDB.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -820,7 +838,8 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete artist URI: " + uri);
 		}
 
-		count = mDB.delete(Five.Music.Artists.SQL.TABLE, custom, selectionArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		count = db.delete(Five.Music.Artists.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -852,7 +871,8 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete album URI: " + uri);
 		}
 		
-		count = mDB.delete(Five.Music.Albums.SQL.TABLE, custom, selectionArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		count = db.delete(Five.Music.Albums.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -884,7 +904,8 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
 		}
 
-		count = mDB.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
+		SQLiteDatabase db = mHelper.getReadableDatabase();
+		count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;

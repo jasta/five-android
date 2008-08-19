@@ -23,7 +23,6 @@ import org.devtcg.five.provider.Five;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
@@ -52,10 +51,10 @@ public final class Sources
 		  new String[] { Five.Sources.HOST, Five.Sources.PORT },
 		  null, null, null);
 
-		if (c.count() == 0)
+		if (c.getCount() == 0)
 			throw new IllegalStateException("No source record found for id=" + sourceId);
 
-		c.first();
+		c.moveToFirst();
 
 		StringBuilder url = new StringBuilder();
 		

@@ -56,12 +56,11 @@ public class ContentState implements Parcelable
 	 */
 	public long total;
 
-	public ContentState()
-	{
-	}
+	public ContentState() {}
 
 	public ContentState(int state)
 	{
+		this();
 		this.state = state;
 	}
 
@@ -88,6 +87,10 @@ public class ContentState implements Parcelable
 		out.writeInt(state);
 		out.writeLong(ready);
 		out.writeLong(total);
+	}
+
+	public void writeToParcel(Parcel dest, int flags)
+	{
 	}
 
 	public void readFromParcel(Parcel in)
@@ -149,4 +152,9 @@ public class ContentState implements Parcelable
 			return new ContentState[size];
 		}		
 	};
+
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

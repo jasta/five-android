@@ -30,10 +30,11 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Scanner;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.syncml.model.DatabaseMapping;
@@ -211,14 +212,12 @@ public class MusicMapping implements DatabaseMapping
 		mArtistMap.put(item.getSourceId(),
 		  Long.valueOf(uri.getLastPathSegment()));
 
-		HttpMethod photoData = null;
-
 		try 
 		{
-			photoData = downloadArtistPhoto(item.getSourceId());
+			HttpResponse resp = downloadArtistPhoto(item.getSourceId());
 
 			Uri photo = uri.buildUpon().appendPath("photo").build();
-						
+
 			ContentValues v = new ContentValues();
 			v.put(Five.Music.Artists.PHOTO, photo.toString());
 
@@ -227,7 +226,10 @@ public class MusicMapping implements DatabaseMapping
 			if (n > 0)
 			{
 				OutputStream out = mContent.openOutputStream(photo);
-				connectIO(out, photoData.getResponseBodyAsStream());
+				HttpEntity ent = resp.getEntity();
+
+				if (ent != null)
+					connectIO(out, ent.getContent());
 			}
 		}
 		catch (Exception e)
@@ -238,11 +240,6 @@ public class MusicMapping implements DatabaseMapping
 			v.put(Five.Music.Artists.PHOTO, (String)null);
 
 			mContent.update(uri, v, null, null);
-		}
-		finally
-		{
-			if (photoData != null)
-				photoData.releaseConnection();
 		}
 
 		return uri;
@@ -271,11 +268,9 @@ public class MusicMapping implements DatabaseMapping
 		mAlbumMap.put(item.getSourceId(),
 		  Long.valueOf(uri.getLastPathSegment()));
 
-		HttpMethod artworkData = null;
-					
 		try
 		{
-			artworkData = downloadAlbumArtwork(item.getSourceId());
+			HttpResponse artworkData = downloadAlbumArtwork(item.getSourceId());
 
 			Uri artwork = uri.buildUpon().appendPath("artwork").build();
 			Uri artworkBig = uri.buildUpon().appendPath("artwork").appendPath("big").build();
@@ -289,7 +284,10 @@ public class MusicMapping implements DatabaseMapping
 			if (n > 0)
 			{
 				OutputStream outBig = mContent.openOutputStream(artworkBig);
-				connectIO(outBig, artworkData.getResponseBodyAsStream());
+				HttpEntity ent = artworkData.getEntity();
+				
+				if (ent != null)
+					connectIO(outBig, ent.getContent());
 
 				InputStream inBig = null;
 				inBig = mContent.openInputStream(artworkBig);
@@ -320,11 +318,6 @@ public class MusicMapping implements DatabaseMapping
 			v.put(Five.Music.Albums.ARTWORK, (String)null);
 
 			mContent.update(uri, v, null, null);
-		}
-		finally
-		{
-			if (artworkData != null)
-				artworkData.releaseConnection();
 		}
 		
 		return uri;
@@ -480,8 +473,8 @@ public class MusicMapping implements DatabaseMapping
 			
 			Cursor c = mContent.query(uri, new String[] { Five.Music.Songs.CONTENT_ID },
 			  null, null, null);
-
-			if (c.first() == false)
+			
+			if (c.moveToFirst() == false)
 				uri = null;
 			else
 			{
@@ -513,8 +506,8 @@ public class MusicMapping implements DatabaseMapping
 	public static boolean scaleBitmapHack(InputStream in, int w, int h, OutputStream out)
 	{
 		Bitmap src = BitmapFactory.decodeStream(in);
-
-		Bitmap dst = Bitmap.createBitmap(w, h, src.hasAlpha());
+		
+		Bitmap dst = Bitmap.createBitmap(w, h, src.getConfig());
 		Canvas tmp = new Canvas(dst);
 		tmp.drawBitmap(src, null, new Rect(0, 0, w, h),
 		  new Paint(Paint.FILTER_BITMAP_FLAG));
@@ -522,30 +515,31 @@ public class MusicMapping implements DatabaseMapping
 		return dst.compress(CompressFormat.JPEG, 75, out);
 	}
 
-	public HttpMethod reuseClientOpenStream(String url)
+	public HttpResponse reuseClientOpenStream(String url)
 	  throws IOException
 	{
 		HttpClient client = mConn.getHttpClient();
-		HttpMethod get = new GetMethod(url);
+		HttpGet get = new HttpGet(url);
 
-		int status = client.executeMethod(get);
-
-		if (status != HttpStatus.SC_OK)
+		HttpResponse resp = client.execute(get);
+		int status = resp.getStatusLine().getStatusCode();
+		
+		if (resp.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
 		{
-			get.releaseConnection();
+			get.abort();
 			throw new IOException("Unexpected HTTP status " + status);
 		}
 
-		return get;
+		return resp;
 	}
 
-	public HttpMethod downloadAlbumArtwork(String id)
+	public HttpResponse downloadAlbumArtwork(String id)
 	  throws IOException
 	{
 		return reuseClientOpenStream(mBaseUrl + "/meta/music/album/" + id + "/artwork/large");
 	}
-	
-	public HttpMethod downloadArtistPhoto(String id)
+
+	public HttpResponse downloadArtistPhoto(String id)
 	  throws IOException
 	{
 		return reuseClientOpenStream(mBaseUrl + "/meta/music/artist/" + id + "/photo/thumb");
@@ -562,10 +556,10 @@ public class MusicMapping implements DatabaseMapping
 	{
 		if (out == null)
 			throw new IllegalArgumentException("OutputStream is null");
-		
+
 		if (in == null)
 			throw new IllegalArgumentException("InputStream is null");
-		
+
 		byte[] b = new byte[blksize];
 		int n;
 
@@ -576,8 +570,16 @@ public class MusicMapping implements DatabaseMapping
 		}
 		finally
 		{
-			out.close();
+			IOException re = null;
+			
+			try {
+				out.close();
+			} catch (IOException e) { re = e; }
+			
 			in.close();
+
+			if (re != null)
+				throw re;
 		}
 	}
 	

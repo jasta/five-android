@@ -77,7 +77,7 @@ public class SourceInfo extends Activity
 
     	/* XXX: This should be re-arranged to show up in onResume(). */
     	long rev = 0;
-    	if (mCursor.first() == true)
+    	if (mCursor.moveToFirst() == true)
     		rev = mCursor.getLong(2);
 
     	Uri uriLog = uri.buildUpon().appendPath("log").build();
@@ -113,13 +113,13 @@ public class SourceInfo extends Activity
     {
     	super.onResume();
     	
-    	if (mCursor.count() == 0)
+    	if (mCursor.getCount() == 0)
     	{
     		Log.d(TAG, "Stale source, backing out...");
     		finish();
     	}
     	
-    	mCursor.first();
+    	mCursor.moveToFirst();
     	
     	mName.setText(mCursor.getString(1));
     	mURL.setText("http://" + mCursor.getString(3) + ":" + mCursor.getInt(4) + "/sync");
@@ -138,7 +138,7 @@ public class SourceInfo extends Activity
     		mLastSuccess.setText("Never");
     	}
 
-    	if (mCursorLog.count() == 0)
+    	if (mCursorLog.getCount() == 0)
     		((View)mErrors.getParent()).setVisibility(View.GONE);
     	else
     		((View)mErrors.getParent()).setVisibility(View.VISIBLE);

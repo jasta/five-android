@@ -39,6 +39,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteCallbackList;
+import android.os.RemoteException;
 import android.util.Log;
 
 public class ContentService extends Service
@@ -143,7 +144,7 @@ public class ContentService extends Service
 			      Five.Content.SOURCE_ID, Five.Content.CONTENT_ID },
 			    null, null, null);
 
-			if (cursor.count() == 0)
+			if (cursor.getCount() == 0)
 			{
 				cursor.close();
 				return null;
@@ -163,7 +164,7 @@ public class ContentService extends Service
 				return new ContentState(ContentState.NOT_FOUND);
 			}
 
-			cursor.first();
+			cursor.moveToFirst();
 
 			long size = cursor.getLong(2);
 			long sourceId = cursor.getLong(3);
@@ -215,7 +216,7 @@ public class ContentService extends Service
 				return new ContentState(ContentState.NOT_FOUND);
 			}
 
-			cursor.first();
+			cursor.moveToFirst();
 
 			long size = cursor.getLong(2);
 			long sourceId = cursor.getLong(3);
@@ -239,7 +240,7 @@ public class ContentService extends Service
 					public void run()
 					{
 						try { callback.finished(id, cacheHit, ret); }
-						catch (DeadObjectException e) {}
+						catch (RemoteException e) {}
 					}
 				});
 			}
@@ -280,7 +281,7 @@ public class ContentService extends Service
 				return;
 			}
 
-			c.first();
+			c.moveToFirst();
 			
 			long sourceId = c.getLong(3);
 			long remoteId = c.getLong(4);
@@ -449,7 +450,7 @@ public class ContentService extends Service
 			{
 				try {
 					mObservers.getBroadcastItem(n).finished(mLocalId, cache, mState);
-				} catch (DeadObjectException e) { }
+				} catch (RemoteException e) {}
 			}
 			
 			mObservers.finishBroadcast();
@@ -463,7 +464,7 @@ public class ContentService extends Service
 			{
 				try {
 					mObservers.getBroadcastItem(n).error(mLocalId, msg);
-				} catch (DeadObjectException e) { }
+				} catch (RemoteException e) {}
 			}
 			
 			mObservers.finishBroadcast();			
@@ -477,7 +478,7 @@ public class ContentService extends Service
 			{
 				try {
 					mObservers.getBroadcastItem(n).updateProgress(mLocalId, cache, mState);
-				} catch (DeadObjectException e) { }
+				} catch (RemoteException e) {}
 			}
 
 			mObservers.finishBroadcast();			

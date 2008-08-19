@@ -31,6 +31,7 @@ import android.database.Cursor;
 import android.os.*;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
@@ -98,7 +99,7 @@ public class SourceList extends Activity
         	intent.setData(Five.Sources.CONTENT_URI);
 
         if (intent.getAction() == null)
-        	intent.setAction(Intent.VIEW_ACTION);
+        	intent.setAction(Intent.ACTION_VIEW);
 
         mCursor = managedQuery(intent.getData(), PROJECTION, null, null);
         assert mCursor != null;
@@ -168,7 +169,7 @@ public class SourceList extends Activity
     
     public void adjustEmptySwitcher()
     {
-        if (mCursor.count() > 0)
+        if (mCursor.getCount() > 0)
      	   mEmptySwitcher.setDisplayedChild(1);
         else
      	   mEmptySwitcher.setDisplayedChild(0);
@@ -195,7 +196,7 @@ public class SourceList extends Activity
 
     	try
     	{
-    		ComponentName name = startService(meta, null);
+    		ComponentName name = startService(meta);
     		
     		if (name == null)
     			throw new IllegalStateException("Couldn't start service");
@@ -221,7 +222,7 @@ public class SourceList extends Activity
     	if (mService != null)
     	{
     		try { mService.unregisterObserver(mObserver); }
-    		catch (DeadObjectException e) { }
+    		catch (RemoteException e) { }
     	}
 
     	unbindService(mConnection);
@@ -279,7 +280,7 @@ public class SourceList extends Activity
 
 				mService.registerObserver(mObserver);
 			}
-			catch (DeadObjectException e)
+			catch (RemoteException e)
 			{
 				Log.e(TAG, "What the hell happened here?", e);
 				mService = null;
@@ -378,7 +379,7 @@ public class SourceList extends Activity
     {
 		public void onItemClick(AdapterView parent, View v, int pos, long id)
 		{
-			startActivity(new Intent(Intent.VIEW_ACTION,
+			startActivity(new Intent(Intent.ACTION_VIEW,
 			  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
 		}
     };
@@ -389,7 +390,7 @@ public class SourceList extends Activity
     	super.onCreateOptionsMenu(menu);
 
 //    	menu.add(0, MENU_SYNC, "Synchronize");
-    	menu.add(0, MENU_ADD_SERVER, "Add Server");
+    	menu.add(0, MENU_ADD_SERVER, Menu.NONE, "Add Server");
 
     	return true;
     }
@@ -441,7 +442,7 @@ public class SourceList extends Activity
 		{
 			mService.startSync();
 		}
-		catch (DeadObjectException e)
+		catch (RemoteException e)
 		{
 			mService = null;
 			stopSyncUI();
@@ -467,9 +468,9 @@ public class SourceList extends Activity
     }
 
     @Override
-    public boolean onOptionsItemSelected(Menu.Item item)
+    public boolean onOptionsItemSelected(MenuItem item)
     {
-    	switch (item.getId())
+    	switch (item.getItemId())
     	{
 //    	case MENU_SYNC:
 //    		menuSync();

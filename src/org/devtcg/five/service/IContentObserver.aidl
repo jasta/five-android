@@ -1,5 +1,4 @@
 /*
- * $Id$ vim:set ft=java:
  *
  * Copyright (C) 2007 Josh Guilfoyle <jasta@devtcg.org>
  *

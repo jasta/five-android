@@ -32,6 +32,7 @@ import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.*;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 public class MetaService extends Service
@@ -42,9 +43,9 @@ public class MetaService extends Service
 	private int mSyncSource = -1;
 	private int mSyncProgressN = -1;
 	private int mSyncProgressD = -1;
-	
+
 	private final MetaObservable mObservable = new MetaObservable();
-	
+
 	@Override
 	public IBinder onBind(Intent intent)
 	{
@@ -129,7 +130,7 @@ public class MetaService extends Service
 					if (mSyncProgressN != -1 && mSyncProgressD != -1)
 						observer.updateProgress(mSyncSource, mSyncProgressN, mSyncProgressD);
 				}
-				catch (DeadObjectException e)
+				catch (RemoteException e)
 				{
 					Log.d(TAG, "Leaving so soon?", e);
 					return;
@@ -192,7 +193,7 @@ public class MetaService extends Service
 		mSyncThread = null;		
 	}
 
-	private static class SyncThread extends ThreadStoppable
+	private class SyncThread extends ThreadStoppable
 	{
 		private ContentResolver mContent;
 		private Handler mHandler;
@@ -214,7 +215,7 @@ public class MetaService extends Service
 
 			int n;
 
-			if ((n = c.count()) == 0)
+			if ((n = c.getCount()) == 0)
 			{
 				Log.w(TAG, "No sources?");
 				return;
@@ -225,7 +226,7 @@ public class MetaService extends Service
 			msg = mHandler.obtainMessage(MSG_BEGIN_SYNC);
 			mHandler.sendMessage(msg);
 
-			while (c.next() == true)
+			while (c.moveToNext() == true)
 			{
 				String base = "http://" + c.getString(2) + ":" + c.getInt(3);
 				String url = base + "/sync";
@@ -240,8 +241,11 @@ public class MetaService extends Service
 				  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);
 
 				server.setAuthentication(info);
-				server.setSourceURI("IMEI:" + android.os.SystemProperties.get(android.telephony.TelephonyProperties.PROPERTY_IMEI));
 				
+				TelephonyManager tm =
+				  (TelephonyManager)MetaService.this.getSystemService(TELEPHONY_SERVICE);
+				server.setSourceURI("IMEI:" + tm.getDeviceId());
+
 				SyncSession sess = new SyncSession(server);
 				sess.open();
 
@@ -327,7 +331,7 @@ public class MetaService extends Service
 				{
 					o.beginSync();
 				}
-				catch (DeadObjectException e)
+				catch (RemoteException e)
 				{
 					i.remove();
 				}
@@ -346,7 +350,7 @@ public class MetaService extends Service
 				{
 					o.endSync();
 				}
-				catch (DeadObjectException e)
+				catch (RemoteException e)
 				{
 					i.remove();
 				}
@@ -365,7 +369,7 @@ public class MetaService extends Service
 				{
 					o.beginSource(sourceId);
 				}
-				catch (DeadObjectException e)
+				catch (RemoteException e)
 				{
 					i.remove();
 				}
@@ -384,7 +388,7 @@ public class MetaService extends Service
 				{
 					o.endSource(sourceId);
 				}
-				catch (DeadObjectException e)
+				catch (RemoteException e)
 				{
 					i.remove();
 				}
@@ -403,7 +407,7 @@ public class MetaService extends Service
 				{
 					o.updateProgress(sourceId, n, d);
 				}
-				catch (DeadObjectException e)
+				catch (RemoteException e)
 				{
 					i.remove();
 				}
