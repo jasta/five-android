@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.devtcg.five">
+
+    <!-- Access PROPERTY_IMEI for unique device signature. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application android:icon="@drawable/icon" android:label="@string/app_name">
     
-
-       <!-- Access PROPERTY_IMEI for unique device signature. -->
-       <uses-permission android:name="android.permission.READ_OWNER_DATA" />
 
        <provider android:name=".provider.FiveProvider"
          android:authorities="org.devtcg.five" />
