@@ -186,7 +186,7 @@ public class SourceList extends Activity
 
     	adjustEmptySwitcher();
 
-       bindService();
+    	bindService();
     	super.onResume();
     }
 
