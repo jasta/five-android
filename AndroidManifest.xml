@@ -4,7 +4,11 @@
 
     <!-- Access PROPERTY_IMEI for unique device signature. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- Obviously... -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Why do we have to define permission to access our own services? -->
     <uses-permission android:name="org.devtcg.five.permission.CONTENT_SERVICE" />
     <uses-permission android:name="org.devtcg.five.permission.META_SERVICE" />
      
