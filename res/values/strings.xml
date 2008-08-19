@@ -3,4 +3,11 @@
     <string name="app_name">Five Sync</string>
     <string name="source_info_title">Source Information</string>
     <string name="source_list_title">Five Sync</string>
+
+    <!-- Permissions -->
+    <string name="perm_label_contentService">Access Five cached media</string>
+    <string name="perm_desc_contentService">...</string>
+
+    <string name="perm_label_metaService">Access Five stored meta data</string>
+    <string name="perm_desc_metaService">...</string>
 </resources>

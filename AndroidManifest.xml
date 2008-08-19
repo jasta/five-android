@@ -5,6 +5,16 @@
     <!-- Access PROPERTY_IMEI for unique device signature. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="org.devtcg.five.permission.CONTENT_SERVICE" />
+    <uses-permission android:name="org.devtcg.five.permission.META_SERVICE" />
+     
+    <permission android:name="org.devtcg.five.permission.CONTENT_SERVICE"
+        android:label="@string/perm_label_contentService"
+        android:description="@string/perm_desc_contentService" />
+
+    <permission android:name="org.devtcg.five.permission.META_SERVICE"
+        android:label="@string/perm_label_metaService"
+        android:description="@string/perm_desc_metaService" />
 
     <application android:icon="@drawable/icon" android:label="@string/app_name">
     
@@ -33,8 +43,11 @@
             </intent-filter>
         </activity>
       
-        <service android:name=".service.MetaService" />
-        <service android:name=".service.ContentService" />
+        <service android:name=".service.MetaService" 
+            android:permission="org.devtcg.five.permission.META_SERVICE" />
+
+        <service android:name=".service.ContentService" 
+            android:permission="org.devtcg.five.permission.CONTENT_SERVICE" />
         
    </application>
 </manifest> 
