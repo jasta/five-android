@@ -19,6 +19,7 @@ package org.devtcg.five.activity;
 import java.util.HashMap;
 
 import org.devtcg.five.R;
+import org.devtcg.five.activity.SourceAddDialog.OnSourceAddListener;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IMetaObserver;
 import org.devtcg.five.service.IMetaService;
@@ -27,13 +28,10 @@ import org.devtcg.five.util.DateUtils;
 import org.devtcg.five.util.ServiceActivity;
 import org.devtcg.five.widget.StatefulListView;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.DataSetObserver;
-import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -44,8 +42,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListAdapter;
-import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -148,7 +144,6 @@ public class SourceList extends ServiceActivity
 					return;
 
 				setUI(mScreenNormal);
-				mScreenNormal.watchService();
 			}
 		});
 	}
@@ -200,6 +195,8 @@ public class SourceList extends ServiceActivity
 			adapter.setViewBinder(mListBinder);
 			mList.setAdapter(adapter);
 			mList.setOnItemClickListener(mSourceClick);
+
+			watchService();
 		}
 
 		public void hide() {}
@@ -422,7 +419,21 @@ public class SourceList extends ServiceActivity
 		{
 			public void onClick(View v)
 			{
-				
+				SourceAddDialog d = new SourceAddDialog(SourceList.this,
+				  mAddSource);
+				d.show();
+			}
+		};
+
+		private final OnSourceAddListener mAddSource = new OnSourceAddListener()
+		{
+			public void sourceAdd(SourceAddDialog dialog, String name,
+			  String host, String password)
+			{
+				mCursor.requery();
+
+				if (mCursor.getCount() > 0)
+					setUI(mScreenNormal);
 			}
 		};
 	}
@@ -435,7 +446,7 @@ public class SourceList extends ServiceActivity
 		public void handleMessage(Message msg)
 		{
 			assert mScreen == mScreenNormal;
-			
+
 			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
 			mScreenNormal.mSyncProgress.setProgress((int)scale);
 			mScreenNormal.setSourceStatus((Long)msg.obj, "Synchronizing: " + msg.arg1 + " of " +
