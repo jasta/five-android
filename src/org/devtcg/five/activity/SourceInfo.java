@@ -84,7 +84,7 @@ public class SourceInfo extends Activity
     	mCursorLog = managedQuery(uriLog, PROJECTION_LOG,
     	  Five.SourcesLog.TIMESTAMP + " > " + rev, null,
     	  Five.SourcesLog.TIMESTAMP + " DESC");
-    	
+
     	SimpleCursorAdapter adapter = new SimpleCursorAdapter(this,
     	  R.layout.source_log_item,
     	  mCursorLog,
