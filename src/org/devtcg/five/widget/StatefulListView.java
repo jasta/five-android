@@ -33,7 +33,7 @@ import android.widget.ListView;
 public class StatefulListView extends ListView
 {
 	/** Cache of searches to resolve row positions by adapter row id. */
-	protected HashMap<Long, Integer> mViewMapCache;
+	protected HashMap<Long, Integer> mViewMapCache = null;
 	
 	public StatefulListView(Context context)
 	{
@@ -44,14 +44,14 @@ public class StatefulListView extends ListView
 	{
 		super(context, attrs);
 	}
-	
+
 	@Override
 	public void setAdapter(ListAdapter adapter)
 	{
 		super.setAdapter(adapter);
 		adapter.registerDataSetObserver(mDataSetChanged);
 	}
-	
+
 	private final DataSetObserver mDataSetChanged = new DataSetObserver()
 	{
 		public void onChanged()
@@ -59,7 +59,8 @@ public class StatefulListView extends ListView
 			/* The cache must be cleared in the event that our ordering changed.
 			 * For example, if a new entry was inserted somewhere in the list
 			 * before our cached positions. */
-			mViewMapCache.clear();
+			if (mViewMapCache != null)
+				mViewMapCache.clear();
 		}
 	};
 
