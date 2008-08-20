@@ -16,516 +16,351 @@
 
 package org.devtcg.five.activity;
 
-import java.util.HashMap;
-
 import org.devtcg.five.R;
-import org.devtcg.five.activity.SourceAddDialog.OnSourceAddListener;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IMetaObserver;
 import org.devtcg.five.service.IMetaService;
 import org.devtcg.five.service.MetaService;
+import org.devtcg.five.util.DateUtils;
+import org.devtcg.five.util.ServiceActivity;
 
 import android.app.Activity;
-import android.content.*;
+import android.content.ComponentName;
+import android.content.Intent;
 import android.database.Cursor;
-import android.os.*;
+import android.opengl.Visibility;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
-import android.view.animation.*;
-import android.view.animation.Animation.AnimationListener;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
-public class SourceList extends Activity
+public class SourceList extends ServiceActivity
 {
 	private static final String TAG = "SourceList";
 
-	private static final int MENU_SYNC = Menu.FIRST;
-	private static final int MENU_ADD_SERVER = Menu.FIRST + 1;
-
-	private SimpleCursorAdapter mListAdapter;
-	private Cursor mCursor;
-
-	private static final String[] PROJECTION = {
+	private static final String[] QUERY_FIELDS = {
 	  Five.Sources._ID, Five.Sources.NAME,
-	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };
+	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };	
 
-	private IMetaService mService;
+	private IMetaService mService = null;
 
-	private ViewSwitcher mEmptySwitcher;
-	private ViewSwitcher mSwitcher;
-	private ProgressBar mProgress;
-	private Button mSyncAll;
-	private boolean mSyncing;
+	private Cursor mCursor;
+	
+	private Screen mScreen;
+	private final ScreenNormal mScreenNormal = new ScreenNormal();
+	private final ScreenNoSources mScreenNoSources = new ScreenNoSources();
+	
+	@Override
+	public void onCreate(Bundle icicle)
+	{
+		super.onCreate(icicle);
 
-	private HashMap<Integer, String> mStatus = new HashMap<Integer, String>();
+		Intent intent = getIntentDefaulted();
 
-    @Override
-    public void onCreate(Bundle icicle)
-    {
-    	Log.d(TAG, "!!!!!! onCreate");
+		mCursor = managedQuery(intent.getData(), QUERY_FIELDS, null, null);
+		assert mCursor != null;
 
-        super.onCreate(icicle);
-        setTitle(R.string.source_list_title);
-        setContentView(R.layout.source_list);
+		if (mCursor.getCount() == 0)
+			setUI(mScreenNoSources);
+	}
+	
+	@Override
+	protected void onResume()
+	{
+		if (mScreen == mScreenNormal && mService != null)
+			mScreenNormal.watchService();
+	}
+	
+	@Override
+	protected void onPause()
+	{
+		if (mScreen == mScreenNormal && mService != null)
+			mScreenNormal.unwatchService();
+	}
+	
+	private Intent getIntentDefaulted()
+	{
+		Intent i = getIntent();
 
-        /* Work around a lame bug in M5 that causes the second progress bar animation to
-         * not work correctly. */
-        ((ViewGroup)findViewById(R.id.source_list_top).getParent()).setAnimationCacheEnabled(false);
+		if (i.getData() == null)
+			i.setData(Five.Sources.CONTENT_URI);
 
-        mEmptySwitcher = (ViewSwitcher)findViewById(R.id.empty_list_switcher);
+		if (i.getAction() == null)
+			i.setAction(Intent.ACTION_VIEW);
 
-        Button add = (Button)findViewById(R.id.add_server);
-        add.setOnClickListener(new OnClickListener() {
-        	public void onClick(View v)
-        	{
-        		menuAddServer();
-        	}
-        });
+		return i;
+	}
 
-        mSwitcher = (ViewSwitcher)findViewById(R.id.loading_switcher);
+	public void setUI(Screen screen)
+	{
+		if (mScreen != null)
+			mScreen.hide();
 
-        mSwitcher.setInAnimation(AnimationUtils.loadAnimation(this,
-          android.R.anim.fade_in));
-        mSwitcher.setOutAnimation(AnimationUtils.loadAnimation(this,
-          android.R.anim.fade_out));
+		screen.show();
+		mScreen = screen;
+	}
 
-        Intent intent = getIntent();
-        if (intent.getData() == null)
-        	intent.setData(Five.Sources.CONTENT_URI);
+	@Override
+	protected Intent getServiceIntent()
+	{
+		return new Intent(this, MetaService.class);
+	}
 
-        if (intent.getAction() == null)
-        	intent.setAction(Intent.ACTION_VIEW);
+	@Override
+	public void onServiceConnected(ComponentName name, IBinder binder)
+	{
+		super.onServiceConnected(name, binder);
 
-        mCursor = managedQuery(intent.getData(), PROJECTION, null, null);
-        assert mCursor != null;
+		mService = IMetaService.Stub.asInterface(binder);
 
-        ListView list = (ListView)findViewById(android.R.id.list);
-
-//        View footer = getViewInflate().inflate(R.layout.source_footer,
-//          null, false, null);
-//        list.addFooterView(footer, null, false);
-
-        mProgress = (ProgressBar)findViewById(R.id.sync_progress);
-        mSyncAll = (Button)findViewById(R.id.source_sync_all);
-
-        mSyncAll.setOnClickListener(new OnClickListener() {
-			public void onClick(View v)
-			{
-				menuSync();
+		runOnUiThread(new Runnable() {
+			public void run() {
+				/* Don't clobber ScreenNoSources if its the current UI. */
+				if (mScreen != null)
+					return;
+				
+				setUI(mScreenNormal);
+				mScreenNormal.watchService();
 			}
-        });
+		});
+	}
 
-        mListAdapter = new SimpleCursorAdapter(this,
-        	R.layout.source_list_item,
-        	mCursor,
-        	new String[] { Five.Sources.NAME, Five.Sources.REVISION },
-        	new int[] { R.id.source_name, R.id.source_sync }
-        );
+	@Override
+	public void onServiceDisconnected(ComponentName name)
+	{
+		super.onServiceDisconnected(name);
+		onServiceFatal();
+	}
 
-        mListAdapter.setViewBinder(new ViewBinder()
-        {
-			public boolean setViewValue(View view, Cursor cursor, int column)
+	@Override
+	public void onServiceFatal()
+	{
+		super.onServiceFatal();
+		mService = null;
+	}
+	
+	private interface Screen
+	{
+		public int getLayout();
+		public void show();
+		public void hide();
+	}
+	
+	/**
+	 * Encapsulate logic to handle the normal screen.
+	 */
+	private class ScreenNormal implements Screen
+	{
+		private static final int LAYOUT = R.layout.source_list;
+		private ListView mList;
+		private ProgressBar mSyncProgress;
+		private Button mSyncAll;
+
+		public int getLayout() { return LAYOUT; }
+
+		public void show()
+		{
+			setContentView(LAYOUT);
+			
+			mSyncProgress = (ProgressBar)findViewById(R.id.sync_progress);
+			
+			mSyncAll = (Button)findViewById(R.id.source_sync_all);
+			mSyncAll.setOnClickListener(mSyncAllClick);
+
+			mList = (ListView)findViewById(android.R.id.list);
+			SimpleCursorAdapter adapter = new SimpleCursorAdapter(SourceList.this,
+			  R.layout.source_list_item, mCursor,
+			  new String[] { Five.Sources.NAME, Five.Sources.REVISION },
+			  new int[] { R.id.source_name, R.id.source_sync });
+			adapter.setViewBinder(mListBinder);
+			mList.setAdapter(adapter);
+		}
+
+		public void hide()
+		{
+
+		}
+
+		private final ViewBinder mListBinder = new ViewBinder()
+		{
+			public boolean bindRevision(View v, Cursor c, int col)
 			{
-				if (cursor.getColumnIndex(Five.Sources.REVISION) != column)
-					return false;
-
-				TextView revText = (TextView)view;
-				String status = mStatus.get(cursor.getInt(0));
-
-				if (status != null)
-					revText.setText(status);
+				TextView vv = (TextView)v;
+			
+				String lasterr =
+				  c.getString(c.getColumnIndexOrThrow(Five.Sources.LAST_ERROR));
+				
+				if (lasterr != null)
+					vv.setText("Critical error, click for details.");
 				else
 				{
-					String lasterr = cursor.getString(cursor.getColumnIndex(Five.Sources.LAST_ERROR));
-
-					if (lasterr != null)
-						revText.setText("Critical error, click for details.");
+					int rev = c.getInt(col);
+					
+					if (rev == 0)
+						vv.setText("Never synchronized.");
 					else
 					{
-						int rev = cursor.getInt(column);
-
-						if (rev == 0)
-							revText.setText("Never synchronized.");
-						else
-						{
-							revText.setText("Last synchronized: " +
-							  DateUtils.formatTimeAgo(rev) + ".");
-						}
+						vv.setText("Last synchronized: " + 
+						  DateUtils.formatTimeAgo(rev) + ".");
 					}
 				}
-
+				
 				return true;
 			}
-        });
-        
-        list.setOnItemClickListener(mOnClick);
-        list.setAdapter(mListAdapter);
-    }
-    
-    public void adjustEmptySwitcher()
-    {
-        if (mCursor.getCount() > 0)
-     	   mEmptySwitcher.setDisplayedChild(1);
-        else
-     	   mEmptySwitcher.setDisplayedChild(0);
-    }
 
-    @Override
-    public void onResume()
-    {
-    	/* We don't know if we're syncing until we connect to the service. */
-    	mSyncing = false;
-    	mSwitcher.setDisplayedChild(0);
-
-    	Log.d(TAG, "!!!!!! onResume");
-
-    	adjustEmptySwitcher();
-
-    	bindService();
-    	super.onResume();
-    }
-
-    private void bindService()
-    {
-    	Intent meta = new Intent(this, MetaService.class);
-
-    	try
-    	{
-    		ComponentName name = startService(meta);
-    		
-    		if (name == null)
-    			throw new IllegalStateException("Couldn't start service");
-
-    		boolean bound = bindService(new Intent().setComponent(name),
-   		      mConnection, BIND_AUTO_CREATE);
-    		
-    		if (bound == false)
-    			throw new IllegalStateException("Couldn't bind to service");
-    	}
-    	catch (IllegalStateException e)
-    	{
-   			mSwitcher.showNext();
-
-    		Log.e(TAG, "Damn", e);
-    		Toast.makeText(this, "CRITICAL: Failure to connect to service",
-    		  Toast.LENGTH_LONG).show();
-    	}    	
-    }
-    
-    private void unbindService()
-    {
-    	if (mService != null)
-    	{
-    		try { mService.unregisterObserver(mObserver); }
-    		catch (RemoteException e) { }
-    	}
-
-    	unbindService(mConnection);
-    	mService = null;    	
-    }
-
-    @Override
-    public void onPause()
-    {
-    	Log.d(TAG, "!!!!!! onPause");
-
-    	unbindService();
-    	super.onPause();    	
-    }
-
-    private void presentUI()
-    {
-    	if (mSwitcher.getDisplayedChild() == 0)
-    		mSwitcher.showNext();
-    }
-
-    private Runnable mPresentUI = new Runnable()
-    {
-		public void run()
-		{
-			presentUI();
-		}
-    };
-    
-	private final Handler mHandler = new Handler()
-	{
-		@Override
-		public void handleMessage(Message msg)
-		{
-			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
-			mProgress.setProgress((int)scale);
-
-			mStatus.put(msg.what, "Synchronizing: " + msg.arg1 + " of " + msg.arg2 + " items...");
-			mListAdapter.notifyDataSetChanged();
-		}
-	};
-
-    private ServiceConnection mConnection = new ServiceConnection()
-    {
-		public void onServiceConnected(ComponentName name, IBinder service)
-		{
-			mService = IMetaService.Stub.asInterface(service);
-
-			Log.d(TAG, "Attempting to register with service...");
-
-			try
+			public boolean setViewValue(View v, Cursor c, int col)
 			{
+				if (QUERY_FIELDS[col] == Five.Sources.REVISION)
+					return bindRevision(v, c, col);
+				
+				return false;
+			}
+		};
+
+		private final OnClickListener mSyncAllClick = new OnClickListener()
+		{
+			public void onClick(View v)
+			{
+				assert mService != null;
+
+				yesSyncing();
+
+				try {
+					mService.startSync();
+				} catch (RemoteException e) {
+					onServiceFatal();
+				}
+			}
+		};
+		
+		protected void notSyncing()
+		{
+			mSyncProgress.setVisibility(View.INVISIBLE);
+			mSyncAll.setEnabled(true);
+		}
+
+		protected void yesSyncing()
+		{
+			mSyncProgress.setVisibility(View.VISIBLE);
+			mSyncAll.setEnabled(false);
+		}
+
+		public void watchService()
+		{
+			assert mService != null;
+
+			try {
 				if (mService.isSyncing() == false)
-					mHandler.post(mPresentUI);
-
-				mService.registerObserver(mObserver);
-			}
-			catch (RemoteException e)
-			{
-				Log.e(TAG, "What the hell happened here?", e);
-				mService = null;
-
-				mHandler.post(mPresentUI);
+					notSyncing();
+				else
+					yesSyncing();
+				
+				mService.registerObserver(mSyncObserver);
+			} catch (RemoteException e) {
+				onServiceFatal();
 			}
 		}
-
-		public void onServiceDisconnected(ComponentName name)
+		
+		public void unwatchService()
 		{
-			Log.d(TAG, "onServiceDisconnected: Where did it go?  Should we retry?  Hmm.");
-			mService = null;
-
-			mHandler.post(mPresentUI);
-		}
-    };
-    
-    private IMetaObserver.Stub mObserver = new IMetaObserver.Stub()
-    {
-    	private long lastUpdateTime = 0;
-    	private float lastUpdateProgress = 0.00f;
-    	
-		public void beginSync()
-		{
-			Log.d(TAG, "beginSync");
+			assert mService != null;
 			
-			mHandler.post(new Runnable() {
-				public void run()
-				{
-					if (mSyncing == false)
-						startSyncUI(false);
-
-					presentUI();
-				}
-			});
-		}
-
-		public void endSync()
-		{
-			Log.d(TAG, "endSync");
-
-			mHandler.post(new Runnable() {
-				public void run()
-				{
-					stopSyncUI();
-				}
-			});
-		}
-
-		public void beginSource(final int sourceId)
-		{
-			Log.d(TAG, "beginSource: " + sourceId);
-
-			mHandler.post(new Runnable() {
-				public void run()
-				{
-					mStatus.put(sourceId, "Synchronizing...");
-					mListAdapter.notifyDataSetChanged();
-				}
-			});
-		}
-
-		public void endSource(final int sourceId)
-		{
-			Log.d(TAG, "endSource: " + sourceId);
-
-			mHandler.post(new Runnable() {
-				public void run()
-				{
-					mStatus.remove(sourceId);
-					mListAdapter.notifyDataSetChanged();
-				}
-			});
-		}
-
-		public void updateProgress(int sourceId, int itemNo, int itemCount)
-		{
-			Log.d(TAG, "updateProgress: " + sourceId + " (" + itemNo + " / " + itemCount + ")");
-
-			long time = System.currentTimeMillis();
-			float progress = (float)itemNo / (float)itemCount;
-
-			if (lastUpdateTime + 1500 > time &&
-			    lastUpdateProgress + 0.03f > progress)
-				return;
-
-			lastUpdateTime = time;
-			lastUpdateProgress = progress;
-			
-			Message msg = mHandler.obtainMessage(sourceId, itemNo, itemCount);
-			mHandler.sendMessage(msg);
-		}
-    };
-    
-    private AdapterView.OnItemClickListener mOnClick = new AdapterView.OnItemClickListener()
-    {
-		public void onItemClick(AdapterView parent, View v, int pos, long id)
-		{
-			startActivity(new Intent(Intent.ACTION_VIEW,
-			  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
-		}
-    };
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
-    	super.onCreateOptionsMenu(menu);
-
-//    	menu.add(0, MENU_SYNC, "Synchronize");
-    	menu.add(0, MENU_ADD_SERVER, Menu.NONE, "Add Server");
-
-    	return true;
-    }
-
-    protected void startSyncUI()
-    {
-    	startSyncUI(true);
-    }
-
-    protected void startSyncUI(boolean animation)
-    {
-    	mSyncing = true;
-    	mSyncAll.setEnabled(false);
-
-    	mProgress.setProgress(0);
-
-    	if (animation == true)
-    	{
-    		mProgress.startAnimation(AnimationUtils.loadAnimation(this,
-    		  android.R.anim.fade_in));
-    	}
-
-    	mProgress.setVisibility(View.VISIBLE);
-    }
-
-    protected void stopSyncUI()
-    {
-    	mSyncing = false;
-    	mSyncAll.setEnabled(true);
-
-    	mProgress.startAnimation(AnimationUtils.loadAnimation(this,
-    	  android.R.anim.fade_out));
-    	mProgress.setVisibility(View.INVISIBLE);
-    }
-
-    protected void menuSync()
-    {
-    	Log.i(TAG, "menuSync(), here we go!");
-
-    	if (mSyncing == true)
-    	{
-    		Toast.makeText(this, "Already synchronizing...", Toast.LENGTH_SHORT).show();
-    		return;
-    	}
-
-    	startSyncUI();
-
-		try
-		{
-			mService.startSync();
-		}
-		catch (RemoteException e)
-		{
-			mService = null;
-			stopSyncUI();
-		}
-    }
-
-    protected void menuAddServer()
-    {
-    	OnSourceAddListener l = new OnSourceAddListener()
-    	{
-			public void sourceAdd(SourceAddDialog dialog, String name,
-			  String host, String password)
-			{
-				mCursor.requery();
-				adjustEmptySwitcher();
-				Log.d(TAG, "Test");
+			try {
+				mService.unregisterObserver(mSyncObserver);
+			} catch (RemoteException e) {
+				onServiceFatal();
 			}
-    	};
+		}
 
-    	SourceAddDialog d = new SourceAddDialog(this, l);
-    	
-    	d.show();
-    }
+		private final IMetaObserver.Stub mSyncObserver = new IMetaObserver.Stub()
+		{
+			public void beginSync()
+			{
+				Log.i(TAG, "beginSync()");
+				SourceList.this.runOnUiThread(new Runnable() {
+					public void run() {
+						yesSyncing();
+					}
+				});
+			}
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-    	switch (item.getItemId())
-    	{
-//    	case MENU_SYNC:
-//    		menuSync();
-//    		return true;
-    	case MENU_ADD_SERVER:
-    		menuAddServer();
-    		return true;
-    	}
-    	
-    	return super.onOptionsItemSelected(item);
-    }
+			public void endSync()
+			{
+				Log.i(TAG, "endSync()");
+				SourceList.this.runOnUiThread(new Runnable() {
+					public void run() {
+						notSyncing();
+					}
+				});
+			}
 
-    public static class DateUtils
-    {
-    	public static String formatTimeAgo(long epoch)
-    	{
-    		long now = System.currentTimeMillis() / 1000;
+			public void beginSource(int sourceId)
+			{
+				Log.i(TAG, "beginSource: " + sourceId);
+				SourceList.this.runOnUiThread(new Runnable() {
+					public void run() {						
+						setSourceStatus(sourceId, "Synchronizing...");
+					}
+				});
+			}
 
-    		if (now < epoch)
-    			throw new IllegalArgumentException("Supplied time must be in the past");
+			public void endSource(int sourceId)
+			{
+				Log.i(TAG, "endSource: " + sourceId);
+				SourceList.this.runOnUiThread(new Runnable() {
+					public void run() {						
+						setSourceStatus(sourceId, null);
+					}
+				});
+			}
+			
+			public void updateProgress(int sourceId, int itemNo, int itemCount)
+			{
+				long time = System.currentTimeMillis();
+				float progress
+			}
+		};
+	}
 
-    		long diff = now - epoch;
+	/**
+	 * Encapsulate logic to handle the initial screen presented without 
+	 * sources. 
+	 */
+	private class ScreenNoSources implements Screen
+	{
+		private static final int LAYOUT = R.layout.source_list_empty;
+		private Button mAddServer;
 
-    		String[] units = { "d", "h", "m" };
-    		int values[] = { 86400, 3600, 60 };
-    		int digits[] = { 0, 0, 0 };
+		public int getLayout() { return LAYOUT; }
 
-    		for (int offs = 0; offs < values.length; offs++)
-    		{    			
-    			digits[offs] = (int)diff / values[offs];
-    			diff -= digits[offs] * values[offs];
-    			
-    			if (diff == 0)
-    				break;
-    		}
+		public void show()
+		{
+			setContentView(LAYOUT);
+			mAddServer = (Button)findViewById(R.id.add_server);
+			mAddServer.setOnClickListener(mAddServerClick);
+		}
+		
+		public void hide()
+		{
+			mAddServer = null;
+		}
 
-    		StringBuilder ret = new StringBuilder();
-    		
-    		for (int i = 0; i < digits.length; i++)
-    		{
-    			if (digits[i] > 0)
-    				ret.append(digits[i]).append(units[i]).append(' ');
-    		}
-    		
-    		if (ret.length() == 0)
-    		{
-    			if (diff > 0)
-    				ret.append(diff).append("s ago");
-    			else
-    				ret.append("now");
-    		}
-    		else
-    			ret.append("ago");
-
-    		return ret.toString();
-    	}
-    }
+		private final OnClickListener mAddServerClick = new OnClickListener()
+		{
+			public void onClick(View v)
+			{
+				
+			}
+		};
+	}
 }

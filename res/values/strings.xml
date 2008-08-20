@@ -4,6 +4,11 @@
     <string name="source_info_title">Source Information</string>
     <string name="source_list_title">Five Sync</string>
 
+    <string name="app_error_msg">
+       The application has encountered an illegal condition and must be closed.
+       Please report this bug to the author.
+    </string>
+
     <!-- Permissions -->
     <string name="perm_label_fiveServices">Access Five media services</string>
     <string name="perm_desc_fiveServices">...</string>

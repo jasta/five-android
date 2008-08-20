@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="12dip"
+	>
 
-	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-		android:orientation="vertical"
+	<TextView android:id="@+id/source_name"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
-		android:padding="12dip"
-		>
+		android:textAppearance="?android:attr/textAppearanceLarge"
+		/>
 
-		<TextView android:id="@+id/source_name"
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
-			android:textAppearance="?android:attr/textAppearanceLarge"
-			/>
+	<TextView android:id="@+id/source_sync"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		/>
 
-		<TextView android:id="@+id/source_sync"
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
-			/>
-
-	</LinearLayout>
+</LinearLayout>
