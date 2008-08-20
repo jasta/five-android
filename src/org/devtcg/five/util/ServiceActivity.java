@@ -26,8 +26,6 @@ public abstract class ServiceActivity extends Activity
 
 		if (bindService() == false)
 			onServiceFatal();
-
-		Log.d(TAG, "FOO bindService called...");
 	}
 
 	@Override
