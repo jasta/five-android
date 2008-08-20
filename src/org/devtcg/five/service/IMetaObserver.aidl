@@ -20,7 +20,7 @@ interface IMetaObserver
 {
 	void beginSync();
 	void endSync();
-	void beginSource(int sourceId);
-	void endSource(int sourceId);
-	void updateProgress(int sourceId, int itemNo, int itemCount);
+	void beginSource(long sourceId);
+	void endSource(long sourceId);
+	void updateProgress(long sourceId, int itemNo, int itemCount);
 }

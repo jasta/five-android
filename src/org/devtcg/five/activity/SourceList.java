@@ -16,6 +16,8 @@
 
 package org.devtcg.five.activity;
 
+import java.util.HashMap;
+
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IMetaObserver;
@@ -28,10 +30,12 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.DataSetObserver;
 import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
@@ -55,11 +59,13 @@ public class SourceList extends ServiceActivity
 	private IMetaService mService = null;
 
 	private Cursor mCursor;
-	
+
 	private Screen mScreen;
 	private final ScreenNormal mScreenNormal = new ScreenNormal();
 	private final ScreenNoSources mScreenNoSources = new ScreenNoSources();
-	
+
+	private final ProgressHandler mHandler = new ProgressHandler();
+
 	@Override
 	public void onCreate(Bundle icicle)
 	{
@@ -73,21 +79,32 @@ public class SourceList extends ServiceActivity
 		if (mCursor.getCount() == 0)
 			setUI(mScreenNoSources);
 	}
-	
+
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+		mService = null;
+	}
+
 	@Override
 	protected void onResume()
 	{
+		super.onResume();
+
 		if (mScreen == mScreenNormal && mService != null)
 			mScreenNormal.watchService();
 	}
-	
+
 	@Override
 	protected void onPause()
 	{
 		if (mScreen == mScreenNormal && mService != null)
 			mScreenNormal.unwatchService();
+
+		super.onPause();
 	}
-	
+
 	private Intent getIntentDefaulted()
 	{
 		Intent i = getIntent();
@@ -116,11 +133,8 @@ public class SourceList extends ServiceActivity
 		return new Intent(this, MetaService.class);
 	}
 
-	@Override
 	public void onServiceConnected(ComponentName name, IBinder binder)
 	{
-		super.onServiceConnected(name, binder);
-
 		mService = IMetaService.Stub.asInterface(binder);
 
 		runOnUiThread(new Runnable() {
@@ -128,34 +142,25 @@ public class SourceList extends ServiceActivity
 				/* Don't clobber ScreenNoSources if its the current UI. */
 				if (mScreen != null)
 					return;
-				
+
 				setUI(mScreenNormal);
 				mScreenNormal.watchService();
 			}
 		});
 	}
 
-	@Override
 	public void onServiceDisconnected(ComponentName name)
 	{
-		super.onServiceDisconnected(name);
 		onServiceFatal();
 	}
 
-	@Override
-	public void onServiceFatal()
-	{
-		super.onServiceFatal();
-		mService = null;
-	}
-	
 	private interface Screen
 	{
 		public int getLayout();
 		public void show();
 		public void hide();
 	}
-	
+
 	/**
 	 * Encapsulate logic to handle the normal screen.
 	 */
@@ -166,14 +171,20 @@ public class SourceList extends ServiceActivity
 		private ProgressBar mSyncProgress;
 		private Button mSyncAll;
 
+		/** Cache of searches on `mList' to access row positions by database id. */
+		private final HashMap<Long, Integer> mViewMapCache = 
+		  new HashMap<Long, Integer>();
+		private final HashMap<Long, String> mStatus =
+		  new HashMap<Long, String>();
+
 		public int getLayout() { return LAYOUT; }
 
 		public void show()
 		{
 			setContentView(LAYOUT);
-			
+
 			mSyncProgress = (ProgressBar)findViewById(R.id.sync_progress);
-			
+
 			mSyncAll = (Button)findViewById(R.id.source_sync_all);
 			mSyncAll.setOnClickListener(mSyncAllClick);
 
@@ -184,6 +195,12 @@ public class SourceList extends ServiceActivity
 			  new int[] { R.id.source_name, R.id.source_sync });
 			adapter.setViewBinder(mListBinder);
 			mList.setAdapter(adapter);
+
+			mCursor.registerDataSetObserver(new DataSetObserver() {
+				public void onChanged() {
+					mViewMapCache.clear();
+				}
+			});
 		}
 
 		public void hide()
@@ -191,30 +208,94 @@ public class SourceList extends ServiceActivity
 
 		}
 
+		private int lazyListSearchForId(long id)
+		{
+			ListAdapter adapter = mList.getAdapter();
+			int start = mList.getFirstVisiblePosition();
+			int count = mList.getChildCount();
+
+			for (int i = 0; i < count; i++)
+			{
+				if (adapter.getItemId(i) == id)
+					return i;
+			}
+			
+			return -1;
+		}
+
+		private View getRowViewFromId(long id)
+		{
+			Integer row = mViewMapCache.get(id);
+
+			/* Damn, have to search for the list position */
+			if (row == null)
+			{
+				if ((row = lazyListSearchForId(id)) == -1)
+					return null;
+				
+				mViewMapCache.put(id, row);
+			}
+
+			int first = mList.getFirstVisiblePosition();
+
+			/* View is no longer on screen... */
+			if (row < first || row > (mList.getChildCount() - first))
+				return null;
+
+			return mList.getChildAt(row - first);
+		}
+
+		public void setSourceStatus(long sourceId, String status)
+		{
+			if (status == null)
+			{
+				mStatus.remove(sourceId);
+				((SimpleCursorAdapter)mList.getAdapter()).notifyDataSetChanged();
+			}
+			else
+			{
+				mStatus.put(sourceId, status);
+
+				View v = getRowViewFromId(sourceId);
+
+				if (v != null)
+					((TextView)v.findViewById(R.id.source_sync)).setText(status);
+			}
+		}
+
 		private final ViewBinder mListBinder = new ViewBinder()
 		{
 			public boolean bindRevision(View v, Cursor c, int col)
 			{
 				TextView vv = (TextView)v;
-			
-				String lasterr =
-				  c.getString(c.getColumnIndexOrThrow(Five.Sources.LAST_ERROR));
-				
-				if (lasterr != null)
-					vv.setText("Critical error, click for details.");
-				else
+
+				String status = mStatus.get(c.getInt(0));
+
+				if (status != null)
 				{
-					int rev = c.getInt(col);
-					
-					if (rev == 0)
-						vv.setText("Never synchronized.");
-					else
-					{
-						vv.setText("Last synchronized: " + 
-						  DateUtils.formatTimeAgo(rev) + ".");
-					}
+					vv.setText(status);
+					return true;
 				}
 				
+				String lasterr =
+				  c.getString(c.getColumnIndexOrThrow(Five.Sources.LAST_ERROR));
+
+				if (lasterr != null)
+				{
+					vv.setText("Critical error, click for details.");
+					return true;
+				}
+
+				int rev = c.getInt(col);
+
+				if (rev == 0)
+					vv.setText("Never synchronized.");
+				else
+				{
+					vv.setText("Last synchronized: " + 
+					  DateUtils.formatTimeAgo(rev) + ".");
+				}
+
 				return true;
 			}
 
@@ -264,7 +345,7 @@ public class SourceList extends ServiceActivity
 					notSyncing();
 				else
 					yesSyncing();
-				
+
 				mService.registerObserver(mSyncObserver);
 			} catch (RemoteException e) {
 				onServiceFatal();
@@ -284,6 +365,11 @@ public class SourceList extends ServiceActivity
 
 		private final IMetaObserver.Stub mSyncObserver = new IMetaObserver.Stub()
 		{
+			private static final int MAX_UPDATE_TIME_INTERVAL = 1000;
+			private static final float MAX_UPDATE_PCT_INTERVAL = 0.03f;
+			private long mLastUpdateTime = 0;
+			private float mLastUpdateProgress = 0f;
+
 			public void beginSync()
 			{
 				Log.i(TAG, "beginSync()");
@@ -304,17 +390,17 @@ public class SourceList extends ServiceActivity
 				});
 			}
 
-			public void beginSource(int sourceId)
+			public void beginSource(final long sourceId)
 			{
 				Log.i(TAG, "beginSource: " + sourceId);
 				SourceList.this.runOnUiThread(new Runnable() {
-					public void run() {						
+					public void run() {
 						setSourceStatus(sourceId, "Synchronizing...");
 					}
 				});
 			}
 
-			public void endSource(int sourceId)
+			public void endSource(final long sourceId)
 			{
 				Log.i(TAG, "endSource: " + sourceId);
 				SourceList.this.runOnUiThread(new Runnable() {
@@ -324,10 +410,19 @@ public class SourceList extends ServiceActivity
 				});
 			}
 			
-			public void updateProgress(int sourceId, int itemNo, int itemCount)
+			public void updateProgress(long sourceId, int itemNo, int itemCount)
 			{
 				long time = System.currentTimeMillis();
-				float progress
+				float progress = (float)itemNo / (float)itemCount;
+				
+				if (mLastUpdateTime + MAX_UPDATE_TIME_INTERVAL > time &&
+				    mLastUpdateProgress + MAX_UPDATE_PCT_INTERVAL > progress)
+					return;
+
+				mLastUpdateTime = time;
+				mLastUpdateProgress = progress;
+
+				mHandler.sendProgress(sourceId, itemNo, itemCount);
 			}
 		};
 	}
@@ -362,5 +457,27 @@ public class SourceList extends ServiceActivity
 				
 			}
 		};
+	}
+
+	private class ProgressHandler extends Handler
+	{
+		public static final int MSG_UPDATE_PROGRESS = 0;
+
+		@Override
+		public void handleMessage(Message msg)
+		{
+			assert mScreen == mScreenNormal;
+			
+			float scale = ((float)msg.arg1 / (float)msg.arg2) * 100F;
+			mScreenNormal.mSyncProgress.setProgress((int)scale);
+			mScreenNormal.setSourceStatus((Long)msg.obj, "Synchronizing: " + msg.arg1 + " of " +
+			  msg.arg2 + " items...");
+		}
+
+		public void sendProgress(long sourceId, int itemNo, int itemCount)
+		{
+			sendMessage(obtainMessage(MSG_UPDATE_PROGRESS,
+			  itemNo, itemCount, (Long)sourceId));
+		}
 	}
 }

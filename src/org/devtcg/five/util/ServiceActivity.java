@@ -1,45 +1,40 @@
 package org.devtcg.five.util;
 
-import java.util.HashMap;
-
 import org.devtcg.five.R;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.util.Log;
 
 /**
  * Utility class to create activities which critically depend on a service 
- * connection.  Automatically retries to create the service connection again
- * if it fails.
+ * connection.
  */
 public abstract class ServiceActivity extends Activity
   implements ServiceConnection
 {
 	public static final String TAG = "ServiceActivity";
 
-	private static final HashMap<Context, IBinder> mConnected =
-	  new HashMap<Context, IBinder>();
-
+	@Override
 	public void onCreate(Bundle icicle)
 	{
 		super.onCreate(icicle);
 
-		IBinder b = mConnected.get(this);
+		if (bindService() == false)
+			onServiceFatal();
 
-		if (b != null)
-			onServiceConnected(null, b);
-		else
-		{
-			if (bindService() == false)
-				onServiceFatal();
-		}
+		Log.d(TAG, "FOO bindService called...");
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+		unbindService();
 	}
 
 	private boolean bindService()
@@ -58,24 +53,14 @@ public abstract class ServiceActivity extends Activity
 
 		return bound;
 	}
-
-	protected void ejectConnection()
+	
+	private void unbindService()
 	{
-		mConnected.remove(this);
+		unbindService(this);
 	}
 	
 	protected abstract Intent getServiceIntent();
 	
-	public void onServiceConnected(ComponentName name, IBinder binder)
-	{
-		mConnected.put(this, binder);
-	}
-	
-	public void onServiceDisconnected(ComponentName name)
-	{
-		mConnected.remove(this);
-	}
-
 	/**
 	 * Fatal error attempting to either start or bind to the service specified by
 	 * {@link getServiceIntent}.  Will not retry.  Default implementation is to
@@ -84,8 +69,6 @@ public abstract class ServiceActivity extends Activity
 	protected void onServiceFatal()
 	{
 		Log.e(TAG, "Unable to start service: " + getServiceIntent());
-
-		ejectConnection();
 
 		(new AlertDialog.Builder(this))
 		  .setIcon(android.R.drawable.ic_dialog_alert)
