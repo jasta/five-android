@@ -25,9 +25,11 @@ import org.devtcg.five.service.IMetaService;
 import org.devtcg.five.service.MetaService;
 import org.devtcg.five.util.DateUtils;
 import org.devtcg.five.util.ServiceActivity;
+import org.devtcg.five.widget.StatefulListView;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.DataSetObserver;
@@ -40,12 +42,14 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class SourceList extends ServiceActivity
@@ -167,7 +171,7 @@ public class SourceList extends ServiceActivity
 	private class ScreenNormal implements Screen
 	{
 		private static final int LAYOUT = R.layout.source_list;
-		private ListView mList;
+		private StatefulListView mList;
 		private ProgressBar mSyncProgress;
 		private Button mSyncAll;
 
@@ -188,62 +192,17 @@ public class SourceList extends ServiceActivity
 			mSyncAll = (Button)findViewById(R.id.source_sync_all);
 			mSyncAll.setOnClickListener(mSyncAllClick);
 
-			mList = (ListView)findViewById(android.R.id.list);
+			mList = (StatefulListView)findViewById(android.R.id.list);
 			SimpleCursorAdapter adapter = new SimpleCursorAdapter(SourceList.this,
 			  R.layout.source_list_item, mCursor,
 			  new String[] { Five.Sources.NAME, Five.Sources.REVISION },
 			  new int[] { R.id.source_name, R.id.source_sync });
 			adapter.setViewBinder(mListBinder);
 			mList.setAdapter(adapter);
-
-			mCursor.registerDataSetObserver(new DataSetObserver() {
-				public void onChanged() {
-					mViewMapCache.clear();
-				}
-			});
+			mList.setOnItemClickListener(mSourceClick);
 		}
 
-		public void hide()
-		{
-
-		}
-
-		private int lazyListSearchForId(long id)
-		{
-			ListAdapter adapter = mList.getAdapter();
-			int start = mList.getFirstVisiblePosition();
-			int count = mList.getChildCount();
-
-			for (int i = 0; i < count; i++)
-			{
-				if (adapter.getItemId(i) == id)
-					return i;
-			}
-			
-			return -1;
-		}
-
-		private View getRowViewFromId(long id)
-		{
-			Integer row = mViewMapCache.get(id);
-
-			/* Damn, have to search for the list position */
-			if (row == null)
-			{
-				if ((row = lazyListSearchForId(id)) == -1)
-					return null;
-				
-				mViewMapCache.put(id, row);
-			}
-
-			int first = mList.getFirstVisiblePosition();
-
-			/* View is no longer on screen... */
-			if (row < first || row > (mList.getChildCount() - first))
-				return null;
-
-			return mList.getChildAt(row - first);
-		}
+		public void hide() {}
 
 		public void setSourceStatus(long sourceId, String status)
 		{
@@ -256,7 +215,7 @@ public class SourceList extends ServiceActivity
 			{
 				mStatus.put(sourceId, status);
 
-				View v = getRowViewFromId(sourceId);
+				View v = mList.getChildFromId(sourceId);
 
 				if (v != null)
 					((TextView)v.findViewById(R.id.source_sync)).setText(status);
@@ -321,6 +280,15 @@ public class SourceList extends ServiceActivity
 				} catch (RemoteException e) {
 					onServiceFatal();
 				}
+			}
+		};
+		
+		private final OnItemClickListener mSourceClick = new OnItemClickListener()
+		{
+			public void onItemClick(AdapterView parent, View v, int pos, long id)
+			{
+				startActivity(new Intent(Intent.ACTION_VIEW,
+				  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
 			}
 		};
 		
