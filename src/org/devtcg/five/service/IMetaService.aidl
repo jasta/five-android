@@ -22,8 +22,15 @@ interface IMetaService
 {
 	void registerObserver(in IMetaObserver observer);
 	void unregisterObserver(in IMetaObserver observer);
-	
+
 	boolean startSync();
 	boolean stopSync();
 	boolean isSyncing();
+
+	/**
+	 * Get a list of the currently syncing sources, as would be reported with
+	 * IMetaObserver#beginSync.  Can be useful for quickly reacting to the
+	 * service state. 
+	 */
+	List whichSyncing();
 }

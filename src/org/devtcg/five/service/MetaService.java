@@ -16,6 +16,8 @@
 
 package org.devtcg.five.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.devtcg.five.provider.Five;
@@ -65,6 +67,24 @@ public class MetaService extends Service
 		public void registerObserver(IMetaObserver observer)
 		  throws RemoteException
 		{
+			/* Fill this new observer in our current state so they can play
+			 * "catch-up". */
+			if (mHandler.mSourceId >= 0)
+			{
+				try {
+					observer.beginSync();
+					observer.beginSource(mHandler.mSourceId);
+
+					if (mHandler.mSourceN >= 0 && mHandler.mSourceD >= 0)
+					{
+						observer.updateProgress(mHandler.mSourceId,
+						  mHandler.mSourceN, mHandler.mSourceD);
+					}
+				} catch (RemoteException e) {
+					return;
+				}
+			}
+
 			mObservers.register(observer);
 		}
 
@@ -73,7 +93,7 @@ public class MetaService extends Service
 		{
 			mObservers.unregister(observer);
 		}
-		
+
 		public boolean isSyncing()
 		  throws RemoteException
 		{
@@ -81,6 +101,20 @@ public class MetaService extends Service
 			{
 				return mSyncing;
 			}
+		}
+
+		public List whichSyncing()
+		  throws RemoteException
+		{
+			if (isSyncing() == false)
+				return null;
+
+			List which = new ArrayList(1);
+
+			if (mHandler.mSourceId >= 0)
+				which.add((Long)mHandler.mSourceId);
+
+			return which;
 		}
 
 		public boolean startSync()
@@ -93,7 +127,7 @@ public class MetaService extends Service
 					Log.w(TAG, "startSync(): Already syncing...");
 					return false;
 				}
-				
+
 				mSyncing = true;
 				mSyncThread = new SyncThread();
 				mSyncThread.start();
@@ -218,10 +252,10 @@ public class MetaService extends Service
 				while (mSyncing == true && c.moveToNext() == true)
 				{
 					mHandler.sendBeginSource(c.getLong(0));
-
+					
 					syncSource(c.getLong(0), c.getString(1),
 					  c.getString(2), c.getInt(3), c.getLong(4));
-
+					
 					mHandler.sendEndSource(c.getLong(0));
 				}
 			}
@@ -250,7 +284,13 @@ public class MetaService extends Service
 		public static final int MSG_UPDATE_PROGRESS = 2;
 		public static final int MSG_BEGIN_SYNC = 3;
 		public static final int MSG_END_SYNC = 4;
-		
+
+		/* Last known state messages to deliver to new registered observers
+		 * so they can "catch up". */
+		public volatile long mSourceId = -1;
+		public volatile int mSourceN = -1;
+		public volatile int mSourceD = -1;
+
 		public void handleMessage(Message m)
 		{
 			switch (m.what)
@@ -268,7 +308,7 @@ public class MetaService extends Service
 						break;
 					} catch (InterruptedException e) {}
 				}
-				
+
 				synchronized(MetaService.this) {
 					mSyncing = false;
 					mSyncThread = null;
@@ -279,12 +319,16 @@ public class MetaService extends Service
 
 				break;
 			case MSG_BEGIN_SOURCE:
+				mSourceId = (Long)m.obj;
 				mObservers.broadcastBeginSource((Long)m.obj);
 				break;
 			case MSG_END_SOURCE:
+				mSourceId = -1;
 				mObservers.broadcastEndSource((Long)m.obj);
 				break;
 			case MSG_UPDATE_PROGRESS:
+				mSourceN = m.arg1;
+				mSourceD = m.arg2;
 				mObservers.broadcastUpdateProgress((Long)m.obj,
 				  m.arg1, m.arg2);
 				break;
