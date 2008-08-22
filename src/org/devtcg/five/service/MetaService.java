@@ -16,403 +16,386 @@
 
 package org.devtcg.five.service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
-import org.devtcg.five.util.ThreadStoppable;
+import org.devtcg.syncml.transport.SyncHttpConnection;
 import org.devtcg.syncml.protocol.SyncAuthInfo;
 import org.devtcg.syncml.protocol.SyncSession;
-import org.devtcg.syncml.transport.SyncConnection;
-import org.devtcg.syncml.transport.SyncHttpConnection;
 
 import android.app.Service;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
-import android.os.*;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.RemoteCallbackList;
+import android.os.RemoteException;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
 public class MetaService extends Service
 {
-	private static final String TAG = "MetaService";
+	public static final String TAG = "MetaService";
 
-	private ThreadStoppable mSyncThread;
-	private int mSyncSource = -1;
-	private int mSyncProgressN = -1;
-	private int mSyncProgressD = -1;
+	volatile boolean mSyncing = false;
+	SyncThread mSyncThread = null;
 
-	private final MetaObservable mObservable = new MetaObservable();
+	final MetaServiceCallbackList mObservers =
+	  new MetaServiceCallbackList();
+
+	final SyncHandler mHandler = new SyncHandler();
 
 	@Override
 	public IBinder onBind(Intent intent)
 	{
 		return mBinder;
 	}
-
+	
 	@Override
 	public void onDestroy()
 	{
-		Log.d(TAG, "onDestroy()...");
-
-		if (syncIsActive() == true)
-		{
-			/* Should gracefully shut down and notify observing activities. */ 
-			syncShutdown();
-		}
-
-		mObservable.unregisterAll();
-		
-		super.onDestroy();
+		mObservers.kill();
 	}
-
-	public static final int MSG_BEGIN_SOURCE = 0;
-	public static final int MSG_END_SOURCE = 1;
-	public static final int MSG_UPDATE_PROGRESS = 2;
-	public static final int MSG_BEGIN_SYNC = 3;
-	public static final int MSG_END_SYNC = 4;
-
-	private final Handler mHandler = new Handler()
-	{
-		@Override
-		public void handleMessage(Message msg)
-		{
-			switch (msg.what)
-			{
-			case MSG_BEGIN_SYNC:
-				mObservable.notifyBeginSync();
-				break;
-			case MSG_END_SYNC:
-				mObservable.notifyEndSync();
-
-				try { mSyncThread.join(); }
-				catch (InterruptedException e) {}
-
-				mSyncThread = null;
-
-				Log.d(TAG, "Done syncing, calling stopSelf()...");
-				stopSelf();
-
-				break;
-			case MSG_BEGIN_SOURCE:
-				mSyncSource = msg.arg1;
-				mObservable.notifyBeginSource(msg.arg1);
-				break;
-			case MSG_END_SOURCE:
-				mSyncSource = -1;
-				mObservable.notifyEndSource(msg.arg1);
-				break;
-			case MSG_UPDATE_PROGRESS:
-				mSyncProgressN = msg.arg1;
-				mSyncProgressD = msg.arg2;
-				mObservable.notifyUpdateProgress(mSyncSource, msg.arg1, msg.arg2);
-				break;
-			default:
-				super.handleMessage(msg);
-			}
-		}
-	};
 
 	private final IMetaService.Stub mBinder = new IMetaService.Stub()
 	{
 		public void registerObserver(IMetaObserver observer)
+		  throws RemoteException
 		{
-			/* Notify this new observer that we're already mid-way through a sync. */
-			if (mSyncSource != -1)
-			{
-				try
-				{
-					observer.beginSync();
-					observer.beginSource(mSyncSource);
-
-					if (mSyncProgressN != -1 && mSyncProgressD != -1)
-						observer.updateProgress(mSyncSource, mSyncProgressN, mSyncProgressD);
-				}
-				catch (RemoteException e)
-				{
-					Log.d(TAG, "Leaving so soon?", e);
-					return;
-				}
-			}
-
-			mObservable.registerObserver(observer);
+			mObservers.register(observer);
 		}
 
 		public void unregisterObserver(IMetaObserver observer)
+		  throws RemoteException
 		{
-			mObservable.unregisterObserver(observer);
+			mObservers.unregister(observer);
+		}
+		
+		public boolean isSyncing()
+		  throws RemoteException
+		{
+			synchronized(MetaService.this)
+			{
+				return mSyncing;
+			}
 		}
 
 		public boolean startSync()
+		  throws RemoteException
 		{
-			if (syncIsActive() == true)
-				return false;
+			synchronized(MetaService.this)
+			{
+				if (mSyncing == true)
+				{
+					Log.w(TAG, "startSync(): Already syncing...");
+					return false;
+				}
+				
+				mSyncing = true;
+				mSyncThread = new SyncThread();
+				mSyncThread.start();
 
-			if (mSyncThread == null)
-				mSyncThread = new SyncThread(getContentResolver(), mHandler);
-			
-			mSyncThread.start();
-			return true;
+				return true;
+			}
 		}
 
 		public boolean stopSync()
+		  throws RemoteException
 		{
-			if (syncIsActive() == false)
+			synchronized(MetaService.this)
 			{
-				Log.w(TAG, "stopSync() invoked, but the sync thread is not running.");
+				if (mSyncing == false)
+				{
+					Log.w(TAG, "stopSync(): Not syncing...");
+					return false;
+				}
+
+				mSyncing = false;
+				mSyncThread.shutdown();
+
 				return false;
 			}
-
-			syncShutdown();
-
-			return true;
-		}
-
-		public boolean isSyncing()
-		{
-			return syncIsActive();
 		}
 	};
 
-	protected boolean syncIsActive()
+	private class SyncThread extends Thread
 	{
-		if (mSyncThread != null && mSyncThread.isAlive() == true)
-			return true;
-		
-		return false;
-	}
-	
-	protected void syncShutdown()
-	{
-		if (mSyncThread == null)
-			return;
+		private final String[] QUERY_FIELDS = new String[] {
+		  Five.Sources._ID, Five.Sources.NAME,
+		  Five.Sources.HOST, Five.Sources.PORT, Five.Sources.REVISION };
 
-		mSyncThread.interruptAndStop();
-		mSyncThread = null;		
-	}
+		private SyncSession mActive = null;
 
-	private class SyncThread extends ThreadStoppable
-	{
-		private ContentResolver mContent;
-		private Handler mHandler;
-
-		public SyncThread(ContentResolver cr, Handler handler)
+		public void syncSource(long sourceId, String name,
+		  String host, int port, long revision)
 		{
-			mContent = cr;
-			mHandler = handler;
+			String base = "http://" + host + ":" + port;
+			String url = base + "/sync";
+
+			Log.i(TAG, "Synchronizing with " + name + " (" + url + "), " +
+			  "currently at revision " + revision + "...");
+
+			SyncHttpConnection server = new SyncHttpConnection(url);
+
+			SyncAuthInfo info = 
+			  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);
+
+			server.setAuthentication(info);
+
+			TelephonyManager tm = (TelephonyManager)MetaService.this
+			  .getSystemService(TELEPHONY_SERVICE);
+
+			server.setSourceURI("IMEI:" + tm.getDeviceId());
+
+			SyncSession sess = new SyncSession(server);
+
+			synchronized(this)
+			{
+				mActive = sess;
+				sess.open();
+			}
+
+			if (mSyncing == true)
+			{
+				try {
+					MusicMapping db;
+					int code;
+
+					if (revision == 0)
+						code = SyncSession.ALERT_CODE_REFRESH_FROM_SERVER;
+					else
+						code = SyncSession.ALERT_CODE_ONE_WAY_FROM_SERVER;
+
+					db = new MusicMapping(server, base, getContentResolver(),
+					  mHandler, sourceId, revision);
+
+					sess.sync(db, code);
+				} catch (Exception e) {
+					/* Check if canceled before we decide to log as an
+					 * error. */
+					if (mSyncing == true)
+					{
+						Log.e(TAG, "Sync failed!", e);
+					
+						String log;
+
+						if ((log = e.getMessage()) != null)
+							log = e.toString();
+
+						SourceLog.insertLog(getContentResolver(), sourceId,
+						  Five.SourcesLog.TYPE_ERROR, log);
+					}
+				}
+			}
+
+			synchronized(this)
+			{
+				mActive = null;
+				sess.close();
+			}
 		}
 
 		public void run()
 		{
-			Message msg;
+			mHandler.sendBeginSync();
 
-			Cursor c = mContent.query(Five.Sources.CONTENT_URI,
-			  new String[] { Five.Sources._ID, Five.Sources.NAME,
-			    Five.Sources.HOST, Five.Sources.PORT, Five.Sources.REVISION },
+			ContentResolver cr = getContentResolver();
+
+			Cursor c = cr.query(Five.Sources.CONTENT_URI, QUERY_FIELDS,
 			  null, null, null);
 
 			int n;
 
 			if ((n = c.getCount()) == 0)
+				Log.w(TAG, "No sync sources.");
+			else
 			{
-				Log.w(TAG, "No sources?");
-				return;
+				Log.i(TAG, "Starting sync with " + n + " sources");
+
+				while (mSyncing == true && c.moveToNext() == true)
+				{
+					mHandler.sendBeginSource(c.getLong(0));
+
+					syncSource(c.getLong(0), c.getString(1),
+					  c.getString(2), c.getInt(3), c.getLong(4));
+
+					mHandler.sendEndSource(c.getLong(0));
+				}
 			}
 
-			Log.i(TAG, "Starting sync with " + n + " sources");
-			
-			msg = mHandler.obtainMessage(MSG_BEGIN_SYNC);
-			mHandler.sendMessage(msg);
+			mHandler.sendEndSync();
+		}
 
-			while (c.moveToNext() == true)
+		public void shutdown()
+		{
+			interrupt();
+
+			synchronized(this)
 			{
-				String base = "http://" + c.getString(2) + ":" + c.getInt(3);
-				String url = base + "/sync";
-				
-				Log.i(TAG, "Synchronizing with " + c.getString(1) +
-				  " (" + url + "), " +
-				  "currently at revision " + c.getInt(4) + "...");
+				if (mActive != null)
+					mActive.close();
 
-				SyncHttpConnection server = new SyncHttpConnection(url);
-
-				SyncAuthInfo info = 
-				  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);
-
-				server.setAuthentication(info);
-				
-				TelephonyManager tm =
-				  (TelephonyManager)MetaService.this.getSystemService(TELEPHONY_SERVICE);
-				server.setSourceURI("IMEI:" + tm.getDeviceId());
-
-				SyncSession sess = new SyncSession(server);
-				sess.open();
-
-				int sourceId = c.getInt(0);
-				
-				msg = mHandler.obtainMessage(MSG_BEGIN_SOURCE, sourceId, 0);
-				mHandler.sendMessage(msg);
-
-				try
-				{
-					MusicMapping db;
-					int code;
-					
-					if (c.getInt(4) == 0)
-						code = SyncSession.ALERT_CODE_REFRESH_FROM_SERVER;
-					else
-						code = SyncSession.ALERT_CODE_ONE_WAY_FROM_SERVER;
-					
-					db = new MusicMapping(server, base,
-					  mContent, mHandler, sourceId, c.getInt(4));
-					
-					sess.sync(db, code);
-				}
-				catch (Exception e)
-				{
-					Log.d(TAG, "Sync failed", e);
-
-					String log = e.getMessage();
-					
-					if (log == null)
-						log = e.toString();
-					
-					/* Insert a log line so that the activity can display persistent
-					 * error information to the user. */
-					SourceLog.insertLog(mContent, sourceId, Five.SourcesLog.TYPE_ERROR, log);
-				}
-				
-				sess.close();
-
-				msg = mHandler.obtainMessage(MSG_END_SOURCE, sourceId, 0);
-				mHandler.sendMessage(msg);
+				mActive = null;
 			}
-
-			msg = mHandler.obtainMessage(MSG_END_SYNC);
-			mHandler.sendMessage(msg);
-
-			c.close();
 		}
 	}
 
-	private static class MetaObservable
+	public class SyncHandler extends Handler
 	{
-		protected final ArrayList<IMetaObserver> mObservers = new ArrayList<IMetaObserver>(1);
-
-		public MetaObservable()
-		{	
-		}
-
-		public void registerObserver(IMetaObserver observer)
-		{
-			mObservers.add(observer);
-		}
-
-		public void unregisterObserver(IMetaObserver observer)
-		{
-			mObservers.remove(observer);
-		}
+		public static final int MSG_BEGIN_SOURCE = 0;
+		public static final int MSG_END_SOURCE = 1;
+		public static final int MSG_UPDATE_PROGRESS = 2;
+		public static final int MSG_BEGIN_SYNC = 3;
+		public static final int MSG_END_SYNC = 4;
 		
-		public void unregisterAll()
+		public void handleMessage(Message m)
 		{
-			mObservers.clear();
-		}
-
-		public void notifyBeginSync()
-		{
-			Iterator<IMetaObserver> i = mObservers.iterator();
-			
-			while (i.hasNext() == true)
+			switch (m.what)
 			{
-				IMetaObserver o = i.next();
+			case MSG_BEGIN_SYNC:
+				mObservers.broadcastBeginSync();
+				break;
+			case MSG_END_SYNC:
+				mObservers.broadcastEndSync();
 
-				try
+				while (true)
 				{
-					o.beginSync();
+					try {
+						mSyncThread.join();
+						break;
+					} catch (InterruptedException e) {}
 				}
-				catch (RemoteException e)
-				{
-					i.remove();
+				
+				synchronized(MetaService.this) {
+					mSyncing = false;
+					mSyncThread = null;
 				}
-			}
-		}
 
-		public void notifyEndSync()
-		{
-			Iterator<IMetaObserver> i = mObservers.iterator();
-			
-			while (i.hasNext() == true)
-			{
-				IMetaObserver o = i.next();
+				Log.i(TAG, "Done syncing, stopSelf()");
+				stopSelf();
 
-				try
-				{
-					o.endSync();
-				}
-				catch (RemoteException e)
-				{
-					i.remove();
-				}
-			}
-		}
-
-		public void notifyBeginSource(int sourceId)
-		{
-			Iterator<IMetaObserver> i = mObservers.iterator();
-
-			while (i.hasNext() == true)
-			{
-				IMetaObserver o = i.next();
-
-				try
-				{
-					o.beginSource(sourceId);
-				}
-				catch (RemoteException e)
-				{
-					i.remove();
-				}
-			}
-		}
-
-		public void notifyEndSource(int sourceId)
-		{
-			Iterator<IMetaObserver> i = mObservers.iterator();
-			
-			while (i.hasNext() == true)
-			{
-				IMetaObserver o = i.next();
-
-				try
-				{
-					o.endSource(sourceId);
-				}
-				catch (RemoteException e)
-				{
-					i.remove();
-				}
+				break;
+			case MSG_BEGIN_SOURCE:
+				mObservers.broadcastBeginSource((Long)m.obj);
+				break;
+			case MSG_END_SOURCE:
+				mObservers.broadcastEndSource((Long)m.obj);
+				break;
+			case MSG_UPDATE_PROGRESS:
+				mObservers.broadcastUpdateProgress((Long)m.obj,
+				  m.arg1, m.arg2);
+				break;
+			default:
+				super.handleMessage(m);
 			}
 		}
 		
-		public void notifyUpdateProgress(int sourceId, int n, int d)
+		public void sendBeginSync()
 		{
-			Iterator<IMetaObserver> i = mObservers.iterator();
+			sendMessage(obtainMessage(MSG_BEGIN_SYNC));
+		}
+		
+		public void sendEndSync()
+		{
+			sendMessage(obtainMessage(MSG_END_SYNC));
+		}
+		
+		public void sendBeginSource(long sourceId)
+		{
+			sendMessage(obtainMessage(MSG_BEGIN_SOURCE, (Long)sourceId));
+		}
+		
+		public void sendEndSource(long sourceId)
+		{
+			sendMessage(obtainMessage(MSG_END_SOURCE, (Long)sourceId));
+		}
+		
+		public void sendUpdateProgress(long sourceId, int N, int D)
+		{
+			sendMessage(obtainMessage(MSG_UPDATE_PROGRESS, N, D,
+			  (Long)sourceId));
+		}
+	}
+	
+	private static class MetaServiceCallbackList
+	  extends RemoteCallbackList<IMetaObserver>
+	{
+		public MetaServiceCallbackList()
+		{
+			super();
+		}
+		
+		public void broadcastBeginSync()
+		{
+			int n = beginBroadcast();
 			
-			while (i.hasNext() == true)
+			for (int i = 0; i < n; i++)
 			{
-				IMetaObserver o = i.next();
-
-				try
-				{
-					o.updateProgress(sourceId, n, d);
-				}
-				catch (RemoteException e)
-				{
-					i.remove();
-				}
+				try {
+					getBroadcastItem(i).beginSync();
+				} catch (RemoteException e) {}
 			}
+
+			finishBroadcast();
+		}
+		
+		public void broadcastEndSync()
+		{
+			int n = beginBroadcast();
+			
+			for (int i = 0; i < n; i++)
+			{
+				try {
+					getBroadcastItem(i).endSync();
+				} catch (RemoteException e) {}
+			}
+
+			finishBroadcast();			
+		}
+
+		public void broadcastBeginSource(long sourceId)
+		{
+			int n = beginBroadcast();
+			
+			for (int i = 0; i < n; i++)
+			{
+				try {
+					getBroadcastItem(i).beginSource(sourceId);
+				} catch (RemoteException e) {}
+			}
+
+			finishBroadcast();
+		}
+
+		public void broadcastEndSource(long sourceId)
+		{
+			int n = beginBroadcast();
+			
+			for (int i = 0; i < n; i++)
+			{
+				try {
+					getBroadcastItem(i).endSource(sourceId);
+				} catch (RemoteException e) {}
+			}
+
+			finishBroadcast();
+		}
+
+		public void broadcastUpdateProgress(long sourceId, int N, int D)
+		{
+			int n = beginBroadcast();
+			
+			for (int i = 0; i < n; i++)
+			{
+				try {
+					getBroadcastItem(i).updateProgress(sourceId, N, D);
+				} catch (RemoteException e) {}
+			}
+
+			finishBroadcast();
 		}
 	}
 }

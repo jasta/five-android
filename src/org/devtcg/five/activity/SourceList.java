@@ -38,6 +38,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -54,8 +56,8 @@ public class SourceList extends ServiceActivity
 
 	private static final String[] QUERY_FIELDS = {
 	  Five.Sources._ID, Five.Sources.NAME,
-	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };	
-
+	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };
+	
 	private IMetaService mService = null;
 
 	private Cursor mCursor;
@@ -152,12 +154,42 @@ public class SourceList extends ServiceActivity
 	{
 		onServiceFatal();
 	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		if (mScreen != null)
+			return mScreen.onCreateOptionsMenu(menu);
+
+		return super.onCreateOptionsMenu(menu);
+	}
+	
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+		if (mScreen != null)
+			return mScreen.onPrepareOptionsMenu(menu);
+		
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		if (mScreen != null)
+			return mScreen.onOptionsItemSelected(item);
+		
+		return super.onOptionsItemSelected(item);
+	}
 
 	private interface Screen
 	{
 		public int getLayout();
 		public void show();
 		public void hide();
+		public boolean onCreateOptionsMenu(Menu menu);
+		public boolean onPrepareOptionsMenu(Menu menu);
+		public boolean onOptionsItemSelected(MenuItem item);
 	}
 
 	/**
@@ -169,10 +201,11 @@ public class SourceList extends ServiceActivity
 		private StatefulListView mList;
 		private ProgressBar mSyncProgress;
 		private Button mSyncAll;
+		private boolean mSyncing = false;
 
-		/** Cache of searches on `mList' to access row positions by database id. */
-		private final HashMap<Long, Integer> mViewMapCache = 
-		  new HashMap<Long, Integer>();
+		protected static final int MENU_SYNC = Menu.FIRST;
+		protected static final int MENU_CANCEL = Menu.FIRST + 1;
+
 		private final HashMap<Long, String> mStatus =
 		  new HashMap<Long, String>();
 
@@ -200,6 +233,38 @@ public class SourceList extends ServiceActivity
 		}
 
 		public void hide() {}
+
+		public boolean onCreateOptionsMenu(Menu menu)
+		{
+			return true;
+		}
+
+		public boolean onPrepareOptionsMenu(Menu menu)
+		{
+			menu.clear();
+
+			if (mSyncing == true)
+				menu.add(0, MENU_CANCEL, Menu.NONE, "Stop Sync");
+			else
+				menu.add(0, MENU_SYNC, Menu.NONE, "Synchronize");
+
+			return true;			
+		}
+
+		public boolean onOptionsItemSelected(MenuItem item)
+		{
+			switch (item.getItemId())
+			{
+			case MENU_SYNC:
+				mSyncAll.performClick();
+				return true;
+			case MENU_CANCEL:
+				menuCancelSync();
+				return true;
+			}
+			
+			return false;
+		}
 
 		public void setSourceStatus(long sourceId, String status)
 		{
@@ -232,7 +297,7 @@ public class SourceList extends ServiceActivity
 					vv.setText(status);
 					return true;
 				}
-				
+
 				String lasterr =
 				  c.getString(c.getColumnIndexOrThrow(Five.Sources.LAST_ERROR));
 
@@ -259,7 +324,7 @@ public class SourceList extends ServiceActivity
 			{
 				if (QUERY_FIELDS[col] == Five.Sources.REVISION)
 					return bindRevision(v, c, col);
-				
+
 				return false;
 			}
 		};
@@ -280,6 +345,19 @@ public class SourceList extends ServiceActivity
 			}
 		};
 		
+		private void menuCancelSync()
+		{
+			assert mService != null;
+
+			notSyncing();
+
+			try {
+				mService.stopSync();
+			} catch (RemoteException e) {
+				onServiceFatal();
+			}
+		}
+		
 		private final OnItemClickListener mSourceClick = new OnItemClickListener()
 		{
 			public void onItemClick(AdapterView parent, View v, int pos, long id)
@@ -291,12 +369,23 @@ public class SourceList extends ServiceActivity
 		
 		protected void notSyncing()
 		{
+			mSyncing = false;
+			mSyncProgress.setProgress(0);
 			mSyncProgress.setVisibility(View.INVISIBLE);
 			mSyncAll.setEnabled(true);
+
+			/* Clear and temporary sync-related status. */
+			if (mStatus.size() > 0)
+			{
+				mStatus.clear();
+				((SimpleCursorAdapter)mList.getAdapter())
+				  .notifyDataSetChanged();
+			}
 		}
 
 		protected void yesSyncing()
 		{
+			mSyncing = true;
 			mSyncProgress.setVisibility(View.VISIBLE);
 			mSyncAll.setEnabled(false);
 		}
@@ -374,12 +463,12 @@ public class SourceList extends ServiceActivity
 					}
 				});
 			}
-			
+
 			public void updateProgress(long sourceId, int itemNo, int itemCount)
 			{
 				long time = System.currentTimeMillis();
 				float progress = (float)itemNo / (float)itemCount;
-				
+
 				if (mLastUpdateTime + MAX_UPDATE_TIME_INTERVAL > time &&
 				    mLastUpdateProgress + MAX_UPDATE_PCT_INTERVAL > progress)
 					return;
@@ -401,6 +490,8 @@ public class SourceList extends ServiceActivity
 		private static final int LAYOUT = R.layout.source_list_empty;
 		private Button mAddServer;
 
+		protected static final int MENU_ADD_SERVER = Menu.FIRST;
+
 		public int getLayout() { return LAYOUT; }
 
 		public void show()
@@ -409,12 +500,33 @@ public class SourceList extends ServiceActivity
 			mAddServer = (Button)findViewById(R.id.add_server);
 			mAddServer.setOnClickListener(mAddServerClick);
 		}
-		
-		public void hide()
-		{
-			mAddServer = null;
-		}
 
+		public void hide() {}
+
+		public boolean onCreateOptionsMenu(Menu menu)
+		{
+			menu.add(0, MENU_ADD_SERVER, Menu.NONE, "Add Server");
+
+			return true;
+		}
+		
+		public boolean onPrepareOptionsMenu(Menu menu)
+		{
+			return true;
+		}
+		
+		public boolean onOptionsItemSelected(MenuItem item)
+		{
+			switch (item.getItemId())
+			{
+			case MENU_ADD_SERVER:
+				mAddServer.performClick();
+				return true;
+			}
+			
+			return false;
+		}
+		
 		private final OnClickListener mAddServerClick = new OnClickListener()
 		{
 			public void onClick(View v)

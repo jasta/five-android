@@ -64,12 +64,12 @@ public class MusicMapping implements DatabaseMapping
 	private SyncHttpConnection mConn;
 	private String mBaseUrl;
 
-	protected Handler mHandler;
+	protected MetaService.SyncHandler mHandler;
 	protected ContentResolver mContent;
 	protected long mSourceId;
-	
+
 	protected int mCounter = 0;
-	
+
 	protected long mLastAnchor;
 	protected long mNextAnchor;
 
@@ -90,7 +90,8 @@ public class MusicMapping implements DatabaseMapping
 	private static final String mimePrefix = "application/x-fivedb-";
 
 	public MusicMapping(SyncHttpConnection conn, String baseUrl,
-	  ContentResolver content, Handler handler, long sourceId, long lastAnchor)
+	  ContentResolver content, MetaService.SyncHandler handler,
+	  long sourceId, long lastAnchor)
 	{
 		mConn = conn;
 		mBaseUrl = baseUrl;
@@ -172,16 +173,15 @@ public class MusicMapping implements DatabaseMapping
 		mArtistMap.clear();
 		mAlbumMap.clear();
 	}
-	
+
 	private void bumpCounter()
 	{
 		mCounter++;
 	}
-	
+
 	private void notifyChange()
 	{
-		Message msg = mHandler.obtainMessage(MetaService.MSG_UPDATE_PROGRESS, mCounter, mNumChanges);
-		mHandler.sendMessage(msg);
+		mHandler.sendUpdateProgress(mSourceId, mCounter, mNumChanges);
 	}
 
 	private static String getBaseType(String mime)

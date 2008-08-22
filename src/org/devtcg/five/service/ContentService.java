@@ -318,7 +318,8 @@ public class ContentService extends Service
 		public ContentState mState;
 
 		public DownloadThread(Handler h, ContentResolver content,
-		  long id, long sourceId, long remoteId, long total, IContentObserver o)
+		  long id, long sourceId, long remoteId, long total,
+		  IContentObserver o)
 		{
 			mHandler = h;
 			mContent = content;
