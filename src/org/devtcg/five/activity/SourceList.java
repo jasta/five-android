@@ -17,6 +17,7 @@
 package org.devtcg.five.activity;
 
 import java.util.HashMap;
+import java.util.List;
 
 import org.devtcg.five.R;
 import org.devtcg.five.activity.SourceAddDialog.OnSourceAddListener;
@@ -374,7 +375,7 @@ public class SourceList extends ServiceActivity
 			mSyncProgress.setVisibility(View.INVISIBLE);
 			mSyncAll.setEnabled(true);
 
-			/* Clear and temporary sync-related status. */
+			/* Clear any temporary sync-related status. */
 			if (mStatus.size() > 0)
 			{
 				mStatus.clear();
@@ -385,9 +386,22 @@ public class SourceList extends ServiceActivity
 
 		protected void yesSyncing()
 		{
+			yesSyncing(null);
+		}
+
+		protected void yesSyncing(List which)
+		{
 			mSyncing = true;
 			mSyncProgress.setVisibility(View.VISIBLE);
 			mSyncAll.setEnabled(false);
+
+			if (which != null)
+			{
+				mStatus.clear();
+
+				for (Object o: which)
+					setSourceStatus((Long)o, "Synchronizing...");
+			}
 		}
 
 		public void watchService()
@@ -398,7 +412,7 @@ public class SourceList extends ServiceActivity
 				if (mService.isSyncing() == false)
 					notSyncing();
 				else
-					yesSyncing();
+					yesSyncing(mService.whichSyncing());
 
 				mService.registerObserver(mSyncObserver);
 			} catch (RemoteException e) {
