@@ -52,8 +52,16 @@ public class StatefulListView extends ListView
 		adapter.registerDataSetObserver(mDataSetChanged);
 	}
 
+	@Override
+	protected void onDetachedFromWindow()
+	{
+		super.onDetachedFromWindow();
+		getAdapter().unregisterDataSetObserver(mDataSetChanged);
+	}
+
 	private final DataSetObserver mDataSetChanged = new DataSetObserver()
 	{
+		@Override
 		public void onChanged()
 		{
 			/* The cache must be cleared in the event that our ordering changed.
@@ -61,6 +69,12 @@ public class StatefulListView extends ListView
 			 * before our cached positions. */
 			if (mViewMapCache != null)
 				mViewMapCache.clear();
+		}
+		
+		@Override
+		public void onInvalidated()
+		{
+			onChanged();
 		}
 	};
 
