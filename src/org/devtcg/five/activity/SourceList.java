@@ -84,12 +84,14 @@ public class SourceList extends ServiceActivity
 	}
 
 	@Override
-	protected void onPause()
+	protected void onStop()
 	{
 		if (mScreen == mScreenNormal && mService != null)
 			mScreenNormal.unwatchService();
 
-		super.onPause();
+		super.onStop();
+
+		mService = null;
 	}
 
 	private Intent getIntentDefaulted()

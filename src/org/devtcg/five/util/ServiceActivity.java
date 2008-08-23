@@ -36,19 +36,19 @@ public abstract class ServiceActivity extends Activity
 	public static final String TAG = "ServiceActivity";
 
 	@Override
-	public void onResume()
+	public void onStart()
 	{
-		super.onResume();
+		super.onStart();
 
 		if (bindService() == false)
 			onServiceFatal();
 	}
 
 	@Override
-	protected void onPause()
+	protected void onStop()
 	{
 		unbindService();
-		super.onPause();
+		super.onStop();
 	}
 
 	private boolean bindService()
