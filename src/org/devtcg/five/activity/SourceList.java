@@ -84,22 +84,6 @@ public class SourceList extends ServiceActivity
 	}
 
 	@Override
-	public void onDestroy()
-	{
-		super.onDestroy();
-		mService = null;
-	}
-
-	@Override
-	protected void onResume()
-	{
-		super.onResume();
-
-		if (mScreen == mScreenNormal && mService != null)
-			mScreenNormal.watchService();
-	}
-
-	@Override
 	protected void onPause()
 	{
 		if (mScreen == mScreenNormal && mService != null)
@@ -155,7 +139,7 @@ public class SourceList extends ServiceActivity
 	{
 		onServiceFatal();
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{

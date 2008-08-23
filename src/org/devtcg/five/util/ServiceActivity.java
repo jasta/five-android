@@ -36,19 +36,19 @@ public abstract class ServiceActivity extends Activity
 	public static final String TAG = "ServiceActivity";
 
 	@Override
-	public void onCreate(Bundle icicle)
+	public void onResume()
 	{
-		super.onCreate(icicle);
+		super.onResume();
 
 		if (bindService() == false)
 			onServiceFatal();
 	}
 
 	@Override
-	public void onDestroy()
+	protected void onPause()
 	{
-		super.onDestroy();
 		unbindService();
+		super.onPause();
 	}
 
 	private boolean bindService()
@@ -67,14 +67,14 @@ public abstract class ServiceActivity extends Activity
 
 		return bound;
 	}
-	
+
 	private void unbindService()
 	{
 		unbindService(this);
 	}
 
 	protected abstract Intent getServiceIntent();
-	
+
 	/**
 	 * Fatal error attempting to either start or bind to the service specified by
 	 * {@link getServiceIntent}.  Will not retry.  Default implementation is to
