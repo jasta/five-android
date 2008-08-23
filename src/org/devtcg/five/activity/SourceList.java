@@ -91,6 +91,7 @@ public class SourceList extends ServiceActivity
 
 		super.onStop();
 
+		setUI(null);
 		mService = null;
 	}
 
@@ -112,7 +113,9 @@ public class SourceList extends ServiceActivity
 		if (mScreen != null)
 			mScreen.hide();
 
-		screen.show();
+		if (screen != null)
+			screen.show();
+
 		mScreen = screen;
 	}
 
@@ -124,6 +127,8 @@ public class SourceList extends ServiceActivity
 
 	public void onServiceConnected(ComponentName name, IBinder binder)
 	{
+		Log.d(TAG, "onServiceConnected(name=" + name + ")");
+
 		mService = IMetaService.Stub.asInterface(binder);
 
 		runOnUiThread(new Runnable() {
@@ -139,6 +144,7 @@ public class SourceList extends ServiceActivity
 
 	public void onServiceDisconnected(ComponentName name)
 	{
+		Log.d(TAG, "onServiceDisconnected(name=" + name + ")");
 		onServiceFatal();
 	}
 
@@ -150,7 +156,7 @@ public class SourceList extends ServiceActivity
 
 		return super.onCreateOptionsMenu(menu);
 	}
-	
+
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
@@ -266,6 +272,8 @@ public class SourceList extends ServiceActivity
 
 				View v = mList.getChildFromId(sourceId);
 
+				Log.d(TAG, "v[" + sourceId + "]=" + v + ", status=" + status);
+
 				if (v != null)
 					((TextView)v.findViewById(R.id.source_sync)).setText(status);
 			}
@@ -277,7 +285,8 @@ public class SourceList extends ServiceActivity
 			{
 				TextView vv = (TextView)v;
 
-				String status = mStatus.get(c.getInt(0));
+				Log.d(TAG, "bindRevision(): sourceId=" + c.getLong(0));
+				String status = mStatus.get(c.getLong(0));
 
 				if (status != null)
 				{
@@ -331,7 +340,7 @@ public class SourceList extends ServiceActivity
 				}
 			}
 		};
-		
+
 		private void menuCancelSync()
 		{
 			assert mService != null;
@@ -344,7 +353,7 @@ public class SourceList extends ServiceActivity
 				onServiceFatal();
 			}
 		}
-		
+
 		private final OnItemClickListener mSourceClick = new OnItemClickListener()
 		{
 			public void onItemClick(AdapterView parent, View v, int pos, long id)
@@ -372,22 +381,21 @@ public class SourceList extends ServiceActivity
 
 		protected void yesSyncing()
 		{
-			yesSyncing(null);
+			mSyncing = true;
+			mSyncProgress.setVisibility(View.VISIBLE);
+			mSyncAll.setEnabled(false);
 		}
 
 		protected void yesSyncing(List which)
 		{
-			mSyncing = true;
-			mSyncProgress.setVisibility(View.VISIBLE);
-			mSyncAll.setEnabled(false);
+			yesSyncing();
+			
+			Log.d(TAG, "which=" + which);
 
-			if (which != null)
-			{
-				mStatus.clear();
+			mStatus.clear();
 
-				for (Object o: which)
-					setSourceStatus((Long)o, "Synchronizing...");
-			}
+			for (Object o: which)
+				setSourceStatus((Long)o, "Synchronizing...");
 		}
 
 		public void watchService()
