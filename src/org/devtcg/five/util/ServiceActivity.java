@@ -40,6 +40,8 @@ public abstract class ServiceActivity extends Activity
 	{
 		super.onStart();
 
+		Log.d(TAG, "onStart(): Binding service...");
+
 		if (bindService() == false)
 			onServiceFatal();
 	}
@@ -47,6 +49,8 @@ public abstract class ServiceActivity extends Activity
 	@Override
 	protected void onStop()
 	{
+		Log.d(TAG, "onStop(): Unbinding service...");
+
 		unbindService();
 		super.onStop();
 	}
