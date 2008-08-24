@@ -115,7 +115,7 @@ public class CacheServiceTest extends ServiceTestCase<CacheService>
 
 		assertTrue("Cached file " + path + " doesn't exist.",
 		  (new File(path)).exists());
-		
+
 		c.close();
 	}
 
