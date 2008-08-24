@@ -1,0 +1,12 @@
+This build environment needs some work; hopefully when the Masa plugin is
+updated we can do a better job of integrating these tests.
+
+In the meantime, you must load the five-client project into Eclipse to build
+the class files (in five-client/bin).  Then the provided Ant build script here
+can be used to build/install the test package.  Once you are done installing it, instrumentation is achieved with the following command:
+
+$ adb shell am instrument \
+  -w org.devtcg.five.tests/android.test.InstrumentationTestRunner
+
+Note that most of the tests require a functional setup of five-client,
+synchronized with a real server.

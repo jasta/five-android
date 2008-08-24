@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<!-- package name must be unique so suffix with "tests" so package loader doesn't ignore us -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.devtcg.five.tests">
+
+    <!-- We add an application tag here just so that we can indicate that
+         this package needs to link against the android.test library,
+         which is needed when building test cases. -->    
+    <application>
+        <uses-library android:name="android.test.runner" />
+    </application>
+
+    <uses-permission android:name="android.permission.RUN_INSTRUMENTATION" />
+
+    <!--
+    This declares that this app uses the instrumentation test runner targeting
+    the package of org.devtcg.five.  To run the tests use the command:
+    "adb shell am instrument -w org.devtcg.five.tests/android.test.InstrumentationTestRunner"
+    -->
+    <instrumentation android:name="android.test.InstrumentationTestRunner"
+                     android:targetPackage="org.devtcg.five"
+                     android:label="Tests for five-client."/>
+
+</manifest>
