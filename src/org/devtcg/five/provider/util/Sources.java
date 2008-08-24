@@ -57,7 +57,7 @@ public final class Sources
 		c.moveToFirst();
 
 		StringBuilder url = new StringBuilder();
-		
+
 		url.append("http://");
 		url.append(c.getString(0));
 		url.append(':');
