@@ -135,54 +135,6 @@ public final class Five
 	}
 
 	/**
-	 * Provider to access actual cached content.
-	 */
-	public interface Cache extends BaseColumns
-	{
-		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.content";
-		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.content";
-
-		/** Access URI. */
-		public static final Uri CONTENT_URI =
-		  Uri.parse("content://" + AUTHORITY + "/cache");
-
-		/** Server source. */
-		public static final String SOURCE_ID = "source_id";
-
-		/** Content ID relative to the server. */
-		public static final String CONTENT_ID = "content_id";
-		
-		/** Path to file on SD card. */
-		public static final String PATH = "_data";
-
-		public static final class SQL
-		{
-			public static final String TABLE = "cache";
-
-			public static final String CREATE =
-			  "CREATE TABLE " + TABLE + " (" +
-			  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + 
-			  SOURCE_ID + " INTEGER NOT NULL, " +
-			  CONTENT_ID + " INTEGER NOT NULL, " +
-			  PATH + " TEXT " +
-			  ");";
-			
-			public static final String[] INDEX =
-			{
-				"CREATE UNIQUE INDEX " + 
-			  	  TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
-			  	  " ON " + TABLE + " (" +
-			  	  SOURCE_ID + ", " +
-			  	  CONTENT_ID + " " +
-			  	");",
-			};
-			  
-			public static final String DROP =
-			  "DROP TABLE IF EXISTS " + TABLE + ";";
-		}
-	}
-	
-	/**
 	 * Generic columns available for all types of media.
 	 */
 	public interface Content extends BaseColumns
@@ -193,7 +145,11 @@ public final class Five
 		/** Access URI. */
 		public static final Uri CONTENT_URI =
 		  Uri.parse("content://" + AUTHORITY + "/content");
-		
+
+		/** Access URI for exclusively cached entries. */
+		public static final Uri CONTENT_URI_CACHED =
+		  Uri.parse("content://" + AUTHORITY + "/cache");
+
 		/** Server content ID.  This is the item's GUID at the server. */
 		public static final String CONTENT_ID = "content_id";
 
@@ -203,8 +159,11 @@ public final class Five
 		/** Raw media size in bytes. */
 		public static final String SIZE = "size";
 
+		/** Timestamp of the cached entry, if present. */
+		public static final String CACHED_TIMESTAMP = "cached_timestamp";
+
 		/** Reference to cache table if cached; otherwise NULL. */
-		public static final String CACHED_ID = "cached_id";
+		public static final String CACHED_PATH = "cached_path";
 
 		public static final class SQL
 		{
@@ -216,9 +175,10 @@ public final class Five
 			  CONTENT_ID + " INTEGER NOT NULL, " +
 			  SOURCE_ID + " INTEGER NOT NULL, " +
 			  SIZE + " INTEGER NOT NULL, " +
-			  CACHED_ID + " INTEGER " +
+			  CACHED_TIMESTAMP + " INTEGER, " +
+			  CACHED_PATH + " TEXT " +
 			  ");";
-			
+
 			public static final String[] INDEX =
 			{
 				"CREATE UNIQUE INDEX " + 
@@ -227,13 +187,18 @@ public final class Five
 			  	  SOURCE_ID + ", " +
 			  	  CONTENT_ID + " " +
 			  	");",
+			  	"CREATE INDEX " +
+			  	  TABLE + "_" + CACHED_TIMESTAMP +
+			  	  " ON " + TABLE + " (" +
+			  	  CACHED_TIMESTAMP +
+			  	");",
 			};
 
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE + ";";
 		}
 	}
-	
+
 	public interface Images extends BaseColumns
 	{
 		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.image";

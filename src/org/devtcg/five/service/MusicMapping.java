@@ -141,7 +141,8 @@ public class MusicMapping implements DatabaseMapping
 		/* Slow refresh from server: delete all our local content first. */
 		if (code == 210)
 		{
-			mContent.delete(Five.Cache.CONTENT_URI, Five.Cache.SOURCE_ID + '=' + mSourceId, null);
+			/* TODO: Uhh, don't delete *all* content... just the stuff
+			 * from this source. */
 			mContent.delete(Five.Content.CONTENT_URI, null, null);
 			mContent.delete(Five.Music.Artists.CONTENT_URI, null, null);
 			mContent.delete(Five.Music.Albums.CONTENT_URI, null, null);

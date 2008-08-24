@@ -45,7 +45,7 @@
             android:exported="true"
             android:permission="org.devtcg.five.permission.FIVE_SERVICES" />
 
-        <service android:name=".service.ContentService" 
+        <service android:name=".service.CacheService" 
             android:exported="true"
             android:permission="org.devtcg.five.permission.FIVE_SERVICES" />
 

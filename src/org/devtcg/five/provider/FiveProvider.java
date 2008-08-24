@@ -42,7 +42,7 @@ public class FiveProvider extends ContentProvider
 
 	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 22;
+	private static final int DATABASE_VERSION = 23;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -56,7 +56,7 @@ public class FiveProvider extends ContentProvider
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_COMPLETE, ALBUM, ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
 		CONTENT, CONTENT_ITEM,
-		CACHE, CACHE_ITEM, CACHE_ITEMS_BY_SOURCE, CACHE_ITEM_BY_SOURCE,
+		CACHE, CACHE_ITEMS_BY_SOURCE
 		;
 
 		public static URIPatternIds get(int ordinal)
@@ -75,8 +75,6 @@ public class FiveProvider extends ContentProvider
 		@Override
 		public void onCreate(SQLiteDatabase db)
 		{
-			db.execSQL(Five.Cache.SQL.CREATE);
-			execIndex(db, Five.Cache.SQL.INDEX);
 			db.execSQL(Five.Sources.SQL.CREATE);
 //			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 			db.execSQL(Five.SourcesLog.SQL.CREATE);
@@ -99,7 +97,6 @@ public class FiveProvider extends ContentProvider
 
 		private void onDrop(SQLiteDatabase db)
 		{
-			db.execSQL(Five.Cache.SQL.DROP);
 			db.execSQL(Five.Sources.SQL.DROP);
 			db.execSQL(Five.SourcesLog.SQL.DROP);
 			
@@ -115,7 +112,6 @@ public class FiveProvider extends ContentProvider
 			if (oldVersion == 17 && newVersion == 18)
 			{
 				Log.w(TAG, "Attempting to upgrade to " + newVersion);
-				execIndex(db, Five.Cache.SQL.INDEX);
 				execIndex(db, Five.SourcesLog.SQL.INDEX);
 				execIndex(db, Five.Content.SQL.INDEX);
 				execIndex(db, Five.Music.Albums.SQL.INDEX);
@@ -167,25 +163,13 @@ public class FiveProvider extends ContentProvider
 		return b;
 	}
 
-	private static int stringModeToInt(File file, String mode)
+	private static int stringModeToInt(String mode)
 	  throws FileNotFoundException
 	{
 		if (mode.equals("rw") == true)
 		{
-			/* XXX: Android bug that causes ParcelFileDescriptor.open with
-			 * MODE_CREATE to create files with mode 0, readable by no-one
-			 * but root. */
-			try
-			{
-				if (file.exists() == false && file.createNewFile() == false)
-					throw new FileNotFoundException("Could not create file: " + file.getPath());					
-			}
-			catch (IOException e)
-			{
-				throw new FileNotFoundException("Could not create file: " + file.getPath());
-			}
-
-			return ParcelFileDescriptor.MODE_READ_WRITE |
+			return ParcelFileDescriptor.MODE_CREATE | 
+			  ParcelFileDescriptor.MODE_READ_WRITE |
 			  ParcelFileDescriptor.MODE_TRUNCATE;
 		}
 		else
@@ -201,31 +185,32 @@ public class FiveProvider extends ContentProvider
 		File file;
 		StringBuilder path;
 		int modeint;
-		
+
 		SQLiteDatabase db = mHelper.getReadableDatabase();
-		
+
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
-		
+
 		switch (type)
 		{
-		case CACHE_ITEM:
-			Cursor c = db.query(Five.Cache.SQL.TABLE, 
-			  new String[] { Five.Cache.SOURCE_ID, Five.Cache.CONTENT_ID },
-			  Five.Cache._ID + '=' + uri.getLastPathSegment(),
-			  null, null, null, null);
-			
-			if (c.getCount() == 0)
+		case CONTENT_ITEM:
+			List<String> segments = uri.getPathSegments();
+			String sourceId = segments.get(1);
+			String contentId = segments.get(3);
+
+			Cursor c = db.query(Five.Content.SQL.TABLE,
+			  new String[] { Five.Content.CACHED_PATH },
+			  Five.Content.SOURCE_ID + " = ? AND " +
+			    Five.Content.CONTENT_ID + " = ?",
+			  new String[] { sourceId, contentId },
+			  null, null, null);
+
+			if (c.moveToFirst() == false)
 				return null;
 
-			c.moveToFirst();
-			long sourceId = c.getLong(0);
-			long contentId = c.getLong(1);
-			c.close();
+			file = new File(c.getString(0));
+			modeint = stringModeToInt(mode);
 			
-			path = ensureSdCardPath("cache/" + sourceId + "/");
-
-			file = new File(path.append(contentId).toString());
-			modeint = stringModeToInt(file, mode);
+			Log.d(TAG, "Opening " + file.getAbsolutePath());
 
 			return ParcelFileDescriptor.open(file, modeint);
 
@@ -243,7 +228,7 @@ public class FiveProvider extends ContentProvider
 				filename = path.append(albumId).append("-big").toString();
 
 			file = new File(filename);
-			modeint = stringModeToInt(file, mode);
+			modeint = stringModeToInt(mode);
 
 			return ParcelFileDescriptor.open(file, modeint);
 
@@ -253,7 +238,7 @@ public class FiveProvider extends ContentProvider
 			path = ensureSdCardPath("music/artist/");
 
 			file = new File(path.append(artistId).toString());
-			modeint = stringModeToInt(file, mode);
+			modeint = stringModeToInt(mode);
 
 			return ParcelFileDescriptor.open(file, modeint);			
 
@@ -274,26 +259,19 @@ public class FiveProvider extends ContentProvider
 		switch (type)
 		{
 		case CACHE_ITEMS_BY_SOURCE:
-			qb.setTables(Five.Cache.SQL.TABLE);
-			qb.appendWhere("source_id=" + getSecondToLastPathSegment(uri));
-			break;
-
-		case CACHE_ITEM_BY_SOURCE:
-			List<String> segs = uri.getPathSegments();
-
-			qb.setTables(Five.Cache.SQL.TABLE);
-			qb.appendWhere("source_id=" + segs.get(1));
-			qb.appendWhere("content_id=" + segs.get(3));
-
+			qb.setTables(Five.Content.SQL.TABLE);
+			qb.appendWhere(Five.Content.SOURCE_ID + "=" +
+			  getSecondToLastPathSegment(uri));
+			qb.appendWhere(Five.Content.CACHED_PATH + " IS NOT NULL");
 			break;
 
 		case CACHE:
-			qb.setTables(Five.Cache.SQL.TABLE);
+			qb.setTables(Five.Content.SQL.TABLE);
+			qb.appendWhere(Five.Content.CACHED_PATH + " IS NOT NULL");
 			break;
-
-		case CACHE_ITEM:
-			qb.setTables(Five.Cache.SQL.TABLE);
-			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			
+		case CONTENT:
+			qb.setTables(Five.Content.SQL.TABLE);
 			break;
 
 		case CONTENT_ITEM:
@@ -391,56 +369,52 @@ public class FiveProvider extends ContentProvider
 
 	/*-***********************************************************************/
 
-	private int updateAlbum(Uri uri, URIPatternIds type, ContentValues v,
+	private int updateAlbum(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
 		String custom;
 
 		custom = extendWhere(sel, Five.Music.Albums._ID + '=' + uri.getLastPathSegment());
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		int ret = db.update(Five.Music.Albums.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
 	
-	private int updateArtist(Uri uri, URIPatternIds type, ContentValues v,
+	private int updateArtist(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
 		String custom;
 
 		custom = extendWhere(sel, Five.Music.Artists._ID + '=' + uri.getLastPathSegment());
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		int ret = db.update(Five.Music.Artists.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
 	
-	private int updateSource(Uri uri, URIPatternIds type, ContentValues v,
+	private int updateSource(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
 		String custom;
 
 		custom = extendWhere(sel, Five.Sources._ID + '=' + uri.getLastPathSegment());
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		int ret = db.update(Five.Sources.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
 
-	private int updateContent(Uri uri, URIPatternIds type, ContentValues v,
+	private int updateContent(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
 		String custom;
 
 		custom = extendWhere(sel, Five.Content._ID + '=' + uri.getLastPathSegment());
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		int ret = db.update(Five.Content.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
@@ -451,18 +425,20 @@ public class FiveProvider extends ContentProvider
 	public int update(Uri uri, ContentValues values, String selection,
 	  String[] selectionArgs)
 	{		
+		SQLiteDatabase db = mHelper.getWritableDatabase();
+
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 		
 		switch (type)
 		{
 		case ALBUM:
-			return updateAlbum(uri, type, values, selection, selectionArgs);
+			return updateAlbum(db, uri, type, values, selection, selectionArgs);
 		case ARTIST:
-			return updateArtist(uri, type, values, selection, selectionArgs);
+			return updateArtist(db, uri, type, values, selection, selectionArgs);
 		case SOURCE:
-			return updateSource(uri, type, values, selection, selectionArgs);
+			return updateSource(db, uri, type, values, selection, selectionArgs);
 		case CONTENT_ITEM:
-			return updateContent(uri, type, values, selection, selectionArgs);
+			return updateContent(db, uri, type, values, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot update URI: " + uri);
 		}
@@ -470,7 +446,7 @@ public class FiveProvider extends ContentProvider
 	
 	/*-***********************************************************************/
 
-	private Uri insertSource(Uri uri, URIPatternIds type, ContentValues v)
+	private Uri insertSource(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Sources.HOST) == false)
 			throw new IllegalArgumentException("HOST cannot be NULL");
@@ -481,7 +457,6 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Sources.REVISION) == false)
 			v.put(Five.Sources.REVISION, 0);
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		long id = db.insert(Five.Sources.SQL.TABLE, Five.Sources.HOST, v);
 
 		if (id == -1)
@@ -492,8 +467,8 @@ public class FiveProvider extends ContentProvider
 
 		return ret;
 	}
-	
-	private Uri insertSourceLog(Uri uri, URIPatternIds type, ContentValues v)
+
+	private Uri insertSourceLog(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		String sourceId = uri.getPathSegments().get(1);  
 
@@ -505,7 +480,6 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.SourcesLog.TIMESTAMP) == false)
 			v.put(Five.SourcesLog.TIMESTAMP, System.currentTimeMillis() / 1000);
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		long id = db.insert(Five.SourcesLog.SQL.TABLE, Five.SourcesLog.SOURCE_ID, v);
 
 		if (id == -1)
@@ -522,52 +496,51 @@ public class FiveProvider extends ContentProvider
 		return ret;
 	}
 	
-	private Uri insertCache(Uri uri, URIPatternIds type, ContentValues v)
-	{
-		if (v.containsKey(Five.Cache.SOURCE_ID) == false)
-			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
-
-		if (v.containsKey(Five.Cache.CONTENT_ID) == false)
-			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
-
-		SQLiteDatabase db = mHelper.getReadableDatabase();
-		Cursor c = db.query(Five.Cache.SQL.TABLE,
-		  new String[] { Five.Cache._ID },
-		  Five.Cache.SOURCE_ID + '=' + v.getAsLong(Five.Cache.SOURCE_ID) + " AND " +
-		  Five.Cache.CONTENT_ID + '=' + v.getAsLong(Five.Cache.CONTENT_ID),
-		  null, null, null, null);
-
-		int rows;
-		long id;
-
-		if ((rows = c.getCount()) == 0)
-		{
-			v.put(Five.Cache.PATH,
-			  "/sdcard/five/cache/" +
-			  v.getAsLong(Five.Cache.SOURCE_ID) + "/" + 
-			  v.getAsLong(Five.Cache.CONTENT_ID));
-
-			id = db.insert(Five.Cache.SQL.TABLE, Five.Cache.SOURCE_ID, v);
-		}
-		else
-		{
-			c.moveToFirst();
-			id = c.getLong(0);
-			c.close();
-		}
-
-		if (id == -1)
-			return null;
-
-		Uri ret = ContentUris.withAppendedId(Five.Cache.CONTENT_URI, id);
-
-		if (rows == 0)
-			getContext().getContentResolver().notifyChange(ret, null);
-
-		return ret;
-	}
+//	private Uri insertCache(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
+//	{
+//		if (v.containsKey(Five.Cache.SOURCE_ID) == false)
+//			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
+//
+//		if (v.containsKey(Five.Cache.CONTENT_ID) == false)
+//			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
+//
+//		Cursor c = db.query(Five.Cache.SQL.TABLE,
+//		  new String[] { Five.Cache._ID },
+//		  Five.Cache.SOURCE_ID + '=' + v.getAsLong(Five.Cache.SOURCE_ID) + " AND " +
+//		  Five.Cache.CONTENT_ID + '=' + v.getAsLong(Five.Cache.CONTENT_ID),
+//		  null, null, null, null);
+//
+//		int rows;
+//		long id;
+//
+//		if ((rows = c.getCount()) == 0)
+//		{
+//			v.put(Five.Cache.PATH,
+//			  "/sdcard/five/cache/" +
+//			  v.getAsLong(Five.Cache.SOURCE_ID) + "/" + 
+//			  v.getAsLong(Five.Cache.CONTENT_ID));
+//
+//			id = db.insert(Five.Cache.SQL.TABLE, Five.Cache.SOURCE_ID, v);
+//		}
+//		else
+//		{
+//			c.moveToFirst();
+//			id = c.getLong(0);
+//			c.close();
+//		}
+//
+//		if (id == -1)
+//			return null;
+//
+//		Uri ret = ContentUris.withAppendedId(Five.Cache.CONTENT_URI, id);
+//
+//		if (rows == 0)
+//			getContext().getContentResolver().notifyChange(ret, null);
+//
+//		return ret;
+//	}
 	
-	private Uri insertContent(Uri uri, URIPatternIds type, ContentValues v)
+	private Uri insertContent(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Content.SOURCE_ID) == false)
 			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
@@ -575,7 +548,6 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Content.CONTENT_ID) == false)
 			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		long id = db.insert(Five.Content.SQL.TABLE, Five.Content.SIZE, v);
 		
 		if (id == -1)
@@ -602,14 +574,13 @@ public class FiveProvider extends ContentProvider
 		return false;
 	}
 
-	private Uri insertArtist(Uri uri, URIPatternIds type, ContentValues v)
+	private Uri insertArtist(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Music.Artists.NAME) == false)
 			throw new IllegalArgumentException("NAME cannot be NULL");
 		
 		adjustNameWithPrefix(v);
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		long id = db.insert(Five.Music.Artists.SQL.TABLE, Five.Music.Artists.NAME, v);
 
 		if (id == -1)
@@ -620,7 +591,7 @@ public class FiveProvider extends ContentProvider
 		return ret;
 	}
 
-	private Uri insertAlbum(Uri uri, URIPatternIds type, ContentValues v)
+	private Uri insertAlbum(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Music.Albums.NAME) == false)
 			throw new IllegalArgumentException("NAME cannot be NULL");
@@ -630,7 +601,6 @@ public class FiveProvider extends ContentProvider
 
 		adjustNameWithPrefix(v);
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		long id = db.insert(Five.Music.Albums.SQL.TABLE, Five.Music.Albums.NAME, v);
 
 		if (id == -1)
@@ -647,7 +617,7 @@ public class FiveProvider extends ContentProvider
 		return ret;
 	}
 
-	private Uri insertSong(Uri uri, URIPatternIds type, ContentValues v)
+	private Uri insertSong(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Music.Songs.ARTIST_ID) == false)
 			throw new IllegalArgumentException("ARTIST_ID cannot be NULL");
@@ -655,7 +625,6 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Music.Songs.CONTENT_ID) == false)
 			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		long id = db.insert(Five.Music.Songs.SQL.TABLE, Five.Music.Songs.TITLE, v);
 
 		if (id == -1)
@@ -688,24 +657,26 @@ public class FiveProvider extends ContentProvider
 	@Override
 	public Uri insert(Uri uri, ContentValues values)
 	{
+		SQLiteDatabase db = mHelper.getWritableDatabase();
+		
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
 		switch (type)
 		{
 		case SOURCES:
-			return insertSource(uri, type, values);
+			return insertSource(db, uri, type, values);
 		case SOURCE_LOG:
-			return insertSourceLog(uri, type, values);
-		case CACHE:
-			return insertCache(uri, type, values);
+			return insertSourceLog(db, uri, type, values);
+//		case CACHE:
+//			return insertCache(db, uri, type, values);
 		case CONTENT:
-			return insertContent(uri, type, values);
+			return insertContent(db, uri, type, values);
 		case ARTISTS:
-			return insertArtist(uri, type, values);
+			return insertArtist(db, uri, type, values);
 		case ALBUMS:
-			return insertAlbum(uri, type, values);
+			return insertAlbum(db, uri, type, values);
 		case SONGS:
-			return insertSong(uri, type, values);
+			return insertSong(db, uri, type, values);
 		default:
 			throw new IllegalArgumentException("Cannot insert URI: " + uri);
 		}
@@ -742,50 +713,49 @@ public class FiveProvider extends ContentProvider
 		return extendWhere(old, new String[] { add });
 	}
 
-	private int deleteSource(Uri uri, URIPatternIds type, 
+	private int deleteSource(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
 		int count;
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		count = db.delete(Five.Sources.SQL.TABLE, selection, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
 	
-	private int deleteCache(Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
-	{
-		String custom;
-		int count;
-		
-		switch (type)
-		{
-		case CACHE:
-			custom = selection;
-			break;
-
-		case CACHE_ITEM:
-			custom = extendWhere(selection, Five.Cache._ID + '=' + uri.getLastPathSegment());
-			break;
-
-		case CACHE_ITEMS_BY_SOURCE:
-			custom = extendWhere(selection, Five.Cache.SOURCE_ID + '=' + getSecondToLastPathSegment(uri));
-			break;
-
-		default:
-			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
-		}
-		
-		SQLiteDatabase db = mHelper.getReadableDatabase();
-		count = db.delete(Five.Cache.SQL.TABLE, custom, selectionArgs);
-		getContext().getContentResolver().notifyChange(uri, null);
-
-		return count;
-	}
+//	private int deleteCache(Uri uri, URIPatternIds type,
+//	  String selection, String[] selectionArgs)
+//	{
+//		String custom;
+//		int count;
+//		
+//		switch (type)
+//		{
+//		case CACHE:
+//			custom = selection;
+//			break;
+//
+//		case CACHE_ITEM:
+//			custom = extendWhere(selection, Five.Cache._ID + '=' + uri.getLastPathSegment());
+//			break;
+//
+//		case CACHE_ITEMS_BY_SOURCE:
+//			custom = extendWhere(selection, Five.Cache.SOURCE_ID + '=' + getSecondToLastPathSegment(uri));
+//			break;
+//
+//		default:
+//			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
+//		}
+//		
+//		SQLiteDatabase db = mHelper.getReadableDatabase();
+//		count = db.delete(Five.Cache.SQL.TABLE, custom, selectionArgs);
+//		getContext().getContentResolver().notifyChange(uri, null);
+//
+//		return count;
+//	}
 	
-	private int deleteContent(Uri uri, URIPatternIds type, 
+	private int deleteContent(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
 		String custom;
@@ -805,14 +775,13 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
 	
-	private int deleteArtist(Uri uri, URIPatternIds type, 
+	private int deleteArtist(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
 		String custom;
@@ -838,14 +807,13 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete artist URI: " + uri);
 		}
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		count = db.delete(Five.Music.Artists.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
 
-	private int deleteAlbum(Uri uri, URIPatternIds type, 
+	private int deleteAlbum(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
 		String custom;
@@ -871,25 +839,23 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete album URI: " + uri);
 		}
 		
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		count = db.delete(Five.Music.Albums.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
 
-	private int deleteSong(Uri uri, URIPatternIds type, 
+	private int deleteSong(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
 		String custom;
 		int count;
-		
 		switch (type)
 		{
 		case SONGS:
 			custom = selection;
 			break;
-		
+
 		case SONG:
 			StringBuilder where = new StringBuilder();
 			where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
@@ -904,7 +870,6 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
 		}
 
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 		count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
@@ -914,28 +879,29 @@ public class FiveProvider extends ContentProvider
 	@Override
 	public int delete(Uri uri, String selection, String[] selectionArgs)
 	{
+		SQLiteDatabase db = mHelper.getWritableDatabase();
+		
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
 		switch (type)
 		{
 		case SOURCES:
-			return deleteSource(uri, type, selection, selectionArgs);
-		case CACHE:
-		case CACHE_ITEM:
-		case CACHE_ITEMS_BY_SOURCE:
-			return deleteCache(uri, type, selection, selectionArgs); 
+			return deleteSource(db, uri, type, selection, selectionArgs);
+//		case CACHE:
+//		case CACHE_ITEMS_BY_SOURCE:
+//			return deleteCache(uri, type, selection, selectionArgs); 
 		case CONTENT:
 		case CONTENT_ITEM:
-			return deleteContent(uri, type, selection, selectionArgs);
+			return deleteContent(db, uri, type, selection, selectionArgs);
 		case ARTISTS:
 		case ARTIST:
-			return deleteArtist(uri, type, selection, selectionArgs);
+			return deleteArtist(db, uri, type, selection, selectionArgs);
 		case ALBUMS:
 		case ALBUM:
-			return deleteAlbum(uri, type, selection, selectionArgs);
+			return deleteAlbum(db, uri, type, selection, selectionArgs);
 		case SONGS:
 		case SONG:
-			return deleteSong(uri, type, selection, selectionArgs);
+			return deleteSong(db, uri, type, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot delete URI: " + uri);
 		}
@@ -949,9 +915,7 @@ public class FiveProvider extends ContentProvider
 		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
 		{
 		case CACHE:
-			return Five.Cache.CONTENT_TYPE;
-		case CACHE_ITEM:
-			return Five.Cache.CONTENT_ITEM_TYPE;
+			return Five.Content.CONTENT_TYPE;
 		case SOURCES:
 			return Five.Sources.CONTENT_TYPE;
 		case SOURCE:
@@ -985,14 +949,12 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/log", URIPatternIds.SOURCE_LOG.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/content/#", URIPatternIds.CONTENT_ITEM.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "content", URIPatternIds.CONTENT.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT_ITEM.ordinal());
-		
+
 		URI_MATCHER.addURI(Five.AUTHORITY, "cache", URIPatternIds.CACHE.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "cache/#", URIPatternIds.CACHE_ITEM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/cache", URIPatternIds.CACHE_ITEMS_BY_SOURCE.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/cache/#", URIPatternIds.CACHE_ITEM_BY_SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
@@ -1042,3 +1004,4 @@ public class FiveProvider extends ContentProvider
 		albumsMap.put(Five.Music.Albums.RELEASE_DATE, "a." + Five.Music.Albums.RELEASE_DATE + " AS " + Five.Music.Albums.RELEASE_DATE);
 	}
 }
+ 
