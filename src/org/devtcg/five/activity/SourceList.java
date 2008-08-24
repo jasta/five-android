@@ -272,8 +272,6 @@ public class SourceList extends ServiceActivity
 
 				View v = mList.getChildFromId(sourceId);
 
-				Log.d(TAG, "v[" + sourceId + "]=" + v + ", status=" + status);
-
 				if (v != null)
 					((TextView)v.findViewById(R.id.source_sync)).setText(status);
 			}
@@ -285,7 +283,6 @@ public class SourceList extends ServiceActivity
 			{
 				TextView vv = (TextView)v;
 
-				Log.d(TAG, "bindRevision(): sourceId=" + c.getLong(0));
 				String status = mStatus.get(c.getLong(0));
 
 				if (status != null)
@@ -390,8 +387,6 @@ public class SourceList extends ServiceActivity
 		{
 			yesSyncing();
 			
-			Log.d(TAG, "which=" + which);
-
 			mStatus.clear();
 
 			for (Object o: which)
