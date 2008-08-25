@@ -79,9 +79,9 @@ public abstract class ServiceActivity extends Activity
 	protected abstract Intent getServiceIntent();
 
 	/**
-	 * Fatal error attempting to either start or bind to the service specified by
-	 * {@link getServiceIntent}.  Will not retry.  Default implementation is to
-	 * throw up an error and finish().
+	 * Fatal error attempting to either start or bind to the service specified
+	 * by {@link getServiceIntent}.  Will not retry.  Default implementation is
+	 * to throw up an error and finish().
 	 */
 	protected void onServiceFatal()
 	{
