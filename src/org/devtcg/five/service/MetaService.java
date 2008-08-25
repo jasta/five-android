@@ -55,7 +55,7 @@ public class MetaService extends Service
 	{
 		return mBinder;
 	}
-	
+
 	@Override
 	public void onDestroy()
 	{
@@ -261,6 +261,8 @@ public class MetaService extends Service
 			}
 
 			mHandler.sendEndSync();
+
+			c.close();
 		}
 
 		public void shutdown()
