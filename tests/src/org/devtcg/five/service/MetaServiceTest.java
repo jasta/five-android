@@ -107,7 +107,7 @@ public class MetaServiceTest extends ServiceTestCase<MetaService>
 					} catch (InterruptedException e) {}
 				}
 			}
-			
+
 			Log.d(TAG, "ending sync...");
 
 			service.unregisterObserver(mObserver);
