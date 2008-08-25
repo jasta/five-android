@@ -5,7 +5,7 @@
     <property name="android-tools" value="/usr/local/lib/android-sdk-linux_x86-0.9_beta/tools" />
     
     <!-- Application Package Name -->
-    <property name="application-package" value="org.devtcg.five" />
+    <property name="application-package" value="org.devtcg.five.tests" />
 
     <!-- The intermediates directory -->
     <!-- Eclipse uses "bin" for its own output, so we do the same. -->
