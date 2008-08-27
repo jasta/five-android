@@ -369,7 +369,6 @@ public class MusicMapping implements DatabaseMapping
 		values.put(Five.Music.Songs.LENGTH, meta.getString(MetaDataFormat.ITEM_FIELD_LENGTH));
 
 		values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
-		values.put(Five.Music.Songs.CONTENT_SOURCE_ID, mSourceId);
 
 		Uri uri = mContent.insert(Five.Music.Songs.CONTENT_URI, values);
 

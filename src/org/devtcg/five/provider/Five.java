@@ -150,7 +150,11 @@ public final class Five
 		public static final Uri CONTENT_URI_CACHED =
 		  Uri.parse("content://" + AUTHORITY + "/cache");
 
-		/** Server content ID.  This is the item's GUID at the server. */
+		/**
+		 * Server content ID.  This is the item's GUID at the server.  Not
+		 * to be confused by similarly named fields which key into this
+		 * table.
+		 */
 		public static final String CONTENT_ID = "content_id";
 
 		/** Server source. */
@@ -209,7 +213,6 @@ public final class Five
 		  Uri.parse("content://" + AUTHORITY + "/media/images");
 		
 		/** Key to access potentially cached or remote data. */
-		public static final String CONTENT_SOURCE_ID = "content_source_id";
 		public static final String CONTENT_ID = "content_id";
 		
 		/** Title, if any; otherwise, filename. */
@@ -240,7 +243,6 @@ public final class Five
 			  Uri.parse("content://" + AUTHORITY + "/media/music/songs");
 
 			/** Key to access potentially cached or remote data. */
-			public static final String CONTENT_SOURCE_ID = "content_source_id";
 			public static final String CONTENT_ID = "content_id";
 			
 			/** MusicBrainz identifier. */
@@ -279,7 +281,6 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-				  CONTENT_SOURCE_ID + " INTEGER, " +
 				  CONTENT_ID + " INTEGER, " +
 				  MBID + " INTEGER UNIQUE, " +
 				  TITLE + " TEXT COLLATE UNICODE NOT NULL, " +
@@ -440,17 +441,17 @@ public final class Five
 			/** Playlist create date (might be guessed). */
 			public static final String CREATED_DATE = "created_date";
 		}
-		
+
 		/** _ID is the same as {@link Songs}. */
 		public interface PlaylistSongs extends BaseColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists.songs";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists.songs";
-			
+
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/songs");
-			
+
 			/** Playlist ID. */
 			public static final String PLAYLIST = "playlist";
 		}
