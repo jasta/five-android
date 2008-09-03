@@ -40,8 +40,6 @@ public class MetaServiceTest extends ServiceTestCase<MetaService>
 		super.setUp();
 	}
 
-	public void testPreconditions() {}
-	
 	private Intent getIntent()
 	{
 		return new Intent(getContext(), MetaService.class);
@@ -52,16 +50,6 @@ public class MetaServiceTest extends ServiceTestCase<MetaService>
 		return IMetaService.Stub.asInterface(bindService(getIntent()));
 	}
 	
-	public void testStartable()
-	{
-		startService(getIntent());
-	}
-
-	public void testBindable()
-	{
-		bindService(getIntent());
-	}
-
 	public void testObservedSync()
 	  throws RemoteException
 	{

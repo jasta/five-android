@@ -194,7 +194,7 @@ public class MusicMapping implements DatabaseMapping
 
 		return mime.substring(typeIndex + mimePrefix.length());		
 	}
-	
+
 	private Uri insertArtist(SyncItem item, MetaDataFormat meta)
 	{
 		ContentValues values = new ContentValues();

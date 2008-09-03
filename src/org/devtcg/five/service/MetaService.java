@@ -373,11 +373,11 @@ public class MetaService extends Service
 		{
 			super();
 		}
-		
+
 		public void broadcastBeginSync()
 		{
 			int n = beginBroadcast();
-			
+
 			for (int i = 0; i < n; i++)
 			{
 				try {
