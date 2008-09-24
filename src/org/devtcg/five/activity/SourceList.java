@@ -76,7 +76,8 @@ public class SourceList extends ServiceActivity
 
 		Intent intent = getIntentDefaulted();
 
-		mCursor = managedQuery(intent.getData(), QUERY_FIELDS, null, null);
+		mCursor = managedQuery(intent.getData(), QUERY_FIELDS,
+		  null, null, null);
 		assert mCursor != null;
 
 		if (mCursor.getCount() == 0)

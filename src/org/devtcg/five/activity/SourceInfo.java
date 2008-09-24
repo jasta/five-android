@@ -72,8 +72,8 @@ public class SourceInfo extends Activity
     	mErrors = (ListView)findViewById(R.id.source_errors);
 
     	Uri uri = getIntent().getData();
-
-    	mCursor = managedQuery(uri, PROJECTION, null, null);
+    	
+    	mCursor = managedQuery(uri, PROJECTION, null, null, null);
 
     	/* XXX: This should be re-arranged to show up in onResume(). */
     	long rev = 0;

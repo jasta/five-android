@@ -54,7 +54,6 @@ import android.graphics.Bitmap.CompressFormat;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-import android.os.Base64Utils;
 import android.util.Log;
 
 public class MusicMapping implements DatabaseMapping
