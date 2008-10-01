@@ -45,8 +45,8 @@ public class MetaService extends Service
 	volatile boolean mSyncing = false;
 	SyncThread mSyncThread = null;
 
-	final MetaServiceCallbackList mObservers =
-	  new MetaServiceCallbackList();
+	final IMetaObserverCallbackList mObservers =
+	  new IMetaObserverCallbackList();
 
 	final SyncHandler mHandler = new SyncHandler();
 
@@ -363,85 +363,6 @@ public class MetaService extends Service
 		{
 			sendMessage(obtainMessage(MSG_UPDATE_PROGRESS, N, D,
 			  (Long)sourceId));
-		}
-	}
-	
-	private static class MetaServiceCallbackList
-	  extends RemoteCallbackList<IMetaObserver>
-	{
-		public MetaServiceCallbackList()
-		{
-			super();
-		}
-
-		public void broadcastBeginSync()
-		{
-			int n = beginBroadcast();
-
-			for (int i = 0; i < n; i++)
-			{
-				try {
-					getBroadcastItem(i).beginSync();
-				} catch (RemoteException e) {}
-			}
-
-			finishBroadcast();
-		}
-		
-		public void broadcastEndSync()
-		{
-			int n = beginBroadcast();
-			
-			for (int i = 0; i < n; i++)
-			{
-				try {
-					getBroadcastItem(i).endSync();
-				} catch (RemoteException e) {}
-			}
-
-			finishBroadcast();			
-		}
-
-		public void broadcastBeginSource(long sourceId)
-		{
-			int n = beginBroadcast();
-			
-			for (int i = 0; i < n; i++)
-			{
-				try {
-					getBroadcastItem(i).beginSource(sourceId);
-				} catch (RemoteException e) {}
-			}
-
-			finishBroadcast();
-		}
-
-		public void broadcastEndSource(long sourceId)
-		{
-			int n = beginBroadcast();
-			
-			for (int i = 0; i < n; i++)
-			{
-				try {
-					getBroadcastItem(i).endSource(sourceId);
-				} catch (RemoteException e) {}
-			}
-
-			finishBroadcast();
-		}
-
-		public void broadcastUpdateProgress(long sourceId, int N, int D)
-		{
-			int n = beginBroadcast();
-			
-			for (int i = 0; i < n; i++)
-			{
-				try {
-					getBroadcastItem(i).updateProgress(sourceId, N, D);
-				} catch (RemoteException e) {}
-			}
-
-			finishBroadcast();
 		}
 	}
 }
