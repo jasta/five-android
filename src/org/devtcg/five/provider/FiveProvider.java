@@ -55,7 +55,7 @@ public class FiveProvider extends ContentProvider
 		ARTISTS, ARTIST, ARTIST_PHOTO,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_COMPLETE, ALBUM, ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
-		CONTENT, CONTENT_ITEM,
+		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE
 		;
 
@@ -156,7 +156,7 @@ public class FiveProvider extends ContentProvider
 		
 		if (file.exists() == true)
 			return b;
-		
+
 		if (file.mkdirs() == false)
 			throw new FileNotFoundException("Could not create cache directory: " + b.toString());
 
@@ -193,24 +193,39 @@ public class FiveProvider extends ContentProvider
 		switch (type)
 		{
 		case CONTENT_ITEM:
-			List<String> segments = uri.getPathSegments();
-			String sourceId = segments.get(1);
-			String contentId = segments.get(3);
+		case CONTENT_ITEM_BY_SOURCE:
+			String where;
+			String[] args;
+			
+			if (type == URIPatternIds.CONTENT_ITEM_BY_SOURCE)
+			{
+				List<String> segments = uri.getPathSegments();
+				String sourceId = segments.get(1);
+				String contentId = segments.get(3);
+
+				where = Five.Content.SOURCE_ID + " = ? AND " +
+				  Five.Content.CONTENT_ID + " = ?";
+				args = new String[] { sourceId, contentId };
+			}
+			else /* if (type == URIPatternIds.CONTENT_ITEM) */
+			{
+				where = Five.Content._ID + " = ?";
+				args = new String[] { uri.getLastPathSegment() };
+			}
 
 			Cursor c = db.query(Five.Content.SQL.TABLE,
-			  new String[] { Five.Content.CACHED_PATH },
-			  Five.Content.SOURCE_ID + " = ? AND " +
-			    Five.Content.CONTENT_ID + " = ?",
-			  new String[] { sourceId, contentId },
-			  null, null, null);
+			  new String[] { Five.Content.SOURCE_ID, Five.Content.CACHED_PATH },
+			  where, args, null, null, null);
 
 			if (c.moveToFirst() == false)
 				return null;
-
-			file = new File(c.getString(0));
-			modeint = stringModeToInt(mode);
 			
-			Log.d(TAG, "Opening " + file.getAbsolutePath());
+			ensureSdCardPath("cache/" + c.getLong(0) + "/");
+
+			file = new File(c.getString(1));
+			modeint = stringModeToInt(mode);
+
+			Log.i(TAG, "Opening " + file.getAbsolutePath() + " in mode " + mode);
 
 			return ParcelFileDescriptor.open(file, modeint);
 
@@ -277,6 +292,13 @@ public class FiveProvider extends ContentProvider
 		case CONTENT_ITEM:
 			qb.setTables(Five.Content.SQL.TABLE);			
 			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			break;
+			
+		case CONTENT_ITEM_BY_SOURCE:
+			List<String> segments = uri.getPathSegments();
+			qb.setTables(Five.Content.SQL.TABLE);
+			qb.appendWhere(Five.Content.SOURCE_ID + "=" + segments.get(1) + " AND " +
+			  Five.Content.CONTENT_ID + "=" + segments.get(3));
 			break;
 
 		case SOURCES:
@@ -413,7 +435,15 @@ public class FiveProvider extends ContentProvider
 	{
 		String custom;
 
-		custom = extendWhere(sel, Five.Content._ID + '=' + uri.getLastPathSegment());
+		if (type == URIPatternIds.CONTENT_ITEM)
+			custom = extendWhere(sel, Five.Content._ID + '=' + uri.getLastPathSegment());			
+		else
+		{
+			List<String> segments = uri.getPathSegments();
+			custom = extendWhere(sel,
+			  Five.Content.SOURCE_ID + '=' + segments.get(1) + " AND " +
+			  Five.Content.CONTENT_ID + '=' + segments.get(3));
+		}
 
 		int ret = db.update(Five.Content.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
@@ -438,6 +468,7 @@ public class FiveProvider extends ContentProvider
 		case SOURCE:
 			return updateSource(db, uri, type, values, selection, selectionArgs);
 		case CONTENT_ITEM:
+		case CONTENT_ITEM_BY_SOURCE:
 			return updateContent(db, uri, type, values, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot update URI: " + uri);
@@ -770,6 +801,13 @@ public class FiveProvider extends ContentProvider
 		case CONTENT_ITEM:
 			custom = extendWhere(selection, Five.Content._ID + '=' + uri.getLastPathSegment());
 			break;
+			
+		case CONTENT_ITEM_BY_SOURCE:
+			List<String> segments = uri.getPathSegments();
+			custom = extendWhere(selection,
+			  Five.Content.SOURCE_ID + '=' + segments.get(1) + " AND " +
+			  Five.Content.CONTENT_ID + '=' + segments.get(3));
+			break;
 
 		default:
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
@@ -892,6 +930,7 @@ public class FiveProvider extends ContentProvider
 //			return deleteCache(uri, type, selection, selectionArgs); 
 		case CONTENT:
 		case CONTENT_ITEM:
+		case CONTENT_ITEM_BY_SOURCE:
 			return deleteContent(db, uri, type, selection, selectionArgs);
 		case ARTISTS:
 		case ARTIST:
@@ -949,9 +988,10 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/log", URIPatternIds.SOURCE_LOG.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/content/#", URIPatternIds.CONTENT_ITEM.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/content/#", URIPatternIds.CONTENT_ITEM_BY_SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "content", URIPatternIds.CONTENT.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT_ITEM.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "cache", URIPatternIds.CACHE.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/cache", URIPatternIds.CACHE_ITEMS_BY_SOURCE.ordinal());
