@@ -90,8 +90,8 @@ public class MetaServiceTest extends ServiceTestCase<MetaService>
 			{
 				while (mDone == false)
 				{
-					try { 
-						wait(); 
+					try {
+						wait();
 					} catch (InterruptedException e) {}
 				}
 			}
