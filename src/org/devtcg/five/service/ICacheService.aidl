@@ -35,13 +35,21 @@ interface ICacheService
 	 * Allocate storage space to store cached content.  The specific behaviour
 	 * is affected by the current cache policy.  As a convenience, a file
 	 * descriptor will be returned as if the caller invoked openFile() on the
-	 * Five content provider..
+	 * Five content provider.
+	 *
+	 * When the cache is finished downloading, you must invoke 
+	 * {@link commitStorage}.
 	 *
 	 * @return
 	 *   On success, a file descriptor intended to store the cached entry for
 	 *   the requested content; otherwise, null.
 	 */
 	ParcelFileDescriptor requestStorage(long sourceId, long contentId);
+
+	/**
+	 * Commit cached content permanently.
+	 */
+	void commitStorage(long sourceId, long contentId);
 
 	/**
 	 * Inform the cache manager that an entry can be purged.  This may not

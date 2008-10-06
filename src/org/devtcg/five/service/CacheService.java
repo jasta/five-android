@@ -63,7 +63,7 @@ public class CacheService extends Service
 		    Five.Content.CACHED_PATH };
 		return getContentResolver().query(uri, fields, null, null, null);
 	}
-	
+
 	private int updateContentRow(long sourceId, long contentId,
 	  ContentValues values)
 	{
@@ -85,7 +85,7 @@ public class CacheService extends Service
 			Log.e(TAG, "setStoragePolicy not currently supported");
 			return false;
 		}
-		
+
 		private void logError(String err)
 		{
 			/* TODO: Log to a content provider or something.  Errors in this
@@ -218,6 +218,12 @@ OUTER:
 			} finally {
 				c.close();
 			}
+		}
+		
+		public void commitStorage(long sourceId, long contentId)
+		  throws RemoteException
+		{
+			Log.i(TAG, "UNIMPLEMENTED: commitStorage");
 		}
 
 		public boolean releaseStorage(long sourceId, long contentId)
