@@ -791,7 +791,18 @@ public class FiveProvider extends ContentProvider
 	{
 		String custom;
 		int count;
-		
+	
+		/* Make sure we delete any associated cache. */
+		Cursor c = query(uri, new String[] { Five.Content.CACHED_PATH },
+		  selection, selectionArgs, null);
+
+		c.moveToFirst();
+		String path = c.getString(0);
+
+		if (path != null)
+			(new File(path)).delete();
+
+		/* Now it's safe to delete the row. */
 		switch (type)
 		{
 		case CONTENT:
@@ -812,7 +823,7 @@ public class FiveProvider extends ContentProvider
 		default:
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
-
+		
 		count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 

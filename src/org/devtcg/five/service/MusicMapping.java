@@ -469,10 +469,10 @@ public class MusicMapping implements DatabaseMapping
 		else if (format.equals("song") == true)
 		{
 			uri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, id);
-			
-			Cursor c = mContent.query(uri, new String[] { Five.Music.Songs.CONTENT_ID },
-			  null, null, null);
-			
+
+			Cursor c = mContent.query(uri,
+			  new String[] { Five.Music.Songs.CONTENT_ID }, null, null, null);
+
 			if (c.moveToFirst() == false)
 				uri = null;
 			else

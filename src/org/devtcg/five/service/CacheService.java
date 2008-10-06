@@ -231,7 +231,7 @@ OUTER:
 				  ", contentId=" + contentId);
 				return false;
 			}
-			
+
 			try {
 				c.moveToFirst();
 				String path = c.getString(c.getColumnIndexOrThrow(Five.Content.CACHED_PATH));
