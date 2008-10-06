@@ -70,7 +70,7 @@ public class StatefulListView extends ListView
 			if (mViewMapCache != null)
 				mViewMapCache.clear();
 		}
-		
+
 		@Override
 		public void onInvalidated()
 		{
@@ -83,8 +83,10 @@ public class StatefulListView extends ListView
 		ListAdapter adapter = getAdapter();
 		int start = getFirstVisiblePosition();
 		int count = getChildCount();
+		
+		assert adapter.getCount() > start + count;
 
-		for (int i = start; i < count; i++)
+		for (int i = start; i < start + count; i++)
 		{
 			if (adapter.getItemId(i) == id)
 				return i;
@@ -126,7 +128,7 @@ public class StatefulListView extends ListView
 		int first = getFirstVisiblePosition();
 
 		/* View is no longer on screen... */
-		if (row < first || row > (getChildCount() - first))
+		if (row < first || row > (first + getChildCount()))
 			return null;
 
 		return getChildAt(row - first);
