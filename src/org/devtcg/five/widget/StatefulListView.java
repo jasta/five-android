@@ -125,12 +125,17 @@ public class StatefulListView extends ListView
 			mViewMapCache.put(id, row);
 		}
 
+		return getChildFromPos(row);
+	}
+	
+	public View getChildFromPos(int pos)
+	{
 		int first = getFirstVisiblePosition();
 
 		/* View is no longer on screen... */
-		if (row < first || row > (first + getChildCount()))
+		if (pos < first || pos > (first + getChildCount()))
 			return null;
 
-		return getChildAt(row - first);
+		return getChildAt(pos - first);
 	}
 }
