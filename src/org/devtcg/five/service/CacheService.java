@@ -144,10 +144,10 @@ OUTER:
 
 					/* The file's size might differ from the databases as we
 					 * may have an uncommitted, partial cache hit. */
-					long size = f.length();
+					long cachedSize = f.length();
 
 					if (f.delete() == true)
-						necessary -= size;
+						necessary -= cachedSize;
 				}
 			}
 
