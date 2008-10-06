@@ -217,17 +217,21 @@ public class FiveProvider extends ContentProvider
 			  new String[] { Five.Content.SOURCE_ID, Five.Content.CACHED_PATH },
 			  where, args, null, null, null);
 
-			if (c.moveToFirst() == false)
-				return null;
+			try {
+				if (c.moveToFirst() == false)
+					return null;
 			
-			ensureSdCardPath("cache/" + c.getLong(0) + "/");
+				ensureSdCardPath("cache/" + c.getLong(0) + "/");
 
-			file = new File(c.getString(1));
-			modeint = stringModeToInt(mode);
+				file = new File(c.getString(1));
+				modeint = stringModeToInt(mode);
 
-			Log.i(TAG, "Opening " + file.getAbsolutePath() + " in mode " + mode);
+				Log.i(TAG, "Opening " + file.getAbsolutePath() + " in mode " + mode);
 
-			return ParcelFileDescriptor.open(file, modeint);
+				return ParcelFileDescriptor.open(file, modeint);
+			} finally {
+				c.close();
+			}
 
 		case ALBUM_ARTWORK:
 		case ALBUM_ARTWORK_BIG:
@@ -803,6 +807,8 @@ public class FiveProvider extends ContentProvider
 			if (path != null)
 				(new File(path)).delete();
 		}
+
+		c.close();
 
 		/* Now it's safe to delete the row. */
 		switch (type)
