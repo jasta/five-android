@@ -99,7 +99,7 @@ public class CacheService extends Service
 			Log.e(TAG, "Exception", e);
 		}
 
-		private boolean deleteSufficientSpace(File sdcard)
+		private boolean deleteSufficientSpace(File sdcard, long size)
 		{
 			ContentResolver cr = null;
 			Cursor c = null;
@@ -112,7 +112,7 @@ OUTER:
 				StatFs fs = new StatFs(sdcard.getAbsolutePath());
 
 				long freeBytes = fs.getAvailableBlocks() * fs.getBlockSize();
-				long necessary = mPolicy.leaveFree - freeBytes;
+				long necessary = mPolicy.leaveFree - (freeBytes + size);
 
 				if (necessary <= 0)
 					return true;
@@ -140,8 +140,14 @@ OUTER:
 					if (c.moveToNext() == false)
 						break OUTER;
 
-					if (new File(c.getString(0)).delete() == true)
-						necessary -= c.getLong(1);
+					File f = new File(c.getString(0));
+
+					/* The file's size might differ from the databases as we
+					 * may have an uncommitted, partial cache hit. */
+					long size = f.length();
+
+					if (f.delete() == true)
+						necessary -= size;
 				}
 			}
 
@@ -176,7 +182,7 @@ OUTER:
 			if (sdcard.exists() == false)
 				throw new NoStorageCardException();
 
-			if (deleteSufficientSpace(sdcard) == false)
+			if (deleteSufficientSpace(sdcard, size) == false)
 				throw new OutOfSpaceException();
 
 			String path = sdcard.getAbsolutePath() + "/five/cache/" +
@@ -219,7 +225,7 @@ OUTER:
 				c.close();
 			}
 		}
-		
+
 		public void commitStorage(long sourceId, long contentId)
 		  throws RemoteException
 		{
