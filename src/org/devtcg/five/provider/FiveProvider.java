@@ -796,11 +796,13 @@ public class FiveProvider extends ContentProvider
 		Cursor c = query(uri, new String[] { Five.Content.CACHED_PATH },
 		  selection, selectionArgs, null);
 
-		c.moveToFirst();
-		String path = c.getString(0);
+		while (c.moveToNext() == true)
+		{
+			String path = c.getString(0);
 
-		if (path != null)
-			(new File(path)).delete();
+			if (path != null)
+				(new File(path)).delete();
+		}
 
 		/* Now it's safe to delete the row. */
 		switch (type)
