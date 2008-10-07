@@ -293,7 +293,7 @@ public final class Five
 				  DISCOVERY_DATE + " DATETIME, " +
 				  LAST_PLAYED + " DATETIME " +
 				  ");";
-				
+
 				public static final String[] INDEX =
 				{
 					"CREATE INDEX " + 
@@ -303,7 +303,7 @@ public final class Five
 				  	  TABLE + "_" + ALBUM_ID +
 				  	  " ON " + TABLE + " (" + ALBUM_ID + ");",
 				};
-				
+
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}
@@ -338,6 +338,13 @@ public final class Five
 			
 			/** Date that this artist was first introduced into the collection. */
 			public static final String DISCOVERY_DATE = "discovery_date";
+			
+			/** Number of unique albums belonging to this artist in the 
+			 * collection. */
+			public static final String NUM_ALBUMS = "num_albums";
+
+			/** Number of songs belonging to this artist. */
+			public static final String NUM_SONGS = "num_songs";
 
 			public static final class SQL
 			{
@@ -351,7 +358,9 @@ public final class Five
 				  NAME_PREFIX + " TEXT, " +
 				  PHOTO + " TEXT, " +
 				  GENRE + " TEXT, " +
-				  DISCOVERY_DATE + " DATETIME " +
+				  DISCOVERY_DATE + " DATETIME, " +
+				  NUM_ALBUMS + " INTEGER, " +
+				  NUM_SONGS + " INTEGER " +
 				  ");";
 
 				public static final String DROP =
@@ -363,17 +372,17 @@ public final class Five
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.album";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.album";
-			
+
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
-			
+
 			/** MusicBrainz identifier. */
 			public static final String MBID = "mbid";
 
 			/** Album name (less prefix). */
 			public static final String NAME = "name";
-			
+
 			/** Full name, including prefix. */
 			public static final String FULL_NAME = "full_name";
 
@@ -387,15 +396,18 @@ public final class Five
 			/** Album artwork / Cover photo (content URI). */
 			public static final String ARTWORK = "artwork";
 			public static final String ARTWORK_BIG = "artwork_big";
-			
+
 			/** Original release date. */
 			public static final String RELEASE_DATE = "release_date";
-			
+
 			/** TODO: Expand on this idea... */
 			public static final String SET = "set";
-			
+
 			/** Date that this album was first introduced into the collection. */
 			public static final String DISCOVERY_DATE = "discovery_date";
+
+			/** Number of songs belonging to this album. */
+			public static final String NUM_SONGS = "num_songs";
 
 			public static final class SQL
 			{
@@ -411,7 +423,8 @@ public final class Five
 				  ARTWORK + " TEXT, " +
 				  ARTWORK_BIG + " TEXT, " +
 				  RELEASE_DATE + " DATETIME, " +
-				  DISCOVERY_DATE + " DATETIME " +
+				  DISCOVERY_DATE + " DATETIME, " +
+				  NUM_SONGS + " INTEGER " +
 				  ");";
 				
 				public static final String[] INDEX =

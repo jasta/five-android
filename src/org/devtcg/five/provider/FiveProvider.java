@@ -42,7 +42,7 @@ public class FiveProvider extends ContentProvider
 
 	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 23;
+	private static final int DATABASE_VERSION = 24;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -71,7 +71,7 @@ public class FiveProvider extends ContentProvider
 		{
 			super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
 		}
-		
+
 		@Override
 		public void onCreate(SQLiteDatabase db)
 		{
@@ -88,7 +88,7 @@ public class FiveProvider extends ContentProvider
 			db.execSQL(Five.Music.Songs.SQL.CREATE);
 			execIndex(db, Five.Music.Songs.SQL.INDEX);
 		}
-		
+
 		private void execIndex(SQLiteDatabase db, String[] idx)
 		{
 			for (int i = 0; i < idx.length; i++)
@@ -643,7 +643,7 @@ public class FiveProvider extends ContentProvider
 
 		Uri ret = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
 		getContext().getContentResolver().notifyChange(ret, null);
- 
+		
 		long artistId = v.getAsLong(Five.Music.Albums.ARTIST_ID);
 		Uri artistUri = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, artistId);
 
@@ -1048,6 +1048,8 @@ public class FiveProvider extends ContentProvider
 		artistsMap.put(Five.Music.Artists.NAME_PREFIX, Five.Music.Artists.NAME_PREFIX);
 		artistsMap.put(Five.Music.Artists.FULL_NAME, "IFNULL(" + Five.Music.Artists.NAME_PREFIX + ", \"\") || " + Five.Music.Artists.NAME + " AS " + Five.Music.Artists.FULL_NAME);
 		artistsMap.put(Five.Music.Artists.PHOTO, Five.Music.Artists.PHOTO);
+		artistsMap.put(Five.Music.Artists.NUM_ALBUMS, Five.Music.Artists.NUM_ALBUMS);
+		artistsMap.put(Five.Music.Artists.NUM_SONGS, Five.Music.Artists.NUM_SONGS);
 
 		albumsMap = new HashMap<String, String>();
 		albumsMap.put(Five.Music.Albums._ID, "a." + Five.Music.Albums._ID + " AS " + Five.Music.Albums._ID);
@@ -1061,6 +1063,7 @@ public class FiveProvider extends ContentProvider
 		albumsMap.put(Five.Music.Albums.NAME_PREFIX, "a." + Five.Music.Albums.NAME_PREFIX + " AS " + Five.Music.Albums.NAME_PREFIX);
 		albumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(a." + Five.Music.Albums.NAME_PREFIX + ", \"\") || a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
 		albumsMap.put(Five.Music.Albums.RELEASE_DATE, "a." + Five.Music.Albums.RELEASE_DATE + " AS " + Five.Music.Albums.RELEASE_DATE);
+		albumsMap.put(Five.Music.Albums.NUM_SONGS, "a." + Five.Music.Albums.NUM_SONGS + " AS " + Five.Music.Albums.NUM_SONGS);
 	}
 }
  

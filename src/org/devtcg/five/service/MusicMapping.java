@@ -16,16 +16,9 @@
 
 package org.devtcg.five.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -52,8 +45,6 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Bitmap.CompressFormat;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
 public class MusicMapping implements DatabaseMapping
@@ -154,6 +145,83 @@ public class MusicMapping implements DatabaseMapping
 		Log.i(TAG, "Preparing to receive " + numChanges + " changes...");
 		mNumChanges = numChanges;
 	}
+	
+	private int updateAlbumCounts(Cursor c)
+	{
+		int songs = 0;
+		
+		while (c.moveToNext() == true)
+		{
+			long id = c.getLong(0);
+			
+			Uri uri = ContentUris
+			  .withAppendedId(Five.Music.Albums.CONTENT_URI, id);
+			
+			Uri csUri = uri.buildUpon()
+			  .appendEncodedPath("songs").build();
+
+			Cursor cs = mContent.query(csUri,
+			  new String[] { Five.Music.Songs._ID }, null, null, null);
+
+			try {
+				int songsCount = cs.getCount();
+				songs += songsCount;
+
+				ContentValues uv = new ContentValues();
+				uv.put(Five.Music.Albums.NUM_SONGS, songsCount);
+				mContent.update(uri, uv, null, null);
+			} finally {
+				cs.close();
+			}
+		}
+
+		return songs;
+	}
+
+	/**
+	 * Update computed columns for artist and album listing NUM_ALBUMS and
+	 * NUM_SONGS.  This is done at the end of the sync to avoid frequent
+	 * recomputation.
+	 */
+	private void updateCounts()
+	{
+		Log.i(TAG, "Updating counts...");
+		
+		Cursor c = mContent.query(Five.Music.Artists.CONTENT_URI,
+		  new String[] { Five.Music.Artists._ID }, null, null, null);
+
+		try {
+			while (c.moveToNext() == true)
+			{
+				long id = c.getLong(0);
+
+				Uri uri = ContentUris
+				  .withAppendedId(Five.Music.Artists.CONTENT_URI, id);
+
+				Uri caUri = uri.buildUpon()
+				  .appendEncodedPath("albums").build();
+
+				Cursor ca = mContent.query(caUri,
+				  new String[] { Five.Music.Albums._ID }, null, null, null);
+
+				try {
+					int albumsCnt = ca.getCount();
+					int songsCnt = updateAlbumCounts(ca);
+
+					ContentValues uv = new ContentValues();
+					uv.put(Five.Music.Artists.NUM_ALBUMS, albumsCnt);
+					uv.put(Five.Music.Artists.NUM_SONGS, songsCnt);
+					mContent.update(uri, uv, null, null);
+				} finally {
+					ca.close();
+				}
+			}
+		} finally {
+			c.close();
+		}		
+
+		Log.i(TAG, "Done!");
+	}
 
 	public void endSync(boolean updateAnchor)
 	{
@@ -165,6 +233,8 @@ public class MusicMapping implements DatabaseMapping
 			
 			Uri source = ContentUris.withAppendedId(Five.Sources.CONTENT_URI, mSourceId);
 			mContent.update(source, v, null, null);
+			
+			updateCounts();
 
 			/* XXX: This does nothing... */
 			mLastAnchor = getNextAnchor();
