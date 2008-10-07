@@ -18,7 +18,7 @@
       <dependency>
          <groupId>android</groupId>
          <artifactId>android</artifactId>
-         <version>m5-rc14</version>
+         <version>1.0_r1</version>
       </dependency>
       <dependency>
          <groupId>org.devtcg.syncml</groupId>
@@ -46,7 +46,7 @@
             <groupId>org.jvending.masa.plugins</groupId>
             <artifactId>maven-aapt-plugin</artifactId>
             <configuration>
-               <androidVersion>m5-rc14</androidVersion>
+               <androidVersion>1.0_r1</androidVersion>
             </configuration>
          </plugin>
       </plugins>
