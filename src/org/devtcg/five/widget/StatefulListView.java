@@ -94,6 +94,25 @@ public class StatefulListView extends ListView
 		
 		return -1;
 	}
+	
+	public int getRowFromId(long id)
+	{
+		if (mViewMapCache == null)
+			mViewMapCache = new HashMap<Long, Integer>();
+
+		Integer row = mViewMapCache.get(id);
+
+		/* Damn, have to search for the list position */
+		if (row == null)
+		{
+			if ((row = lazyListSearchForId(id)) == -1)
+				return -1;
+
+			mViewMapCache.put(id, row);
+		}
+		
+		return row;
+	}
 
 	/**
 	 * Efficiently locate the row view by data set id.  Only "visible" views
@@ -111,19 +130,9 @@ public class StatefulListView extends ListView
 	 */
 	public View getChildFromId(long id)
 	{
-		if (mViewMapCache == null)
-			mViewMapCache = new HashMap<Long, Integer>();
-
-		Integer row = mViewMapCache.get(id);
-
-		/* Damn, have to search for the list position */
-		if (row == null)
-		{
-			if ((row = lazyListSearchForId(id)) == -1)
-				return null;
-
-			mViewMapCache.put(id, row);
-		}
+		int row = getRowFromId(id);
+		if (row < 0)
+			return null;
 
 		return getChildFromPos(row);
 	}
