@@ -16,6 +16,7 @@
 
 package org.devtcg.five.service;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -307,7 +308,7 @@ public class MusicMapping implements DatabaseMapping
 			Log.d(TAG, "Failed to store artist photo for " + uri, e);
 
 			ContentValues v = new ContentValues();
-			v.put(Five.Music.Artists.PHOTO, (String)null);
+			v.putNull(Five.Music.Artists.PHOTO);
 
 			mContent.update(uri, v, null, null);
 		}
@@ -384,8 +385,8 @@ public class MusicMapping implements DatabaseMapping
 			Log.d(TAG, "Failed to store album artwork for " + uri, e);
 
 			ContentValues v = new ContentValues();
-			v.put(Five.Music.Albums.ARTWORK_BIG, (String)null);
-			v.put(Five.Music.Albums.ARTWORK, (String)null);
+			v.putNull(Five.Music.Albums.ARTWORK_BIG);
+			v.putNull(Five.Music.Albums.ARTWORK);
 
 			mContent.update(uri, v, null, null);
 		}
@@ -593,10 +594,12 @@ public class MusicMapping implements DatabaseMapping
 		HttpResponse resp = client.execute(get);
 		int status = resp.getStatusLine().getStatusCode();
 		
+		HttpEntity ent = resp.getEntity();
+
 		if (resp.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
 		{
-			get.abort();
-			throw new IOException("Unexpected HTTP status " + status);
+			ent.consumeContent();
+			throw new EOFException("Unexpected HTTP status " + status);
 		}
 
 		return resp;
