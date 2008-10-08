@@ -575,7 +575,7 @@ public class MusicMapping implements DatabaseMapping
 	public static boolean scaleBitmapHack(InputStream in, int w, int h, OutputStream out)
 	{
 		Bitmap src = BitmapFactory.decodeStream(in);
-		
+
 		Bitmap dst = Bitmap.createBitmap(w, h, src.getConfig());
 		Canvas tmp = new Canvas(dst);
 		tmp.drawBitmap(src, null, new Rect(0, 0, w, h),
