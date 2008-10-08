@@ -305,7 +305,7 @@ public class MusicMapping implements DatabaseMapping
 		}
 		catch (Exception e)
 		{
-			Log.d(TAG, "Failed to store artist photo for " + uri, e);
+			Log.d(TAG, "Failed to store artist photo for " + uri + ": " + e.toString());
 
 			ContentValues v = new ContentValues();
 			v.putNull(Five.Music.Artists.PHOTO);
@@ -382,7 +382,7 @@ public class MusicMapping implements DatabaseMapping
 		}
 		catch (Exception e)
 		{
-			Log.d(TAG, "Failed to store album artwork for " + uri, e);
+			Log.d(TAG, "Failed to store album artwork for " + uri + ": " + e.toString());
 
 			ContentValues v = new ContentValues();
 			v.putNull(Five.Music.Albums.ARTWORK_BIG);
