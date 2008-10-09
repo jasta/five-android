@@ -214,14 +214,13 @@ public class MusicMapping implements DatabaseMapping
 
 					Cursor cs = mContent.query(caUri,
 					  new String[] { Five.Music.Songs._ID }, null, null, null);
-					
-					int songsCnt;
+
+					int songsCnt = 0;
 					
 					try {
 						songsCnt = cs.getCount();
 					} finally {
 						cs.close();
-						songsCnt = 0;
 					}
 
 					ContentValues uv = new ContentValues();
