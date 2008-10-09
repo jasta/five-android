@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.content.ContentProvider;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -53,7 +54,8 @@ public class FiveProvider extends ContentProvider
 	{
 		SOURCES, SOURCE, SOURCE_LOG,
 		ARTISTS, ARTIST, ARTIST_PHOTO,
-		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_COMPLETE, ALBUM, ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
+		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_WITH_ARTIST, ALBUMS_COMPLETE, ALBUM,
+		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
 		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE
@@ -381,7 +383,24 @@ public class FiveProvider extends ContentProvider
 
 			qb.setProjectionMap(albumsMap);
 			break;
-			
+
+		case ALBUMS_WITH_ARTIST:
+			qb.setTables(Five.Music.Songs.SQL.TABLE + " s " + 
+			  "LEFT JOIN " + Five.Music.Albums.SQL.TABLE + " a " + 
+			  "ON a." + Five.Music.Albums._ID + " = s." + Five.Music.Songs.ALBUM_ID + " " +
+			  "LEFT JOIN " + Five.Music.Artists.SQL.TABLE + " artists " +
+			  "ON artists." + Five.Music.Artists._ID + " = a." + Five.Music.Albums.ARTIST_ID);
+
+			qb.appendWhere("s.artist_id=" + getSecondToLastPathSegment(uri));
+
+			Map<String, String> proj = (Map<String, String>)albumsMap.clone();
+			proj.put(Five.Music.Albums.NUM_SONGS, "COUNT(*) AS " + Five.Music.Albums.NUM_SONGS);
+			qb.setProjectionMap(proj);
+
+			groupBy = "a." + Five.Music.Albums._ID;
+
+			break;
+
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
@@ -1017,7 +1036,7 @@ public class FiveProvider extends ContentProvider
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_BY_ARTIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_WITH_ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
 

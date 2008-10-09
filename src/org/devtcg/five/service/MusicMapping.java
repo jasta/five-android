@@ -154,10 +154,10 @@ public class MusicMapping implements DatabaseMapping
 		while (c.moveToNext() == true)
 		{
 			long id = c.getLong(0);
-			
+
 			Uri uri = ContentUris
 			  .withAppendedId(Five.Music.Albums.CONTENT_URI, id);
-			
+
 			Uri csUri = uri.buildUpon()
 			  .appendEncodedPath("songs").build();
 
@@ -187,7 +187,7 @@ public class MusicMapping implements DatabaseMapping
 	private void updateCounts()
 	{
 		Log.i(TAG, "Updating counts...");
-		
+
 		Cursor c = mContent.query(Five.Music.Artists.CONTENT_URI,
 		  new String[] { Five.Music.Artists._ID }, null, null, null);
 
@@ -207,7 +207,22 @@ public class MusicMapping implements DatabaseMapping
 
 				try {
 					int albumsCnt = ca.getCount();
-					int songsCnt = updateAlbumCounts(ca);
+					updateAlbumCounts(ca);
+					
+					Uri csUri = uri.buildUpon()
+					  .appendEncodedPath("songs").build();
+
+					Cursor cs = mContent.query(caUri,
+					  new String[] { Five.Music.Songs._ID }, null, null, null);
+					
+					int songsCnt;
+					
+					try {
+						songsCnt = cs.getCount();
+					} finally {
+						cs.close();
+						songsCnt = 0;
+					}
 
 					ContentValues uv = new ContentValues();
 					uv.put(Five.Music.Artists.NUM_ALBUMS, albumsCnt);
