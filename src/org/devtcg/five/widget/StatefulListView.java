@@ -56,7 +56,11 @@ public class StatefulListView extends ListView
 	protected void onDetachedFromWindow()
 	{
 		super.onDetachedFromWindow();
-		getAdapter().unregisterDataSetObserver(mDataSetChanged);
+
+		ListAdapter adapter = getAdapter();
+
+		if (adapter != null)
+			adapter.unregisterDataSetObserver(mDataSetChanged);
 	}
 
 	private final DataSetObserver mDataSetChanged = new DataSetObserver()
