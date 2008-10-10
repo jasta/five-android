@@ -208,11 +208,11 @@ public class MusicMapping implements DatabaseMapping
 				try {
 					int albumsCnt = ca.getCount();
 					updateAlbumCounts(ca);
-					
+
 					Uri csUri = uri.buildUpon()
 					  .appendEncodedPath("songs").build();
 
-					Cursor cs = mContent.query(caUri,
+					Cursor cs = mContent.query(csUri,
 					  new String[] { Five.Music.Songs._ID }, null, null, null);
 
 					int songsCnt = 0;
