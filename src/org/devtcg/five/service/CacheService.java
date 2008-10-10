@@ -104,7 +104,7 @@ public class CacheService extends Service
 			ContentResolver cr = null;
 			Cursor c = null;
 
-OUTER:			
+OUTER:
 			while (true)
 			{
 				/* XXX: Currently undocumented interface, but we need the
@@ -116,6 +116,8 @@ OUTER:
 
 				if (necessary <= 0)
 					return true;
+				
+				Log.i(TAG, "Hunting for cache entries to delete (need " + necessary + " more bytes)...");
 
 				/* Initialize lazy so that for the common case of there
 				 * being enough space we don't have to perform a query. */
@@ -127,9 +129,6 @@ OUTER:
 					    Five.Content.SIZE },
 					  Five.Content.CACHED_PATH + " IS NOT NULL", null,
 					  Five.Content.CACHED_TIMESTAMP + " ASC");
-
-					if (c.moveToFirst() == false)
-						break;
 				}
 
 				/* Inner loop here to avoid calling StatFs for each cached
