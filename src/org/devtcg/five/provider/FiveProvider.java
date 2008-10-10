@@ -274,7 +274,7 @@ public class FiveProvider extends ContentProvider
 	{
 		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
 		String groupBy = null;
-		
+
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
 		switch (type)
