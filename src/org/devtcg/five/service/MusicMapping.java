@@ -669,7 +669,7 @@ public class MusicMapping implements DatabaseMapping
 		}
 	}
 	
-	private static class MetaDataFormat
+	static class MetaDataFormat
 	{
 		protected HashMap<String, String> mData =
 		  new HashMap<String, String>();
