@@ -107,11 +107,9 @@ public class CacheService extends Service
 OUTER:
 			while (true)
 			{
-				/* XXX: Currently undocumented interface, but we need the
-				 * punch through to stat(). */
 				StatFs fs = new StatFs(sdcard.getAbsolutePath());
-
-				long freeBytes = fs.getAvailableBlocks() * fs.getBlockSize();
+				
+				long freeBytes = (long)fs.getAvailableBlocks() * fs.getBlockSize();
 				long necessary = mPolicy.leaveFree - (freeBytes + size);
 
 				if (necessary <= 0)
@@ -189,7 +187,7 @@ OUTER:
 
 			return path;
 		}
-		
+
 		public ParcelFileDescriptor requestStorage(long sourceId,
 		  long contentId)
 		  throws RemoteException
