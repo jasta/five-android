@@ -21,6 +21,7 @@ import java.util.Date;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.widget.EfficientCursorAdapter;
 
 import android.app.Activity;
 import android.content.ContentUris;
@@ -30,7 +31,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
@@ -85,7 +85,7 @@ public class SourceInfo extends Activity
     	  Five.SourcesLog.TIMESTAMP + " > " + rev, null,
     	  Five.SourcesLog.TIMESTAMP + " DESC");
 
-    	SimpleCursorAdapter adapter = new SimpleCursorAdapter(this,
+    	EfficientCursorAdapter adapter = new EfficientCursorAdapter(this,
     	  R.layout.source_log_item,
     	  mCursorLog,
     	  new String[] { Five.SourcesLog.TIMESTAMP, Five.SourcesLog.MESSAGE },

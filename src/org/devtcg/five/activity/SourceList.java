@@ -27,6 +27,7 @@ import org.devtcg.five.service.IMetaService;
 import org.devtcg.five.service.MetaService;
 import org.devtcg.five.util.DateUtils;
 import org.devtcg.five.util.ServiceActivity;
+import org.devtcg.five.widget.EfficientCursorAdapter;
 import org.devtcg.five.widget.StatefulListView;
 
 import android.content.ComponentName;
@@ -46,7 +47,6 @@ import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.SimpleCursorAdapter.ViewBinder;
@@ -215,7 +215,7 @@ public class SourceList extends ServiceActivity
 			mSyncAll.setOnClickListener(mSyncAllClick);
 
 			mList = (StatefulListView)findViewById(android.R.id.list);
-			SimpleCursorAdapter adapter = new SimpleCursorAdapter(SourceList.this,
+			EfficientCursorAdapter adapter = new EfficientCursorAdapter(SourceList.this,
 			  R.layout.source_list_item, mCursor,
 			  new String[] { Five.Sources.NAME, Five.Sources.REVISION },
 			  new int[] { R.id.source_name, R.id.source_sync });
@@ -265,7 +265,7 @@ public class SourceList extends ServiceActivity
 			if (status == null)
 			{
 				mStatus.remove(sourceId);
-				((SimpleCursorAdapter)mList.getAdapter()).notifyDataSetChanged();
+				((EfficientCursorAdapter)mList.getAdapter()).notifyDataSetChanged();
 			}
 			else
 			{
@@ -354,7 +354,7 @@ public class SourceList extends ServiceActivity
 
 		private final OnItemClickListener mSourceClick = new OnItemClickListener()
 		{
-			public void onItemClick(AdapterView parent, View v, int pos, long id)
+			public void onItemClick(AdapterView<?> parent, View v, int pos, long id)
 			{
 				startActivity(new Intent(Intent.ACTION_VIEW,
 				  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
@@ -372,7 +372,7 @@ public class SourceList extends ServiceActivity
 			if (mStatus.size() > 0)
 			{
 				mStatus.clear();
-				((SimpleCursorAdapter)mList.getAdapter())
+				((EfficientCursorAdapter)mList.getAdapter())
 				  .notifyDataSetChanged();
 			}
 		}
