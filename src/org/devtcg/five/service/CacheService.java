@@ -22,6 +22,7 @@ import org.devtcg.five.provider.Five;
 
 import android.app.Service;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
@@ -123,8 +124,8 @@ OUTER:
 				{
 					cr = getContentResolver();
 					c = cr.query(Five.Content.CONTENT_URI,
-					  new String[] { Five.Content.CACHED_PATH,
-					    Five.Content.SIZE },
+					  new String[] { Five.Content._ID, 
+					    Five.Content.CACHED_PATH, Five.Content.SIZE },
 					  Five.Content.CACHED_PATH + " IS NOT NULL", null,
 					  Five.Content.CACHED_TIMESTAMP + " ASC");
 				}
@@ -145,6 +146,15 @@ OUTER:
 
 					if (f.delete() == true)
 						necessary -= cachedSize;
+
+					/* Eliminate this entry from the cache. */
+					Uri contentUri = 
+					  ContentUris.withAppendedId(Five.Content.CONTENT_URI,
+					    c.getLong(0));
+					ContentValues cv = new ContentValues();
+					cv.putNull(Five.Content.CACHED_TIMESTAMP);
+					cv.putNull(Five.Content.CACHED_PATH);
+					cr.update(contentUri, cv, null, null);
 				}
 			}
 
