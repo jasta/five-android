@@ -194,15 +194,14 @@ OUTER:
 		{
 			Cursor c = getContentCursor(sourceId, contentId);
 			
-			if (c.getCount() == 0)
-			{
-				logError("Invalid content: source=" + sourceId + 
-				  ", contentId=" + contentId);
-				return null;
-			}
-
 			try {
-				c.moveToFirst();
+				if (c.moveToFirst() == false)
+				{
+					logError("Invalid content: source=" + sourceId + 
+					  ", contentId=" + contentId);
+					return null;
+				}
+				
 				long size = c.getLong(c.getColumnIndexOrThrow(Five.Content.SIZE));
 
 				String path = makeStorage(sourceId, contentId, size);
@@ -234,15 +233,14 @@ OUTER:
 		{
 			Cursor c = getContentCursor(sourceId, contentId);
 
-			if (c.getCount() == 0)
-			{
-				logError("Invalid content: source=" + sourceId + 
-				  ", contentId=" + contentId);
-				return false;
-			}
-
 			try {
-				c.moveToFirst();
+				if (c.moveToFirst() == false)
+				{
+					logError("Invalid content: source=" + sourceId + 
+					  ", contentId=" + contentId);
+					return false;
+				}
+				
 				String path = c.getString(c.getColumnIndexOrThrow(Five.Content.CACHED_PATH));
 
 				if (path == null)
