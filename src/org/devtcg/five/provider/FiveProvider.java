@@ -43,7 +43,7 @@ public class FiveProvider extends ContentProvider
 
 	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 24;
+	private static final int DATABASE_VERSION = 25;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -57,6 +57,7 @@ public class FiveProvider extends ContentProvider
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_WITH_ARTIST, ALBUMS_COMPLETE, ALBUM,
 		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
+		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
 		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE
 		;
@@ -89,6 +90,9 @@ public class FiveProvider extends ContentProvider
 			execIndex(db, Five.Music.Albums.SQL.INDEX);
 			db.execSQL(Five.Music.Songs.SQL.CREATE);
 			execIndex(db, Five.Music.Songs.SQL.INDEX);
+			db.execSQL(Five.Music.Playlists.SQL.CREATE);
+			db.execSQL(Five.Music.PlaylistSongs.SQL.CREATE);
+			execIndex(db, Five.Music.PlaylistSongs.SQL.INDEX);
 		}
 
 		private void execIndex(SQLiteDatabase db, String[] idx)
@@ -106,6 +110,8 @@ public class FiveProvider extends ContentProvider
 			db.execSQL(Five.Music.Artists.SQL.DROP);
 			db.execSQL(Five.Music.Albums.SQL.DROP);
 			db.execSQL(Five.Music.Songs.SQL.DROP);
+			db.execSQL(Five.Music.Playlists.SQL.DROP);
+			db.execSQL(Five.Music.PlaylistSongs.SQL.DROP);
 		}
 
 		@Override
@@ -326,6 +332,26 @@ public class FiveProvider extends ContentProvider
 			qb.setTables(Five.SourcesLog.SQL.TABLE);
 			qb.appendWhere("source_id=" + uri.getPathSegments().get(1));
 			break;
+			
+		case PLAYLISTS:
+			qb.setTables(Five.Music.Playlists.SQL.TABLE);
+			break;
+
+		case PLAYLIST:
+			qb.setTables(Five.Music.Playlists.SQL.TABLE);
+			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			break;
+
+		case SONGS_IN_PLAYLIST:
+			qb.setTables(Five.Music.PlaylistSongs.SQL.TABLE + " ps " +
+			  "LEFT JOIN " + Five.Music.Songs.SQL.TABLE + " s " +
+			  "ON s." + Five.Music.Songs._ID + " = p." + Five.Music.PlaylistSongs.SONG_ID);
+			qb.appendWhere("ps.playlist_id=" + getSecondToLastPathSegment(uri));
+
+			if (sortOrder == null)
+				sortOrder = "ps.position ASC";
+
+			break;
 
 		case SONGS:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
@@ -360,12 +386,8 @@ public class FiveProvider extends ContentProvider
 			break;
 
 		case ALBUMS_COMPLETE:
-			qb.setTables(Five.Music.Albums.SQL.TABLE + " a " +
-			  "LEFT JOIN " + Five.Music.Artists.SQL.TABLE + " AS artists " +
-			  "ON artists." + Five.Music.Artists._ID + " = a." + Five.Music.Albums.ARTIST_ID + " " +
-			  "LEFT JOIN " + Five.Music.Songs.SQL.TABLE + " AS songs " +
-			  "ON songs." + Five.Music.Songs.ALBUM_ID + " = a." + Five.Music.Albums._ID);
-			groupBy = "a." + Five.Music.Albums._ID + " HAVING COUNT(*) > 2";
+			qb.setTables(Five.Music.Albums.SQL.TABLE + " a ");
+			qb.appendWhere("num_songs > 3");
 			qb.setProjectionMap(albumsMap);
 			break;
 
@@ -707,12 +729,57 @@ public class FiveProvider extends ContentProvider
 		
 		return ret;
 	}
+	
+	private Uri insertPlaylist(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
+	{
+		if (v.containsKey(Five.Music.Playlists.NAME) == false)
+			throw new IllegalArgumentException("NAME cannot be NULL");
+		
+		long id = db.insert(Five.Music.Playlists.SQL.TABLE,
+		  Five.Music.Playlists.NAME, v);
+		
+		if (id == -1)
+			return null;
+		
+		Uri playlistUri = ContentUris
+		  .withAppendedId(Five.Music.Playlists.CONTENT_URI, id);
+		getContext().getContentResolver().notifyChange(playlistUri, null);
+		
+		return playlistUri;
+	}
+
+	private Uri insertPlaylistSongs(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
+	{
+		/* TODO: Maybe lack of POSITION means append? */
+		if (v.containsKey(Five.Music.PlaylistSongs.POSITION) == false)
+			throw new IllegalArgumentException("POSITION cannot be NULL");
+
+		if (v.containsKey(Five.Music.PlaylistSongs.SONG_ID) == false)
+			throw new IllegalArgumentException("SONG_ID cannot be NULL");
+
+		if (v.containsKey(Five.Music.PlaylistSongs.PLAYLIST_ID) == true)
+			throw new IllegalArgumentException("PLAYLIST_ID must be NULL (use the proper URI for this insertion)");
+
+		v.put(Five.Music.PlaylistSongs.PLAYLIST_ID,
+		  getSecondToLastPathSegment(uri));
+
+		/* TODO: Check that the inserted POSITION doesn't require that we
+		 * reposition other songs. */
+		long id = db.insert(Five.Music.PlaylistSongs.SQL.TABLE,
+		  Five.Music.PlaylistSongs.PLAYLIST_ID, v);
+
+		Uri playlistSongUri = uri.buildUpon()
+		  .appendEncodedPath(v.getAsString(Five.Music.PlaylistSongs.POSITION))
+		  .build();
+
+		return playlistSongUri;
+	}
 
 	@Override
 	public Uri insert(Uri uri, ContentValues values)
 	{
 		SQLiteDatabase db = mHelper.getWritableDatabase();
-		
+
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
 		switch (type)
@@ -731,6 +798,10 @@ public class FiveProvider extends ContentProvider
 			return insertAlbum(db, uri, type, values);
 		case SONGS:
 			return insertSong(db, uri, type, values);
+		case PLAYLISTS:
+			return insertPlaylist(db, uri, type, values);
+		case SONGS_IN_PLAYLIST:
+			return insertPlaylistSongs(db, uri, type, values);
 		default:
 			throw new IllegalArgumentException("Cannot insert URI: " + uri);
 		}
@@ -839,7 +910,7 @@ public class FiveProvider extends ContentProvider
 		case CONTENT_ITEM:
 			custom = extendWhere(selection, Five.Content._ID + '=' + uri.getLastPathSegment());
 			break;
-			
+
 		case CONTENT_ITEM_BY_SOURCE:
 			List<String> segments = uri.getPathSegments();
 			custom = extendWhere(selection,
@@ -850,13 +921,13 @@ public class FiveProvider extends ContentProvider
 		default:
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
-		
+
 		count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
-	
+
 	private int deleteArtist(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
@@ -951,6 +1022,55 @@ public class FiveProvider extends ContentProvider
 
 		return count;
 	}
+	
+	private int deletePlaylists(SQLiteDatabase db, Uri uri, URIPatternIds type,
+	  String selection, String[] selectionArgs)
+	{
+		String custom;
+		String[] _ids;
+		int count;
+
+		switch (type)
+		{
+		case PLAYLISTS:
+			custom = selection;
+
+			Cursor c = db.query(Five.Music.Playlists.SQL.TABLE,
+			  new String[] { Five.Music.Playlists._ID },
+			  custom, selectionArgs, null, null, null);
+
+			try {
+				_ids = new String[c.getCount()];
+
+				for (int i = 0; c.moveToNext() == true; i++)
+					_ids[i] = c.getString(0);
+			} finally {
+				c.close();
+			}
+
+			break;
+
+		case PLAYLIST:
+			_ids = new String[] { uri.getLastPathSegment() };			
+			custom = extendWhere(selection,
+			  Five.Music.Playlists._ID + '=' + _ids[0]);
+			break;
+
+		default:
+			throw new IllegalArgumentException("Cannot delete playlist URI: " + uri);
+		}
+
+		for (String id: _ids)
+		{
+			db.delete(Five.Music.PlaylistSongs.SQL.TABLE,
+			  Five.Music.PlaylistSongs.PLAYLIST_ID + "=" + id, null);
+		}
+
+		count = db.delete(Five.Music.Playlists.SQL.TABLE, custom, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;		
+	}
 
 	@Override
 	public int delete(Uri uri, String selection, String[] selectionArgs)
@@ -979,6 +1099,11 @@ public class FiveProvider extends ContentProvider
 		case SONGS:
 		case SONG:
 			return deleteSong(db, uri, type, selection, selectionArgs);
+		case PLAYLISTS:
+		case PLAYLIST:
+			return deletePlaylists(db, uri, type, selection, selectionArgs);
+//		case SONG_IN_PLAYLIST:
+//			return deletePlaylistSong(db, uri, type, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot delete URI: " + uri);
 		}
@@ -1049,6 +1174,11 @@ public class FiveProvider extends ContentProvider
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
+		
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists", URIPatternIds.PLAYLISTS.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/song/#", URIPatternIds.SONG_IN_PLAYLIST.ordinal());
 
 		sourcesMap = new HashMap<String, String>();
 		sourcesMap.put(Five.Sources._ID, "s." + Five.Sources._ID + " AS " + Five.Sources._ID);

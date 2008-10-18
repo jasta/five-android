@@ -426,7 +426,7 @@ public final class Five
 				  DISCOVERY_DATE + " DATETIME, " +
 				  NUM_SONGS + " INTEGER " +
 				  ");";
-				
+
 				public static final String[] INDEX =
 				{
 					"CREATE INDEX " + 
@@ -453,6 +453,21 @@ public final class Five
 
 			/** Playlist create date (might be guessed). */
 			public static final String CREATED_DATE = "created_date";
+			
+			public static final class SQL
+			{
+				public static final String TABLE = "music_playlists";
+
+				public static final String CREATE =
+				  "CREATE TABLE " + TABLE + " (" +
+				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
+				  CREATED_DATE + " DATETIME " +
+				  ");";
+
+				public static final String DROP =
+				  "DROP TABLE IF EXISTS " + TABLE;
+			}
 		}
 
 		/** _ID is the same as {@link Songs}. */
@@ -461,12 +476,37 @@ public final class Five
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists.songs";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists.songs";
 
-			/** Access URI. */
-			public static final Uri CONTENT_URI =
-			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/songs");
-
 			/** Playlist ID. */
-			public static final String PLAYLIST = "playlist";
+			public static final String PLAYLIST_ID = "playlist_id";
+
+			/** Position in playlist. */
+			public static final String POSITION = "position";
+
+			/** Reference to song. */
+			public static final String SONG_ID = "song_id";
+			
+			public static final class SQL
+			{
+				public static final String TABLE = "music_playlist_songs";
+				
+				public static final String CREATE =
+				  "CREATE TABLE " + TABLE + " (" +
+				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  PLAYLIST_ID + " INTEGER NOT NULL, " +
+				  SONG_ID + " INTEGER NOT NULL, " +
+				  POSITION + " INTEGER NOT NULL " +
+				  ");";
+
+				public static final String[] INDEX =
+				{
+				  "CREATE INDEX " + 
+				    TABLE + "_" + PLAYLIST_ID +
+				    " ON " + TABLE + " (" + PLAYLIST_ID + ");",
+				};
+
+				public static final String DROP =
+				  "DROP TABLE IF EXISTS " + TABLE;
+			}
 		}
 	}
 }

@@ -68,10 +68,11 @@ public class MusicMapping implements DatabaseMapping
 	 * Temporary mapping id from server to client database identifiers.  This
 	 * is necessary because certain elements refer to others by id and the
 	 * server can't be bothered to synchronize its updates with our Map
-	 * commands.
+	 * commands.  See: http://code.google.com/p/five/issues/detail?id=42.
 	 */
 	protected HashMap<String, Long> mArtistMap = new HashMap<String, Long>();
 	protected HashMap<String, Long> mAlbumMap = new HashMap<String, Long>();
+	protected HashMap<String, Long> mSongMap = new HashMap<String, Long>();
 
 	/**
 	 * Total number of items synchronizing from server.
@@ -138,6 +139,7 @@ public class MusicMapping implements DatabaseMapping
 			mContent.delete(Five.Music.Artists.CONTENT_URI, null, null);
 			mContent.delete(Five.Music.Albums.CONTENT_URI, null, null);
 			mContent.delete(Five.Music.Songs.CONTENT_URI, null, null);
+			mContent.delete(Five.Music.Playlists.CONTENT_URI, null, null);
 		}
 	}
 
@@ -257,6 +259,7 @@ public class MusicMapping implements DatabaseMapping
 		
 		mArtistMap.clear();
 		mAlbumMap.clear();
+		mSongMap.clear();
 	}
 
 	private void bumpCounter()
@@ -458,7 +461,70 @@ public class MusicMapping implements DatabaseMapping
 
 		if (uri == null)
 			Log.d(TAG, "TODO: Rollback content entry!");
-		
+		else
+		{
+			mSongMap.put(item.getSourceId(),
+			  Long.parseLong(uri.getLastPathSegment()));
+		}
+
+		return uri;
+	}
+	
+	private int insertPlaylistSongs(Uri uri, SyncItem item,
+	  MetaDataFormat meta)
+	{
+		String songs = meta.getString(MetaDataFormat.ITEM_FIELD_PLAYLIST_SONGS);
+		if (songs == null)
+			return -1;
+
+		Uri songUri = uri.buildUpon()
+		  .appendEncodedPath("songs").build();
+
+		int n = 0;
+		ContentValues values = new ContentValues();
+
+		String[] songIds = songs.split(",");
+		for (String idfield: songIds)
+		{
+			String[] fields = idfield.split(":");
+			if (fields.length != 2)
+			{
+				Log.w(TAG, "Hmm, strange field for playlist song: " + idfield);
+				continue;
+			}
+
+			values.clear();
+			
+			if (fields[0].equals("ID") == true)
+				values.put(Five.Music.PlaylistSongs.SONG_ID, fields[1]);
+			else
+				values.put(Five.Music.PlaylistSongs.SONG_ID, mSongMap.get(fields[1]));
+
+			values.put(Five.Music.PlaylistSongs.POSITION, n);
+
+			if (mContent.insert(songUri, values) != null)
+				n++;
+		}
+
+		return n;
+	}
+
+	private Uri insertPlaylist(SyncItem item, MetaDataFormat meta)
+	{
+		ContentValues values = new ContentValues();
+
+		values.put(Five.Music.Playlists.NAME,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));		
+		values.put(Five.Music.Playlists.CREATED_DATE,
+		  meta.getString(MetaDataFormat.ITEM_FIELD_CREATED));
+
+		Uri uri = mContent.insert(Five.Music.Playlists.CONTENT_URI, values);
+		if (uri == null)
+			return null;
+
+		if (insertPlaylistSongs(uri, item, meta) == 0)
+			Log.w(TAG, "TODO: Rollback!");
+
 		return uri;
 	}
 
@@ -501,6 +567,8 @@ public class MusicMapping implements DatabaseMapping
 			uri = insertAlbum(item, meta);
 		else if (format.equals("song") == true)
 			uri = insertSong(item, meta);
+		else if (format.equals("playlist") == true)
+			uri = insertPlaylist(item, meta);
 		else
 		{
 			Log.e(TAG, "Unknown mime type: " + mime);
@@ -522,14 +590,13 @@ public class MusicMapping implements DatabaseMapping
 
 	public int update(SyncItem item)
 	{
-		Log.d(TAG, "TODO: update(item): STUB!");
-		return 0;
+		throw new RuntimeException("TODO: update(item) STUB!");
 	}
 
 	public int delete(SyncItem item)
 	{
 		bumpCounter();
-		
+
 		String mime = item.getMimeType();
 		String format = getBaseType(mime);
 
@@ -544,13 +611,9 @@ public class MusicMapping implements DatabaseMapping
 		long id = Long.valueOf(item.getTargetId());
 
 		if (format.equals("artist") == true)
-		{
 			uri = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, id);
-		}
 		else if (format.equals("album") == true)
-		{
 			uri = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
-		}
 		else if (format.equals("song") == true)
 		{
 			uri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, id);
@@ -568,6 +631,8 @@ public class MusicMapping implements DatabaseMapping
 
 			c.close();
 		}
+		else if (format.equals("playlist") == true)
+			uri = ContentUris.withAppendedId(Five.Music.Playlists.CONTENT_URI, id);
 		else
 		{
 			SourceLog.insertLog(mContent, (int)mSourceId, Five.SourcesLog.TYPE_WARNING,
@@ -581,9 +646,9 @@ public class MusicMapping implements DatabaseMapping
 			  "Delete request failed: no such object found of type " + mime + " with id " + id);
 			return 211;
 		}
-		
+
 		notifyChange();
-		
+
 		return 200;
 	}
 
@@ -689,6 +754,8 @@ public class MusicMapping implements DatabaseMapping
 		public static final String ITEM_FIELD_LENGTH = "LENGTH";
 		public static final String ITEM_FIELD_TRACK = "TRACK";
 		public static final String ITEM_FIELD_SIZE = "SIZE";
+		public static final String ITEM_FIELD_CREATED = "CREATED";
+		public static final String ITEM_FIELD_PLAYLIST_SONGS = "SONGS";
 
 		public MetaDataFormat(String data)
 		  throws ParseException
