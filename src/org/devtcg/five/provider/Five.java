@@ -376,6 +376,10 @@ public final class Five
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
+			
+			/** Access URI for "complete" albums only. */
+			public static final Uri CONTENT_URI_COMPLETE =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/albums/complete");
 
 			/** MusicBrainz identifier. */
 			public static final String MBID = "mbid";

@@ -395,15 +395,10 @@ public class FiveProvider extends ContentProvider
 			qb.setProjectionMap(artistsMap);
 			break;
 
-		case ALBUMS_COMPLETE:
-			qb.setTables(Five.Music.Albums.SQL.TABLE + " a ");
-			qb.appendWhere("num_songs > 3");
-			qb.setProjectionMap(albumsMap);
-			break;
-
 		case ALBUM:
 		case ALBUMS:
 		case ALBUMS_BY_ARTIST:
+		case ALBUMS_COMPLETE:
 			qb.setTables(Five.Music.Albums.SQL.TABLE + " a " +
 			  "LEFT JOIN " + Five.Music.Artists.SQL.TABLE + " artists " +
 			  "ON artists." + Five.Music.Artists._ID + " = a." + Five.Music.Albums.ARTIST_ID);
@@ -412,6 +407,8 @@ public class FiveProvider extends ContentProvider
 				qb.appendWhere("a._id=" + uri.getLastPathSegment());
 			else if (type == URIPatternIds.ALBUMS_BY_ARTIST)
 				qb.appendWhere("a.artist_id=" + getSecondToLastPathSegment(uri));
+			else if (type == URIPatternIds.ALBUMS_COMPLETE)
+				qb.appendWhere("a.num_songs > 3");
 
 			qb.setProjectionMap(albumsMap);
 			break;
@@ -1184,7 +1181,7 @@ public class FiveProvider extends ContentProvider
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
-		
+
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists", URIPatternIds.PLAYLISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
