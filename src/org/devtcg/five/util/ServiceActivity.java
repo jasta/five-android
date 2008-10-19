@@ -46,6 +46,7 @@ public abstract class ServiceActivity extends Activity
 	 * @see onInitUI
 	 */
 	protected boolean mHasUI = false;
+	private Handler mHandler = new Handler();
 
 	@Override
 	public void onStart()
@@ -117,20 +118,6 @@ public abstract class ServiceActivity extends Activity
 	}
 
 	protected abstract Intent getServiceIntent();
-
-	public void onServiceConnected(ComponentName name, IBinder binder)
-	{
-		runOnUiThread(new Runnable() {
-			public void run() {
-				displayUI(true);
-			}
-		});
-	}
-
-	public void onServiceDisconnected(ComponentName name)
-	{
-		onServiceFatal();
-	}
 
 	/**
 	 * Fatal error attempting to either start or bind to the service specified
