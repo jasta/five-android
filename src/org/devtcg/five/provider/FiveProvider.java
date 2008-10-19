@@ -49,6 +49,7 @@ public class FiveProvider extends ContentProvider
 	private static final HashMap<String, String> sourcesMap;
 	private static final HashMap<String, String> artistsMap;
 	private static final HashMap<String, String> albumsMap;
+	private static final HashMap<String, String> songsMap;
 
 	private static enum URIPatternIds
 	{
@@ -345,8 +346,9 @@ public class FiveProvider extends ContentProvider
 		case SONGS_IN_PLAYLIST:
 			qb.setTables(Five.Music.PlaylistSongs.SQL.TABLE + " ps " +
 			  "LEFT JOIN " + Five.Music.Songs.SQL.TABLE + " s " +
-			  "ON s." + Five.Music.Songs._ID + " = p." + Five.Music.PlaylistSongs.SONG_ID);
+			  "ON s." + Five.Music.Songs._ID + " = ps." + Five.Music.PlaylistSongs.SONG_ID);
 			qb.appendWhere("ps.playlist_id=" + getSecondToLastPathSegment(uri));
+			qb.setProjectionMap(songsMap);
 
 			if (sortOrder == null)
 				sortOrder = "ps.position ASC";
@@ -366,12 +368,20 @@ public class FiveProvider extends ContentProvider
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
 			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
 //			qb.setProjectionMap(songsMap);
+
+			if (sortOrder == null)
+				sortOrder = "title ASC";
+
 			break;
 
 		case SONGS_BY_ALBUM:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
 			qb.appendWhere("album_id=" + getSecondToLastPathSegment(uri));
 //			qb.setProjectionMap(songsMap);
+
+			if (sortOrder == null)
+				sortOrder = "track_num ASC, title ASC";
+
 			break;
 
 		case ARTISTS:
@@ -1213,6 +1223,20 @@ public class FiveProvider extends ContentProvider
 		albumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(a." + Five.Music.Albums.NAME_PREFIX + ", \"\") || a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
 		albumsMap.put(Five.Music.Albums.RELEASE_DATE, "a." + Five.Music.Albums.RELEASE_DATE + " AS " + Five.Music.Albums.RELEASE_DATE);
 		albumsMap.put(Five.Music.Albums.NUM_SONGS, "a." + Five.Music.Albums.NUM_SONGS + " AS " + Five.Music.Albums.NUM_SONGS);
+		
+		songsMap = new HashMap<String, String>();
+		songsMap.put(Five.Music.Songs._ID, "s." + Five.Music.Songs._ID + " AS " + Five.Music.Songs._ID);
+		songsMap.put(Five.Music.Songs.MBID, "s." + Five.Music.Songs.MBID + " AS " + Five.Music.Songs.MBID);
+		songsMap.put(Five.Music.Songs.TITLE, "s." + Five.Music.Songs.TITLE + " AS " + Five.Music.Songs.TITLE);
+		songsMap.put(Five.Music.Songs.ALBUM, "s." + Five.Music.Songs.ALBUM + " AS " + Five.Music.Songs.ALBUM);
+		songsMap.put(Five.Music.Songs.ALBUM_ID, "s." + Five.Music.Songs.ALBUM_ID + " AS " + Five.Music.Songs.ALBUM_ID);
+		songsMap.put(Five.Music.Songs.ARTIST, "s." + Five.Music.Songs.ARTIST + " AS " + Five.Music.Songs.ARTIST);
+		songsMap.put(Five.Music.Songs.ARTIST_ID, "s." + Five.Music.Songs.ARTIST_ID + " AS " + Five.Music.Songs.ARTIST_ID);
+		songsMap.put(Five.Music.Songs.LENGTH, "s." + Five.Music.Songs.LENGTH + " AS " + Five.Music.Songs.LENGTH);
+		songsMap.put(Five.Music.Songs.TRACK, "s." + Five.Music.Songs.TRACK + " AS " + Five.Music.Songs.TRACK);
+		songsMap.put(Five.Music.Songs.SET, "s." + Five.Music.Songs.SET + " AS " + Five.Music.Songs.SET);
+		songsMap.put(Five.Music.Songs.GENRE, "s." + Five.Music.Songs.GENRE + " AS " + Five.Music.Songs.GENRE);
+		songsMap.put(Five.Music.Songs.DISCOVERY_DATE, "s." + Five.Music.Songs.DISCOVERY_DATE + " AS " + Five.Music.Songs.DISCOVERY_DATE);
 	}
 }
  
