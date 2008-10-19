@@ -25,6 +25,7 @@ import java.util.Map;
 
 import android.content.ContentProvider;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.UriMatcher;
@@ -43,7 +44,7 @@ public class FiveProvider extends ContentProvider
 
 	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 25;
+	private static final int DATABASE_VERSION = 26;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -60,7 +61,8 @@ public class FiveProvider extends ContentProvider
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
 		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
 		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
-		CACHE, CACHE_ITEMS_BY_SOURCE
+		CACHE, CACHE_ITEMS_BY_SOURCE,
+		ADJUST_COUNTS
 		;
 
 		public static URIPatternIds get(int ordinal)
@@ -502,6 +504,64 @@ public class FiveProvider extends ContentProvider
 
 		return ret;
 	}
+	
+	private void updateCount(SQLiteDatabase db, String updateSQL, 
+	  String countsSQL)
+	{
+		db.beginTransaction();
+		
+		SQLiteStatement updateStmt = null;
+
+		try {
+			updateStmt = db.compileStatement(updateSQL);
+
+			Cursor counts = db.rawQuery(countsSQL, null);
+
+			try {
+				while (counts.moveToNext() == true)
+				{
+					long _id = counts.getLong(0);
+					long count = counts.getLong(1);
+					
+					updateStmt.bindLong(1, count);
+					updateStmt.bindLong(2, _id);
+					updateStmt.execute();
+				}
+			} finally {
+				counts.close();
+			}
+
+			db.setTransactionSuccessful();
+		} finally {
+			if (updateStmt != null)
+				updateStmt.close();
+
+			db.endTransaction();
+		}
+	}
+
+	private int updateCounts(SQLiteDatabase db, Uri uri, URIPatternIds type,
+	  ContentValues v, String sel, String[] args)
+	{
+		db.beginTransaction();
+
+		try {
+			updateCount(db, "UPDATE music_artists SET num_songs = ? WHERE _id = ?",
+			  "SELECT artist_id, COUNT(*) FROM music_songs GROUP BY artist_id");
+			updateCount(db, "UPDATE music_artists SET num_albums = ? WHERE _id = ?",
+			  "SELECT artist_id, COUNT(*) FROM music_albums GROUP BY artist_id");
+			updateCount(db, "UPDATE music_albums SET num_songs = ? WHERE _id = ?",
+			  "SELECT album_id, COUNT(*) FROM music_songs GROUP BY album_id");
+			updateCount(db, "UPDATE music_playlists SET num_songs = ? WHERE _id = ?",
+			  "SELECT playlist_id, COUNT(*) FROM music_playlist_songs GROUP BY playlist_id");
+			
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+
+		return 1;
+	}
 
 	@Override
 	public int update(Uri uri, ContentValues values, String selection,
@@ -522,6 +582,8 @@ public class FiveProvider extends ContentProvider
 		case CONTENT_ITEM:
 		case CONTENT_ITEM_BY_SOURCE:
 			return updateContent(db, uri, type, values, selection, selectionArgs);
+		case ADJUST_COUNTS:
+			return updateCounts(db, uri, type, values, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot update URI: " + uri);
 		}
@@ -1186,6 +1248,8 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/song/#", URIPatternIds.SONG_IN_PLAYLIST.ordinal());
+		
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/adjust_counts", URIPatternIds.ADJUST_COUNTS.ordinal());
 
 		sourcesMap = new HashMap<String, String>();
 		sourcesMap.put(Five.Sources._ID, "s." + Five.Sources._ID + " AS " + Five.Sources._ID);

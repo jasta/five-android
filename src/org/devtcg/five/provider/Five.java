@@ -442,7 +442,7 @@ public final class Five
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}
 		}
-
+		
 		public interface Playlists extends BaseColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists";
@@ -458,6 +458,9 @@ public final class Five
 			/** Playlist create date (might be guessed). */
 			public static final String CREATED_DATE = "created_date";
 			
+			/** Number of songs in this play queue. */
+			public static final String NUM_SONGS = "num_songs"; 
+
 			public static final class SQL
 			{
 				public static final String TABLE = "music_playlists";
@@ -466,7 +469,8 @@ public final class Five
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
-				  CREATED_DATE + " DATETIME " +
+				  CREATED_DATE + " DATETIME, " +
+				  NUM_SONGS + " INTEGER " +
 				  ");";
 
 				public static final String DROP =
@@ -511,6 +515,16 @@ public final class Five
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}
+		}
+		
+		public interface AdjustCounts
+		{
+			/** 
+			 * Efficiently updates NUM_ALBUMS, NUM_SONGS on Artists, Albums,
+			 * and Playlists.
+			 */
+			public static final Uri CONTENT_URI =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/adjust_counts");
 		}
 	}
 }

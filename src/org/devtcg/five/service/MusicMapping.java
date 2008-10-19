@@ -148,38 +148,6 @@ public class MusicMapping implements DatabaseMapping
 		Log.i(TAG, "Preparing to receive " + numChanges + " changes...");
 		mNumChanges = numChanges;
 	}
-	
-	private int updateAlbumCounts(Cursor c)
-	{
-		int songs = 0;
-		
-		while (c.moveToNext() == true)
-		{
-			long id = c.getLong(0);
-
-			Uri uri = ContentUris
-			  .withAppendedId(Five.Music.Albums.CONTENT_URI, id);
-
-			Uri csUri = uri.buildUpon()
-			  .appendEncodedPath("songs").build();
-
-			Cursor cs = mContent.query(csUri,
-			  new String[] { Five.Music.Songs._ID }, null, null, null);
-
-			try {
-				int songsCount = cs.getCount();
-				songs += songsCount;
-
-				ContentValues uv = new ContentValues();
-				uv.put(Five.Music.Albums.NUM_SONGS, songsCount);
-				mContent.update(uri, uv, null, null);
-			} finally {
-				cs.close();
-			}
-		}
-
-		return songs;
-	}
 
 	/**
 	 * Update computed columns for artist and album listing NUM_ALBUMS and
@@ -190,52 +158,8 @@ public class MusicMapping implements DatabaseMapping
 	{
 		Log.i(TAG, "Updating counts...");
 
-		Cursor c = mContent.query(Five.Music.Artists.CONTENT_URI,
-		  new String[] { Five.Music.Artists._ID }, null, null, null);
-
-		try {
-			while (c.moveToNext() == true)
-			{
-				long id = c.getLong(0);
-
-				Uri uri = ContentUris
-				  .withAppendedId(Five.Music.Artists.CONTENT_URI, id);
-
-				Uri caUri = uri.buildUpon()
-				  .appendEncodedPath("albums").build();
-
-				Cursor ca = mContent.query(caUri,
-				  new String[] { Five.Music.Albums._ID }, null, null, null);
-
-				try {
-					int albumsCnt = ca.getCount();
-					updateAlbumCounts(ca);
-
-					Uri csUri = uri.buildUpon()
-					  .appendEncodedPath("songs").build();
-
-					Cursor cs = mContent.query(csUri,
-					  new String[] { Five.Music.Songs._ID }, null, null, null);
-
-					int songsCnt = 0;
-					
-					try {
-						songsCnt = cs.getCount();
-					} finally {
-						cs.close();
-					}
-
-					ContentValues uv = new ContentValues();
-					uv.put(Five.Music.Artists.NUM_ALBUMS, albumsCnt);
-					uv.put(Five.Music.Artists.NUM_SONGS, songsCnt);
-					mContent.update(uri, uv, null, null);
-				} finally {
-					ca.close();
-				}
-			}
-		} finally {
-			c.close();
-		}		
+		mContent.update(Five.Music.AdjustCounts.CONTENT_URI,
+		  null, null, null);
 
 		Log.i(TAG, "Done!");
 	}
