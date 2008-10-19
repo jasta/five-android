@@ -549,12 +549,12 @@ public class FiveProvider extends ContentProvider
 			updateCount(db, "UPDATE music_artists SET num_songs = ? WHERE _id = ?",
 			  "SELECT artist_id, COUNT(*) FROM music_songs GROUP BY artist_id");
 			updateCount(db, "UPDATE music_artists SET num_albums = ? WHERE _id = ?",
-			  "SELECT artist_id, COUNT(*) FROM music_albums GROUP BY artist_id");
+			  "SELECT artist_id, COUNT(*) FROM (SELECT artist_id FROM music_songs GROUP BY artist_id, album_id) GROUP BY artist_id");
 			updateCount(db, "UPDATE music_albums SET num_songs = ? WHERE _id = ?",
 			  "SELECT album_id, COUNT(*) FROM music_songs GROUP BY album_id");
 			updateCount(db, "UPDATE music_playlists SET num_songs = ? WHERE _id = ?",
 			  "SELECT playlist_id, COUNT(*) FROM music_playlist_songs GROUP BY playlist_id");
-			
+
 			db.setTransactionSuccessful();
 		} finally {
 			db.endTransaction();
