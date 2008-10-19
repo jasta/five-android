@@ -19,6 +19,7 @@ package org.devtcg.five.provider;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class FiveProvider extends ContentProvider
 		ARTISTS, ARTIST, ARTIST_PHOTO,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_WITH_ARTIST, ALBUMS_COMPLETE, ALBUM,
 		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
-		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONG,
+		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONGS_BY_ARTIST_ON_ALBUM, SONG,
 		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
 		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE,
@@ -148,11 +149,26 @@ public class FiveProvider extends ContentProvider
 	{
 		List<String> segments = uri.getPathSegments();
 		int size;
-		
+
 		if ((size = segments.size()) < 2)
 			throw new IllegalArgumentException("URI is not long enough to have a second-to-last path");
 		
 		return segments.get(size - 2);
+	}
+
+	private static List<Long> getNumericPathSegments(Uri uri)
+	{
+		List<String> segments = uri.getPathSegments();
+		ArrayList<Long> numeric = new ArrayList<Long>(3);
+
+		for (String segment: segments)
+		{
+			try {
+				numeric.add(Long.parseLong(segment));
+			} catch (NumberFormatException e) {}
+		}
+
+		return numeric;
 	}
 
 	/*-***********************************************************************/
@@ -198,7 +214,7 @@ public class FiveProvider extends ContentProvider
 		int modeint;
 
 		SQLiteDatabase db = mHelper.getReadableDatabase();
-
+		
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
 		switch (type)
@@ -377,9 +393,17 @@ public class FiveProvider extends ContentProvider
 			break;
 
 		case SONGS_BY_ALBUM:
+		case SONGS_BY_ARTIST_ON_ALBUM:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
-			qb.appendWhere("album_id=" + getSecondToLastPathSegment(uri));
-//			qb.setProjectionMap(songsMap);
+			
+			if (type == URIPatternIds.SONGS_BY_ALBUM)
+				qb.appendWhere("album_id=" + getSecondToLastPathSegment(uri));
+			else /* if (type == URIPatternIds.SONGS_BY_ARTIST_ON_ALBUM) */
+			{
+				List<Long> segs = getNumericPathSegments(uri);
+				qb.appendWhere("artist_id=" + segs.get(0) +
+				  " AND album_id=" + segs.get(1));
+			}
 
 			if (sortOrder == null)
 				sortOrder = "track_num ASC, title ASC";
@@ -1231,6 +1255,7 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_WITH_ARTIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums/#/songs", URIPatternIds.SONGS_BY_ARTIST_ON_ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
 
