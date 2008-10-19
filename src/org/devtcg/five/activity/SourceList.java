@@ -108,6 +108,9 @@ public class SourceList extends ServiceActivity
 
 		return i;
 	}
+	
+	/* TODO: We currently don't take advantage of this feature. */
+	protected void onInitUI() {}
 
 	public void setUI(Screen screen)
 	{

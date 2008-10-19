@@ -23,7 +23,11 @@ import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Handler;
+import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Utility class to create activities which critically depend on a service 
@@ -33,6 +37,17 @@ public abstract class ServiceActivity extends Activity
   implements ServiceConnection
 {
 	public static final String TAG = "ServiceActivity";
+
+	private Handler mHandler = new Handler();
+
+	/**
+	 * Convenience feature to allow ServiceActivity subclasses to defer
+	 * UI construction/assignment until the service is connected, and then
+	 * manage hiding/showing the UI to match the service state.
+	 * 
+	 * @see onInitUI
+	 */
+	protected boolean mHasUI = false;
 
 	@Override
 	public void onStart()
@@ -51,8 +66,35 @@ public abstract class ServiceActivity extends Activity
 		Log.d(TAG, "onStop(): Unbinding service...");
 
 		unbindService();
+		displayUI(false);
+
 		super.onStop();
 	}
+	
+	protected void displayUI(boolean display)
+	{
+		if (mHasUI == false)
+		{
+			if (display == true)
+			{
+				onInitUI();
+				mHasUI = true;
+			}
+		}
+		else
+		{
+			/* XXX: There must be a less intrusive way to figure out what
+			 * the top-level content view is? */
+			View v = ((ViewGroup)getWindow().getDecorView()).getChildAt(0);
+			v.setVisibility(display ? View.VISIBLE : View.GONE);
+		}
+	}
+
+	/**
+	 * Called when the activity needs to display the UI for the first
+	 * time.
+	 */
+	protected abstract void onInitUI();
 
 	private boolean bindService()
 	{
@@ -77,6 +119,20 @@ public abstract class ServiceActivity extends Activity
 	}
 
 	protected abstract Intent getServiceIntent();
+
+	public void onServiceConnected(ComponentName name, IBinder binder)
+	{
+		mHandler.post(new Runnable() {
+			public void run() {
+				displayUI(true);
+			}
+		});
+	}
+
+	public void onServiceDisconnected(ComponentName name)
+	{
+		onServiceFatal();
+	}
 
 	/**
 	 * Fatal error attempting to either start or bind to the service specified
