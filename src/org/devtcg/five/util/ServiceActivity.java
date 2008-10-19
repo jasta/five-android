@@ -38,8 +38,6 @@ public abstract class ServiceActivity extends Activity
 {
 	public static final String TAG = "ServiceActivity";
 
-	private Handler mHandler = new Handler();
-
 	/**
 	 * Convenience feature to allow ServiceActivity subclasses to defer
 	 * UI construction/assignment until the service is connected, and then
@@ -122,7 +120,7 @@ public abstract class ServiceActivity extends Activity
 
 	public void onServiceConnected(ComponentName name, IBinder binder)
 	{
-		mHandler.post(new Runnable() {
+		runOnUiThread(new Runnable() {
 			public void run() {
 				displayUI(true);
 			}
