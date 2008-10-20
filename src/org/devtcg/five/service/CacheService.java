@@ -138,7 +138,7 @@ OUTER:
 					if (c.moveToNext() == false)
 						break OUTER;
 
-					File f = new File(c.getString(0));
+					File f = new File(c.getString(1));
 
 					/* The file's size might differ from the databases as we
 					 * may have an uncommitted, partial cache hit. */
