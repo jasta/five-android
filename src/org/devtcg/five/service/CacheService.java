@@ -109,13 +109,13 @@ OUTER:
 			while (true)
 			{
 				StatFs fs = new StatFs(sdcard.getAbsolutePath());
-				
+
 				long freeBytes = (long)fs.getAvailableBlocks() * fs.getBlockSize();
 				long necessary = mPolicy.leaveFree - (freeBytes + size);
 
 				if (necessary <= 0)
 					return true;
-				
+
 				Log.i(TAG, "Hunting for cache entries to delete (need " + necessary + " more bytes)...");
 
 				/* Initialize lazy so that for the common case of there
@@ -140,12 +140,15 @@ OUTER:
 
 					File f = new File(c.getString(1));
 
-					/* The file's size might differ from the databases as we
-					 * may have an uncommitted, partial cache hit. */
-					long cachedSize = f.length();
+					if (f.exists() == true)
+					{
+						/* The file's size might differ from the databases as we
+						 * may have an uncommitted, partial cache hit. */
+						long cachedSize = f.length();
 
-					if (f.delete() == true)
-						necessary -= cachedSize;
+						if (f.delete() == true)
+							necessary -= cachedSize;
+					}
 
 					/* Eliminate this entry from the cache. */
 					Uri contentUri = 
@@ -163,7 +166,7 @@ OUTER:
 
 			return false;
 		}
-		
+
 		/**
 		 * Attempt to carve out sufficient storage from the storage card.
 		 * 
