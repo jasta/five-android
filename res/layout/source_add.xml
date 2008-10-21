@@ -3,8 +3,7 @@
 	android:orientation="vertical"
   	android:layout_width="fill_parent"
   	android:layout_height="fill_parent"
-  	android:paddingLeft="14dip"
-  	android:paddingRight="14dip"
+  	android:padding="14dip"
 	>
 
 	<TextView
@@ -70,22 +69,23 @@
 		
 	<LinearLayout
 		android:orientation="horizontal"
-		android:layout_width="wrap_content"
+		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:paddingTop="14dip"
 		>
 
 		<Button
 			android:id="@+id/add"
-			android:layout_width="wrap_content"
+			android:layout_width="0px"
+			android:layout_weight="1"
 			android:layout_height="wrap_content"
 			android:text="Add"
-			android:paddingRight="14dip"
 			/>
 
 		<Button
 			android:id="@+id/cancel"
-			android:layout_width="wrap_content"
+			android:layout_width="0px"
+			android:layout_weight="1"
 			android:layout_height="wrap_content"
 			android:text="Cancel"
 			/>
