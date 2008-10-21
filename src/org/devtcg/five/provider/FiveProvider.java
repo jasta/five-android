@@ -978,20 +978,6 @@ public class FiveProvider extends ContentProvider
 	{
 		String custom;
 		int count;
-	
-		/* Make sure we delete any associated cache. */
-		Cursor c = query(uri, new String[] { Five.Content.CACHED_PATH },
-		  selection, selectionArgs, null);
-
-		while (c.moveToNext() == true)
-		{
-			String path = c.getString(0);
-
-			if (path != null)
-				(new File(path)).delete();
-		}
-
-		c.close();
 
 		/* Now it's safe to delete the row. */
 		switch (type)
@@ -1013,6 +999,26 @@ public class FiveProvider extends ContentProvider
 
 		default:
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
+		}
+
+		String domo = extendWhere(custom,
+		  Five.Content.CACHED_PATH + " IS NOT NULL");
+
+		/* Make sure we delete any associated cache. */
+		Cursor c = db.query(Five.Content.SQL.TABLE,
+		  new String[] { Five.Content.CACHED_PATH },
+		  domo, selectionArgs, null, null, null);
+
+		try {
+			while (c.moveToNext() == true)
+			{
+				String path = c.getString(0);
+
+				if (path != null)
+					(new File(path)).delete();
+			}
+		} finally {
+			c.close();
 		}
 
 		count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
