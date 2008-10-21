@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="tests/src"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="/home/jguilfoyle/.m2/repository/org/devtcg/syncml/libsyncml/0.0.1-SNAPSHOT/libsyncml-0.0.1-SNAPSHOT.jar"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
