@@ -28,11 +28,13 @@ import org.devtcg.syncml.protocol.SyncSession;
 
 import android.app.Service;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.telephony.TelephonyManager;
@@ -49,10 +51,15 @@ public class MetaService extends Service
 
 	final SyncHandler mHandler = new SyncHandler();
 	
+	private PowerManager.WakeLock mWakeLock;
+	
 	@Override
 	public void onCreate()
 	{
 		mObservers = new IMetaObserverCallbackList();
+		
+		PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
+		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 	}
 
 	@Override
@@ -239,6 +246,8 @@ public class MetaService extends Service
 
 		public void run()
 		{
+			mWakeLock.acquire();
+
 			mHandler.sendBeginSync();
 
 			ContentResolver cr = getContentResolver();
@@ -257,7 +266,7 @@ public class MetaService extends Service
 				while (mSyncing == true && c.moveToNext() == true)
 				{
 					mHandler.sendBeginSource(c.getLong(0));
-					
+
 					syncSource(c.getLong(0), c.getString(1),
 					  c.getString(2), c.getInt(3), c.getLong(4));
 					
@@ -268,6 +277,8 @@ public class MetaService extends Service
 			mHandler.sendEndSync();
 
 			c.close();
+
+			mWakeLock.release();
 		}
 
 		public void shutdown()
