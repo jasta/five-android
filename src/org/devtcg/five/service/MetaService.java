@@ -45,10 +45,15 @@ public class MetaService extends Service
 	volatile boolean mSyncing = false;
 	SyncThread mSyncThread = null;
 
-	final IMetaObserverCallbackList mObservers =
-	  new IMetaObserverCallbackList();
+	IMetaObserverCallbackList mObservers;
 
 	final SyncHandler mHandler = new SyncHandler();
+	
+	@Override
+	public void onCreate()
+	{
+		mObservers = new IMetaObserverCallbackList();
+	}
 
 	@Override
 	public IBinder onBind(Intent intent)
