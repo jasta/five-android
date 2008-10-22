@@ -7,6 +7,7 @@
 
     <!-- Obviously... -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Why do we have to ask for permission to access our own services? -->
     <uses-permission android:name="org.devtcg.five.permission.FIVE_SERVICES" />
