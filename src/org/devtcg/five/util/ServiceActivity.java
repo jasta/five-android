@@ -70,6 +70,11 @@ public abstract class ServiceActivity extends Activity
 		super.onStop();
 	}
 	
+	protected boolean hasUI()
+	{
+		return mHasUI;
+	}
+	
 	protected void displayUI(boolean display)
 	{
 		if (mHasUI == false)
