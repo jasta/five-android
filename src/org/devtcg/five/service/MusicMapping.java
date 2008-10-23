@@ -206,8 +206,11 @@ public class MusicMapping implements DatabaseMapping
 		return mime.substring(typeIndex + mimePrefix.length());		
 	}
 
-	private Uri insertArtist(SyncItem item, MetaDataFormat meta)
+	private Uri insertOrUpdateArtist(SyncItem item, MetaDataFormat meta)
 	{
+		if (item.getTargetId() != null)
+			throw new RuntimeException("Update of artist rows is not supported!");
+		
 		ContentValues values = new ContentValues();
 
 		values.put(Five.Music.Artists.NAME,
@@ -257,8 +260,11 @@ public class MusicMapping implements DatabaseMapping
 		return uri;
 	}
 	
-	private Uri insertAlbum(SyncItem item, MetaDataFormat meta)
+	private Uri insertOrUpdateAlbum(SyncItem item, MetaDataFormat meta)
 	{
+		if (item.getTargetId() != null)
+			throw new RuntimeException("Update of artist rows is not supported!");
+
 		ContentValues values = new ContentValues();
 
 		values.put(Five.Music.Albums.NAME,
@@ -335,7 +341,7 @@ public class MusicMapping implements DatabaseMapping
 		return uri;
 	}
 	
-	private Uri insertSongContent(SyncItem item, MetaDataFormat meta)
+	private Uri insertOrUpdateSongContent(SyncItem item, MetaDataFormat meta)
 	{
 		ContentValues values = new ContentValues();
 		
@@ -345,15 +351,27 @@ public class MusicMapping implements DatabaseMapping
 		  meta.getString(MetaDataFormat.ITEM_FIELD_CONTENT));
 		values.put(Five.Content.SOURCE_ID, mSourceId);
 
-		Uri uri = mContent.insert(Five.Content.CONTENT_URI, values);
+		Uri uri;
+
+		String target = item.getTargetId();
+		if (target != null)
+		{
+			uri = Five.Content.CONTENT_URI.buildUpon()
+			  .appendPath(target).build();
+			if (mContent.update(uri, values, null, null) != 1)
+				return null;
+		}
+		else
+		{
+			uri = mContent.insert(Five.Content.CONTENT_URI, values);
+		}
 		
 		return uri;
 	}
 	
-	private Uri insertSong(SyncItem item, MetaDataFormat meta)
+	private Uri insertOrUpdateSong(SyncItem item, MetaDataFormat meta)
 	{
-		Uri curi = insertSongContent(item, meta);
-
+		Uri curi = insertOrUpdateSongContent(item, meta);
 		if (curi == null)
 		{
 			Log.e(TAG, "Failed to insert content");
@@ -381,12 +399,22 @@ public class MusicMapping implements DatabaseMapping
 
 		values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
 
-		Uri uri = mContent.insert(Five.Music.Songs.CONTENT_URI, values);
+		Uri uri;
 
-		if (uri == null)
-			Log.d(TAG, "TODO: Rollback content entry!");
+		String target = item.getTargetId();
+		if (target != null)
+		{
+			uri = Five.Music.Songs.CONTENT_URI.buildUpon()
+			  .appendPath(target).build();
+			if (mContent.update(uri, values, null, null) != 1)
+				return null;
+		}
 		else
 		{
+			uri = mContent.insert(Five.Music.Songs.CONTENT_URI, values);
+			if (uri == null)
+				Log.d(TAG, "TODO: Rollback content entry!");
+
 			mSongMap.put(item.getSourceId(),
 			  Long.parseLong(uri.getLastPathSegment()));
 		}
@@ -433,7 +461,7 @@ public class MusicMapping implements DatabaseMapping
 		return n;
 	}
 
-	private Uri insertPlaylist(SyncItem item, MetaDataFormat meta)
+	private Uri insertOrUpdatePlaylist(SyncItem item, MetaDataFormat meta)
 	{
 		ContentValues values = new ContentValues();
 
@@ -441,18 +469,36 @@ public class MusicMapping implements DatabaseMapping
 		  meta.getString(MetaDataFormat.ITEM_FIELD_NAME));		
 		values.put(Five.Music.Playlists.CREATED_DATE,
 		  meta.getString(MetaDataFormat.ITEM_FIELD_CREATED));
+		
+		Uri uri;
 
-		Uri uri = mContent.insert(Five.Music.Playlists.CONTENT_URI, values);
-		if (uri == null)
-			return null;
+		String target = item.getTargetId();
+		if (target != null)
+		{
+			uri = Five.Music.Playlists.CONTENT_URI.buildUpon()
+			  .appendPath(target).build();
+			if (mContent.update(uri, values, null, null) != 1)
+				return null;
+
+			/* Delete all songs to refresh. */
+			Uri songsUri = uri.buildUpon()
+			  .appendEncodedPath("songs").build();
+			mContent.delete(songsUri, null, null);
+		}
+		else
+		{
+			uri = mContent.insert(Five.Music.Playlists.CONTENT_URI, values);
+			if (uri == null)
+				return null;
+		}
 
 		if (insertPlaylistSongs(uri, item, meta) == 0)
 			Log.w(TAG, "TODO: Rollback!");
 
 		return uri;
 	}
-
-	public int insert(SyncItem item)
+	
+	public int insertOrUpdate(SyncItem item)
 	{
 		bumpCounter();
 
@@ -466,17 +512,25 @@ public class MusicMapping implements DatabaseMapping
 			return 404;
 		}
 
-		Log.i(TAG, "Inserting item (" + item.getMimeType() + "; " +
-		  item.getData().length + " bytes): " + item.getSourceId());
+		String sourceId = item.getSourceId();
+		String targetId = item.getTargetId();
+
+		if (targetId == null)
+		{
+			Log.i(TAG, "Inserting item (" + item.getMimeType() + "; " +
+			  item.getData().length + " bytes): " + sourceId);
+		}
+		else
+		{
+			Log.i(TAG, "Replacing item (" + item.getMimeType() + "; " +
+			  item.getData().length + " bytes): " + targetId); 
+		}
 
 		MetaDataFormat meta;
 
-		try
-		{
+		try {
 			meta = new MetaDataFormat(new String(item.getData(), "UTF-8"));
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			Log.d(TAG, "Failed to parse data=" + item.getData(), e);
 
 			/* Not executed. */
@@ -486,13 +540,13 @@ public class MusicMapping implements DatabaseMapping
 		Uri uri = null;
 
 		if (format.equals("artist") == true)
-			uri = insertArtist(item, meta);
+			uri = insertOrUpdateArtist(item, meta);
 		else if (format.equals("album") == true)
-			uri = insertAlbum(item, meta);
+			uri = insertOrUpdateAlbum(item, meta);
 		else if (format.equals("song") == true)
-			uri = insertSong(item, meta);
+			uri = insertOrUpdateSong(item, meta);
 		else if (format.equals("playlist") == true)
-			uri = insertPlaylist(item, meta);
+			uri = insertOrUpdatePlaylist(item, meta);
 		else
 		{
 			Log.e(TAG, "Unknown mime type: " + mime);
@@ -501,20 +555,29 @@ public class MusicMapping implements DatabaseMapping
 
 		if (uri == null)
 		{
-			Log.e(TAG, "Failed to insert meta data");
+			Log.e(TAG, "Failed to insert/update meta data");
 			return 400;
 		}
 
-		item.setTargetId(Long.valueOf(uri.getLastPathSegment()));
+		if (targetId == null)
+			item.setTargetId(Long.valueOf(uri.getLastPathSegment()));
 
 		notifyChange();
 
-		return 201;
+		if (targetId == null)
+			return 201;
+		else
+			return 200;
+	}
+	
+	public int insert(SyncItem item)
+	{
+		return insertOrUpdate(item);
 	}
 
 	public int update(SyncItem item)
 	{
-		throw new RuntimeException("TODO: update(item) STUB!");
+		return insertOrUpdate(item);
 	}
 
 	public int delete(SyncItem item)

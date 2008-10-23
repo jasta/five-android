@@ -469,6 +469,19 @@ public class FiveProvider extends ContentProvider
 
 	/*-***********************************************************************/
 
+	private int updateSong(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
+	  String sel, String[] selArgs)
+	{
+		String custom;
+
+		custom = extendWhere(sel, Five.Music.Songs._ID + '=' + uri.getLastPathSegment());
+
+		int ret = db.update(Five.Music.Songs.SQL.TABLE, v, custom, selArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return ret;
+	}
+			
 	private int updateAlbum(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
 	  String sel, String[] selArgs)
 	{
@@ -490,6 +503,19 @@ public class FiveProvider extends ContentProvider
 		custom = extendWhere(sel, Five.Music.Artists._ID + '=' + uri.getLastPathSegment());
 
 		int ret = db.update(Five.Music.Artists.SQL.TABLE, v, custom, selArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return ret;
+	}
+	
+	private int updatePlaylist(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
+	  String sel, String[] selArgs)
+	{
+		String custom;
+
+		custom = extendWhere(sel, Five.Music.Playlists._ID + '=' + uri.getLastPathSegment());
+
+		int ret = db.update(Five.Music.Playlists.SQL.TABLE, v, custom, selArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
@@ -594,13 +620,17 @@ public class FiveProvider extends ContentProvider
 		SQLiteDatabase db = mHelper.getWritableDatabase();
 
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
-		
+
 		switch (type)
 		{
+		case SONG:
+			return updateSong(db, uri, type, values, selection, selectionArgs);
 		case ALBUM:
 			return updateAlbum(db, uri, type, values, selection, selectionArgs);
 		case ARTIST:
 			return updateArtist(db, uri, type, values, selection, selectionArgs);
+		case PLAYLIST:
+			return updatePlaylist(db, uri, type, values, selection, selectionArgs);
 		case SOURCE:
 			return updateSource(db, uri, type, values, selection, selectionArgs);
 		case CONTENT_ITEM:
@@ -1171,6 +1201,35 @@ public class FiveProvider extends ContentProvider
 		return count;		
 	}
 
+	private int deletePlaylistSongs(SQLiteDatabase db, Uri uri, URIPatternIds type,
+	  String selection, String[] selectionArgs)
+	{
+		String custom;
+		int count;
+
+		List<Long> numsegs = getNumericPathSegments(uri);
+
+		custom = extendWhere(selection,
+		  Five.Music.PlaylistSongs.PLAYLIST_ID + '=' + numsegs.get(0));
+
+		switch (type)
+		{
+		case SONGS_IN_PLAYLIST:
+			break;
+		case SONG_IN_PLAYLIST:
+			custom = extendWhere(custom,
+			  Five.Music.PlaylistSongs.SONG_ID + '=' + numsegs.get(1));
+			break;
+		default:
+			throw new IllegalArgumentException("Cannot delete playlist URI: " + uri);
+		}
+
+		count = db.delete(Five.Music.PlaylistSongs.SQL.TABLE, custom, selectionArgs);
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		return count;		
+	}
+
 	@Override
 	public int delete(Uri uri, String selection, String[] selectionArgs)
 	{
@@ -1201,8 +1260,8 @@ public class FiveProvider extends ContentProvider
 		case PLAYLISTS:
 		case PLAYLIST:
 			return deletePlaylists(db, uri, type, selection, selectionArgs);
-//		case SONG_IN_PLAYLIST:
-//			return deletePlaylistSong(db, uri, type, selection, selectionArgs);
+		case SONGS_IN_PLAYLIST:
+			return deletePlaylistSongs(db, uri, type, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot delete URI: " + uri);
 		}
