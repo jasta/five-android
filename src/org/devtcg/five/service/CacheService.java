@@ -17,6 +17,7 @@
 package org.devtcg.five.service;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import org.devtcg.five.provider.Five;
 
@@ -26,8 +27,10 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
@@ -35,11 +38,40 @@ import android.os.StatFs;
 import android.util.Log;
 
 public class CacheService extends Service
+  implements MediaScannerConnection.MediaScannerConnectionClient
 {
 	public static final String TAG = "CacheService";
 
 	/** Default cache policy is to leave 100MB free always. */
 	static final CachePolicy mPolicy = new CachePolicy(100 * 1024 * 1024);
+	
+	private Handler mHandler = new Handler();
+
+	private MediaScannerConnection mMediaScanner;
+
+	@Override
+	public void onCreate()
+	{
+		super.onCreate();
+
+		mMediaScanner = new MediaScannerConnection(this, this);
+		mMediaScanner.connect();
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		mMediaScanner.disconnect();
+
+		super.onDestroy();
+	}
+
+	public void onMediaScannerConnected() {}
+
+	public void onScanCompleted(String path, Uri uri)
+	{
+		Log.i(TAG, "onScanCompleted: path=" + path + ", uri=" + uri);
+	}
 
 	@Override
 	public IBinder onBind(Intent intent)
@@ -61,7 +93,7 @@ public class CacheService extends Service
 		Uri uri = makeContentUri(sourceId, contentId);
 		String fields[] =
 		  new String[] { Five.Content._ID, Five.Content.SIZE,
-		    Five.Content.CACHED_PATH };
+		    Five.Content.CACHED_PATH, Five.Content.MIME_TYPE };
 		return getContentResolver().query(uri, fields, null, null, null);
 	}
 
@@ -166,6 +198,16 @@ OUTER:
 
 			return false;
 		}
+		
+		private String getExtensionFromMimeType(String mime)
+		{
+			if (mime.equals("audio/mpeg") == true)
+				return "mp3";
+			else if (mime.equals("application/ogg") == true)
+				return "ogg";
+
+			throw new IllegalArgumentException("Unknown mime type " + mime);
+		}
 
 		/**
 		 * Attempt to carve out sufficient storage from the storage card.
@@ -177,7 +219,7 @@ OUTER:
 		 *   Filename for storage.
 		 */
 		private String makeStorage(long sourceId, long contentId,
-		  long size)
+		  String mime, long size)
 		  throws CacheAllocationException
 		{
 			String state = Environment.getExternalStorageState();
@@ -196,49 +238,84 @@ OUTER:
 				throw new OutOfSpaceException();
 
 			String path = sdcard.getAbsolutePath() + "/five/cache/" +
-			  sourceId + "/" + contentId;
+			  sourceId + '/' + contentId +
+			  '.' + getExtensionFromMimeType(mime);
 
 			return path;
 		}
-
-		public ParcelFileDescriptor requestStorage(long sourceId,
-		  long contentId)
+		
+		public String requestStorageAsPath(long sourceId, long contentId)
 		  throws RemoteException
 		{
 			Cursor c = getContentCursor(sourceId, contentId);
 			
 			try {
 				if (c.moveToFirst() == false)
-				{
-					logError("Invalid content: source=" + sourceId + 
-					  ", contentId=" + contentId);
-					return null;
-				}
+					throw new IllegalArgumentException("Invalid content");
 				
 				long size = c.getLong(c.getColumnIndexOrThrow(Five.Content.SIZE));
+				String mime = c.getString(c.getColumnIndexOrThrow(Five.Content.MIME_TYPE));
 
-				String path = makeStorage(sourceId, contentId, size);
+				String path = makeStorage(sourceId, contentId, mime, size);
 
 				ContentValues cv = new ContentValues();
 				cv.put(Five.Content.CACHED_TIMESTAMP,
 				  System.currentTimeMillis());
 				cv.put(Five.Content.CACHED_PATH, path);
 				updateContentRow(sourceId, contentId, cv);
-
+				
+				/* Lame way to make sure the file and path gets created. */
 				Uri uri = makeContentUri(sourceId, contentId);
-				return getContentResolver().openFileDescriptor(uri, "rw");
+				ParcelFileDescriptor pd =
+				  getContentResolver().openFileDescriptor(uri, "rw");
+				pd.close();
+
+				return path;
 			} catch (Exception e) {
 				logError(e);
 				return null;
 			} finally {
 				c.close();
+			}			
+		}
+
+		public ParcelFileDescriptor requestStorage(long sourceId,
+		  long contentId)
+		  throws RemoteException
+		{
+			String path = requestStorageAsPath(sourceId, contentId);
+
+			try {
+				return ParcelFileDescriptor.open(new File(path),
+				  ParcelFileDescriptor.MODE_READ_WRITE |
+				  ParcelFileDescriptor.MODE_CREATE |
+				  ParcelFileDescriptor.MODE_WORLD_READABLE);
+			} catch (FileNotFoundException e) {
+				logError(e);
+				return null;
 			}
 		}
 
 		public void commitStorage(long sourceId, long contentId)
 		  throws RemoteException
 		{
-			Log.i(TAG, "UNIMPLEMENTED: commitStorage");
+			Cursor c = getContentCursor(sourceId, contentId);
+
+			try {
+				if (c.moveToFirst() == false)
+					throw new IllegalArgumentException("Invalid content");
+
+				final String path = c.getString(c.getColumnIndexOrThrow
+				  (Five.Content.CACHED_PATH));
+				
+				final String mime = c.getString(c.getColumnIndexOrThrow
+				  (Five.Content.MIME_TYPE));
+
+				if (mMediaScanner.isConnected() == true)
+					mMediaScanner.scanFile(path, mime);
+			} finally {
+				c.close();
+			}
 		}
 
 		public boolean releaseStorage(long sourceId, long contentId)
@@ -248,17 +325,13 @@ OUTER:
 
 			try {
 				if (c.moveToFirst() == false)
-				{
-					logError("Invalid content: source=" + sourceId + 
-					  ", contentId=" + contentId);
-					return false;
-				}
-				
+					throw new IllegalArgumentException("Invalid content");
+
 				String path = c.getString(c.getColumnIndexOrThrow(Five.Content.CACHED_PATH));
 
 				if (path == null)
 					return false;
-
+				
 				if ((new File(path)).delete() == false)
 					logError("Unable to delete " + path);
 

@@ -159,6 +159,9 @@ public final class Five
 
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
+		
+		/** Media meta data. */
+		public static final String MIME_TYPE = "mime_type"; 
 
 		/** Raw media size in bytes. */
 		public static final String SIZE = "size";
@@ -178,6 +181,7 @@ public final class Five
 			  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 			  CONTENT_ID + " INTEGER NOT NULL, " +
 			  SOURCE_ID + " INTEGER NOT NULL, " +
+			  MIME_TYPE + " TEXT NOT NULL, " +
 			  SIZE + " INTEGER NOT NULL, " +
 			  CACHED_TIMESTAMP + " INTEGER, " +
 			  CACHED_PATH + " TEXT " +

@@ -45,7 +45,7 @@ public class FiveProvider extends ContentProvider
 
 	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 26;
+	private static final int DATABASE_VERSION = 27;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;

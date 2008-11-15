@@ -47,6 +47,12 @@ interface ICacheService
 	ParcelFileDescriptor requestStorage(long sourceId, long contentId);
 
 	/**
+	 * Alternative form of {@link requestStorage} which returns a path to use
+	 * instead of an open file descriptor.
+	 */
+	String requestStorageAsPath(long sourceId, long contentId);
+
+	/**
 	 * Commit cached content permanently.
 	 */
 	void commitStorage(long sourceId, long contentId);
