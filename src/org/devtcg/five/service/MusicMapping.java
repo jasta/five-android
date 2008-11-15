@@ -398,6 +398,7 @@ public class MusicMapping implements DatabaseMapping
 
 		values.put(Five.Music.Songs.TRACK, meta.getString(MetaDataFormat.ITEM_FIELD_TRACK));
 		values.put(Five.Music.Songs.LENGTH, meta.getString(MetaDataFormat.ITEM_FIELD_LENGTH));
+		values.put(Five.Music.Songs.BITRATE, meta.getString(MetaDataFormat.ITEM_FIELD_BITRATE));
 
 		values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
 
@@ -744,6 +745,7 @@ public class MusicMapping implements DatabaseMapping
 		public static final String ITEM_FIELD_TRACK = "TRACK";
 		public static final String ITEM_FIELD_SIZE = "SIZE";
 		public static final String ITEM_FIELD_MIME = "MIME";
+		public static final String ITEM_FIELD_BITRATE = "BITRATE";
 		public static final String ITEM_FIELD_CREATED = "CREATED";
 		public static final String ITEM_FIELD_PLAYLIST_SONGS = "SONGS";
 

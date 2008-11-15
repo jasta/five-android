@@ -45,7 +45,7 @@ public class FiveProvider extends ContentProvider
 
 	private DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 27;
+	private static final int DATABASE_VERSION = 29;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -63,7 +63,8 @@ public class FiveProvider extends ContentProvider
 		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
 		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE,
-		ADJUST_COUNTS
+		ADJUST_COUNTS,
+		PRAGMA_SYNCHRONOUS
 		;
 
 		public static URIPatternIds get(int ordinal)
@@ -645,6 +646,13 @@ public class FiveProvider extends ContentProvider
 	
 	/*-***********************************************************************/
 
+	private Uri handlePragmaSynchronous(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
+	{
+		Log.w(TAG, "PRAGMA synchronous = " + uri.getLastPathSegment());
+		db.execSQL("PRAGMA synchronous = " + uri.getLastPathSegment() + ";");
+		return null;
+	}
+
 	private Uri insertSource(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
 	{
 		if (v.containsKey(Five.Sources.HOST) == false)
@@ -907,6 +915,8 @@ public class FiveProvider extends ContentProvider
 
 		switch (type)
 		{
+		case PRAGMA_SYNCHRONOUS:
+			return handlePragmaSynchronous(db, uri, type, values);
 		case SOURCES:
 			return insertSource(db, uri, type, values);
 		case SOURCE_LOG:
@@ -1305,6 +1315,9 @@ public class FiveProvider extends ContentProvider
 	static
 	{
 		URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
+		
+		URI_MATCHER.addURI(Five.AUTHORITY, "pragma/synchronous/*", URIPatternIds.PRAGMA_SYNCHRONOUS.ordinal());
+		
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources", URIPatternIds.SOURCES.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 

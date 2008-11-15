@@ -26,6 +26,15 @@ public final class Five
 {
 	public static final String AUTHORITY = "org.devtcg.five";
 
+	public interface Pragma
+	{
+		public static final Uri SYNCHRONOUS_OFF =
+		  Uri.parse("content://" + AUTHORITY + "/pragma/synchronous/OFF");
+
+		public static final Uri SYNCHRONOUS_FULL =
+		  Uri.parse("content://" + AUTHORITY + "/pragma/synchronous/FULL");
+	}
+	
 	/**
 	 * Concrete synchronization source.  Under this implementation, a TCP
 	 * server on the Internet.
@@ -266,6 +275,9 @@ public final class Five
 			/** Running time in seconds. */
 			public static final String LENGTH = "length";
 
+			/** Average or estimated bitrate. */
+			public static final String BITRATE = "bitrate";
+
 			/** Track number / Position in set. */
 			public static final String TRACK = "track_num";
 
@@ -291,6 +303,7 @@ public final class Five
 				  ARTIST_ID + " INTEGER NOT NULL, " +
 				  ALBUM_ID + " INTEGER, " +
 				  LENGTH + " INTEGER NOT NULL, " +
+				  BITRATE + " INTEGER, " +
 				  TRACK + " INTEGER, " +
 				  GENRE + " TEXT, " +
 				  SET + " INTEGER, " +

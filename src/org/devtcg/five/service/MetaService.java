@@ -263,6 +263,8 @@ public class MetaService extends Service
 			{
 				Log.i(TAG, "Starting sync with " + n + " sources");
 
+				cr.insert(Five.Pragma.SYNCHRONOUS_OFF, null);
+
 				while (mSyncing == true && c.moveToNext() == true)
 				{
 					mHandler.sendBeginSource(c.getLong(0));
@@ -272,6 +274,8 @@ public class MetaService extends Service
 					
 					mHandler.sendEndSource(c.getLong(0));
 				}
+				
+				cr.insert(Five.Pragma.SYNCHRONOUS_FULL, null);
 			}
 
 			mHandler.sendEndSync();
