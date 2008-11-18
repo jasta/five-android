@@ -27,7 +27,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
-import android.media.MediaScannerConnection;
+//import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
@@ -38,7 +38,7 @@ import android.os.StatFs;
 import android.util.Log;
 
 public class CacheService extends Service
-  implements MediaScannerConnection.MediaScannerConnectionClient
+//  implements MediaScannerConnection.MediaScannerConnectionClient
 {
 	public static final String TAG = "CacheService";
 
@@ -47,31 +47,31 @@ public class CacheService extends Service
 	
 	private Handler mHandler = new Handler();
 
-	private MediaScannerConnection mMediaScanner;
+//	private MediaScannerConnection mMediaScanner;
 
 	@Override
 	public void onCreate()
 	{
 		super.onCreate();
 
-		mMediaScanner = new MediaScannerConnection(this, this);
-		mMediaScanner.connect();
+//		mMediaScanner = new MediaScannerConnection(this, this);
+//		mMediaScanner.connect();
 	}
 
 	@Override
 	public void onDestroy()
 	{
-		mMediaScanner.disconnect();
+//		mMediaScanner.disconnect();
 
 		super.onDestroy();
 	}
 
-	public void onMediaScannerConnected() {}
-
-	public void onScanCompleted(String path, Uri uri)
-	{
-		Log.i(TAG, "onScanCompleted: path=" + path + ", uri=" + uri);
-	}
+//	public void onMediaScannerConnected() {}
+//
+//	public void onScanCompleted(String path, Uri uri)
+//	{
+//		Log.i(TAG, "onScanCompleted: path=" + path + ", uri=" + uri);
+//	}
 
 	@Override
 	public IBinder onBind(Intent intent)
@@ -307,12 +307,12 @@ OUTER:
 
 				final String path = c.getString(c.getColumnIndexOrThrow
 				  (Five.Content.CACHED_PATH));
-				
+
 				final String mime = c.getString(c.getColumnIndexOrThrow
 				  (Five.Content.MIME_TYPE));
 
-				if (mMediaScanner.isConnected() == true)
-					mMediaScanner.scanFile(path, mime);
+//				if (mMediaScanner.isConnected() == true)
+//					mMediaScanner.scanFile(path, mime);
 			} finally {
 				c.close();
 			}
