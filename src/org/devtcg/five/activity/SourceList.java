@@ -51,7 +51,7 @@ import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
-public class SourceList extends ServiceActivity
+public class SourceList extends ServiceActivity<IMetaService>
 {
 	private static final String TAG = "SourceList";
 
@@ -59,8 +59,6 @@ public class SourceList extends ServiceActivity
 	  Five.Sources._ID, Five.Sources.NAME,
 	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };
 	
-	private IMetaService mService = null;
-
 	private Cursor mCursor;
 
 	private Screen mScreen;
@@ -81,19 +79,10 @@ public class SourceList extends ServiceActivity
 		assert mCursor != null;
 
 		if (mCursor.getCount() == 0)
+		{
+			showUI(true);
 			setUI(mScreenNoSources);
-	}
-
-	@Override
-	protected void onStop()
-	{
-		if (mScreen == mScreenNormal && mService != null)
-			mScreenNormal.unwatchService();
-
-		super.onStop();
-
-		setUI(null);
-		mService = null;
+		}
 	}
 
 	private Intent getIntentDefaulted()
@@ -108,9 +97,26 @@ public class SourceList extends ServiceActivity
 
 		return i;
 	}
-	
+
 	/* TODO: We currently don't take advantage of this feature. */
 	protected void onInitUI() {}
+
+	protected void onAttached()
+	{
+		/* Don't clobber ScreenNoSources if its the current UI. */
+		if (mScreen != null)
+			return;
+
+		setUI(mScreenNormal);
+	}
+	
+	protected void onDetached()
+	{
+		if (mScreen == mScreenNormal)
+			mScreenNormal.unwatchService();
+
+		setUI(null);
+	}
 
 	public void setUI(Screen screen)
 	{
@@ -128,28 +134,10 @@ public class SourceList extends ServiceActivity
 	{
 		return new Intent(this, MetaService.class);
 	}
-
-	public void onServiceConnected(ComponentName name, IBinder binder)
+	
+	protected IMetaService getServiceInterface(IBinder service)
 	{
-		Log.d(TAG, "onServiceConnected(name=" + name + ")");
-
-		mService = IMetaService.Stub.asInterface(binder);
-
-		runOnUiThread(new Runnable() {
-			public void run() {
-				/* Don't clobber ScreenNoSources if its the current UI. */
-				if (mScreen != null)
-					return;
-
-				setUI(mScreenNormal);
-			}
-		});
-	}
-
-	public void onServiceDisconnected(ComponentName name)
-	{
-		Log.d(TAG, "onServiceDisconnected(name=" + name + ")");
-		onServiceFatal();
+		return IMetaService.Stub.asInterface(service);
 	}
 
 	@Override
