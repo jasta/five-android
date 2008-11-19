@@ -50,46 +50,56 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 	 */
 	private boolean mShowingUI = false;
 
+//	@Override
+//	public void onCreate(Bundle icicle)
+//	{
+//		super.onCreate(icicle);
+//
+//		Log.d(TAG, "onCreate(): Binding service...");
+//
+//		if (bindService() == false)
+//			onServiceFatal();
+//	}
+//	
+//	@Override
+//	protected void onDestroy()
+//	{
+//		Log.d(TAG, "onDestroy(): Unbinding service...");
+//
+//		unbindService();
+//
+//		super.onDestroy();
+//	}
+
 	@Override
-	public void onCreate(Bundle icicle)
+	protected void onStart()
 	{
-		super.onCreate(icicle);
-
-		Log.d(TAG, "onCreate(): Binding service...");
-
+		super.onStart();
+		
+		Log.d(TAG, "onStart(): Binding service...");
+		
 		if (bindService() == false)
 			onServiceFatal();
-	}
-	
-	@Override
-	protected void onDestroy()
-	{
-		Log.d(TAG, "onDestroy(): Unbinding service...");
 
-		unbindService();
-
-		super.onDestroy();
-	}
-	
-	@Override
-	protected void onResume()
-	{
-		super.onResume();
-		
-		if (mService != null)
-		{
-			showUI(true);
-			onAttached();
-		}
+//		if (mService != null)
+//		{
+//			showUI(true);
+//			onAttached();
+//		}
 	}
 
 	@Override
 	protected void onStop()
 	{
+		Log.d(TAG, "onStop(): Unbinding service...");
+		
 		if (mService != null)
 			onDetached();
 
 		showUI(false);
+
+		unbindService();
+		mService = null;
 
 		super.onStop();
 	}
@@ -175,6 +185,7 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 		public void onServiceDisconnected(ComponentName name)
         {
 			onServiceFatal();
+			mService = null;
         }
 	};
 
