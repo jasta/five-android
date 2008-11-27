@@ -16,8 +16,7 @@
 	<application
 		android:icon="@drawable/music_icon"
 		android:label="@string/app_name"
-		android:taskAffinity="org.devtcg.five.task.music"
-		android:allowTaskReparenting="true">
+		android:taskAffinity="org.devtcg.five.task.music">
 
 		<provider android:name=".provider.FiveProvider"
 			android:authorities="org.devtcg.five" />
