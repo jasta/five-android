@@ -347,8 +347,10 @@ public class SourceList extends ServiceActivity<IMetaService>
 		{
 			public void onItemClick(AdapterView<?> parent, View v, int pos, long id)
 			{
-				startActivity(new Intent(Intent.ACTION_VIEW,
-				  ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id)));
+				Intent i = new Intent(SourceList.this, SourceInfo.class);
+				i.setData(ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id));
+				
+				startActivity(i);
 			}
 		};
 		
