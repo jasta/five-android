@@ -26,7 +26,8 @@
 		<activity
 			android:name=".activity.SourceList"
 			android:icon="@drawable/icon"
-			android:label="@string/sync_title">
+			android:label="@string/sync_title"
+			android:taskAffinity="sync">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.DEFAULT" />
@@ -40,7 +41,8 @@
 			android:name=".music.activity.Main"
 			android:icon="@drawable/music_icon"
 			android:theme="@android:style/Theme.NoTitleBar"
-			android:label="@string/music_title">
+			android:label="@string/music_title"
+			android:taskAffinity="sync">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.DEFAULT" />
