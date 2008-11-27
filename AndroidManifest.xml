@@ -1,72 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.devtcg.five">
+	package="org.devtcg.five">
 
-    <!-- Access PROPERTY_IMEI for unique device signature. 
-       - TODO: Generate my own unique id. -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+	<!-- Access PROPERTY_IMEI for unique device signature. 
+	   - TODO: Generate my own unique id. -->
+	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
-    <!-- Obviously... -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+	<!-- Obviously... -->
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- To efficiently manage retries. -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<!-- To efficiently manage retries. -->
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <application android:icon="@drawable/music_icon" android:label="@string/app_name">
+	<application android:icon="@drawable/music_icon" android:label="@string/app_name">
 
-        <provider android:name=".provider.FiveProvider"
-          android:authorities="org.devtcg.five" />
+		<provider android:name=".provider.FiveProvider"
+			android:authorities="org.devtcg.five" />
 
-        <service android:name=".service.MetaService" />
-        <service android:name=".service.CacheService" />
+		<service android:name=".service.MetaService" />
+		<service android:name=".service.CacheService" />
 
-        <service android:name=".music.service.PlaylistService" />
+		<service android:name=".music.service.PlaylistService" />
 
-        <activity
-          android:name=".activity.SourceList"
-          android:icon="@drawable/icon"
-          android:label="@string/sync_title">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+		<activity
+			android:name=".activity.SourceList"
+			android:icon="@drawable/icon"
+			android:label="@string/sync_title">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
 
-        <activity android:name=".activity.SourceInfo" android:label="@string/source_info_title" />
+		<activity android:name=".activity.SourceInfo" android:label="@string/source_info_title" />
 
-        <activity
-          android:name=".music.activity.Main"
-          android:icon="@drawable/music_icon"
-          android:theme="@android:style/Theme.NoTitleBar"
-          android:label="@string/music_title">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+		<activity
+			android:name=".music.activity.Main"
+			android:icon="@drawable/music_icon"
+			android:theme="@android:style/Theme.NoTitleBar"
+			android:label="@string/music_title">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
 
-        <activity android:name=".music.activity.ArtistList" android:label="@string/artists_title" />
+		<activity android:name=".music.activity.ArtistList" android:label="@string/artists_title" />
 
-        <activity android:name=".music.activity.AlbumList" android:label="@string/albums_title" />
+		<activity android:name=".music.activity.AlbumList" android:label="@string/albums_title" />
 
-        <activity android:name=".music.activity.ArtistAlbumList" />
+		<activity android:name=".music.activity.ArtistAlbumList" />
 
-        <activity android:name=".music.activity.SongList" android:label="@string/tracks_title" />
+		<activity android:name=".music.activity.SongList" android:label="@string/tracks_title" />
 
-        <!-- XXX: Rename to PlaylistList -->
-        <activity android:name=".music.activity.Playlists" android:label="@string/playlists_title" />
+		<!-- XXX: Rename to PlaylistList -->
+		<activity android:name=".music.activity.Playlists" android:label="@string/playlists_title" />
 
-        <activity
-            android:name=".music.activity.Player"
-            android:theme="@android:style/Theme.NoTitleBar"
-            android:launchMode="singleTask"
-            android:excludeFromRecents="true"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|keyboardHidden"
-            />
+		<activity
+			android:name=".music.activity.Player"
+			android:theme="@android:style/Theme.NoTitleBar"
+			android:launchMode="singleTask"
+			android:excludeFromRecents="true"
+			android:screenOrientation="portrait"
+			android:configChanges="orientation|keyboardHidden"
+			/>
 
-   </application>
+	</application>
 </manifest> 
