@@ -473,7 +473,7 @@ public class PlaylistService extends Service implements ServiceConnection,
 			n.icon = R.drawable.stat_notify_musicplayer;
 			n.when = System.currentTimeMillis();
 
-			RemoteViews view = new RemoteViews("org.devtcg.five.music", 
+			RemoteViews view = new RemoteViews("org.devtcg.five", 
 			  R.layout.notif_playing);
 
 			Song song = new Song(getContentResolver(), songId);
