@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0px"
+    android:layout_height="45dip"
+    android:background="@drawable/tab_indicator"
+    android:layout_weight="1"
+    >
+
+	<TextView
+		android:id="@+id/tab_label"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_centerInParent="true"
+		android:textColor="@color/tab_indicator_text"
+		/>
+
+</RelativeLayout>

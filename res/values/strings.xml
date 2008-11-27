@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Five Sync</string>
+    <string name="app_name">Five</string>
+    <string name="sync_title">Five Sync</string>
+    <string name="music_title">Five Music</string>
+
+    <string name="artists_title">Artists</string>
+    <string name="albums_title">Albums</string>
+    <string name="tracks_title">Songs</string>
+    <string name="playlists_title">Playlists</string>
+
+    <string name="return_library">Library</string>
+    <string name="goto_player">Playback</string>
+    <string name="shuffle_all">Shuffle</string>
+
+    <string name="lastfm_top_albums_title">Last.fm: Top Albums</string>
+    <string name="lastfm_top_artists_title">Last.fm: Top Artists</string>
+    <string name="alphabet">\u0020ABCDEFGHIJKLMNOPQRSTUVWXYZ</string>
+
     <string name="source_info_title">Source Information</string>
     <string name="source_list_title">Five Sync</string>
 
@@ -8,8 +24,4 @@
        The application has encountered an illegal condition and must be closed.
        Please report this bug to the author.
     </string>
-
-    <!-- Permissions -->
-    <string name="perm_label_fiveServices">Access Five media services</string>
-    <string name="perm_desc_fiveServices">...</string>
 </resources>

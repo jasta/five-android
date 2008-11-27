@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2006 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<ImageView
+		android:id="@+id/album_cover"
+		android:layout_width="64px"
+		android:layout_height="64px"
+		android:layout_gravity="center_vertical"
+		/>
+
+	<LinearLayout
+		android:orientation="vertical"
+		android:layout_width="0px"
+		android:layout_weight="1"
+		android:layout_height="fill_parent"
+		android:gravity="center_vertical"
+		style="?android:attr/windowTitleBackgroundStyle"
+		android:paddingLeft="10dip"
+		>
+
+		<TextView
+			android:id="@+id/album_name"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			style="?android:attr/windowTitleStyle"
+			android:singleLine="false"
+			android:textSize="16sp"
+			/>
+
+<!--
+		<TextView
+			android:id="@+id/release_date"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:singleLine="true"
+			style="?android:attr/textAppearanceSmallInverse"
+			android:text="Released Aug, 2007"
+			/>
+ -->
+
+	</LinearLayout>
+
+</merge>
+

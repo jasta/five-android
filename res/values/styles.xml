@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<resources>
+	<style name="PlaybackInfo">
+		<item name="android:indeterminateOnly">false</item>
+	</style>
+
+	<style name="PlaybackText">
+		<item name="android:textColor">#ffc5c6c5</item>
+		<item name="android:shadowColor">#ff202020</item>
+		<item name="android:shadowRadius">2.0</item>
+		<item name="android:textStyle">bold</item>
+	</style>
+</resources>

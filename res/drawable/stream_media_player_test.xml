@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:padding="16dip"
+	android:gravity="center_horizontal">
+
+	<SeekBar
+		android:id="@+id/playback_info"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:max="100"
+		android:paddingBottom="10dip"
+		/>
+
+	<LinearLayout
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal">
+
+		<Button
+			android:id="@+id/download"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Start Download"
+			android:layout_marginRight="6dip"
+			/>
+
+		<Button
+			android:id="@+id/playstop"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Play"
+			/>
+
+	</LinearLayout>
+
+</LinearLayout>

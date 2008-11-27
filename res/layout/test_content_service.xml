@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="12dip"
+	>
+	
+	<TextView
+		android:id="@+id/song_info"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:gravity="center_horizontal"
+		android:padding="12dip"
+		/>
+		
+	<ProgressBar
+		android:id="@+id/download_progress"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		style="?android:attr/progressBarStyleHorizontal"
+		android:padding="12dip"
+		/>
+
+	<LinearLayout
+		android:orientation="horizontal"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_gravity="center_horizontal"
+		android:padding="12dip"
+		>
+		
+		<Button
+			android:id="@+id/download"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:padding="12dip"
+			android:text="Download"
+			/>
+
+		<Button
+			android:id="@+id/play"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:padding="12dip"
+			android:text="Play"
+			/>
+			
+		<Button
+			android:id="@+id/stop"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:padding="12dip"
+			android:text="Stop"
+			/>
+			
+	</LinearLayout>
+
+</LinearLayout>

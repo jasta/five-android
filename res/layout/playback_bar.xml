@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+ # $Id$
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<SeekBar
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		style="@style/PlaybackInfo"
+		android:max="100"
+		/>
+
+	<SeekBar
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		style="@style/PlaybackInfo"
+		android:max="100"
+		/>
+
+</merge>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id: album_list.xml 940 2008-10-28 00:35:38Z jasta00 $
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	>
+
+	<org.devtcg.five.music.widget.FastScrollView
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		>
+
+		<ListView
+			android:id="@+id/album_list"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			/>
+
+	</org.devtcg.five.music.widget.FastScrollView>
+
+</LinearLayout>

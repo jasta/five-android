@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # $Id: song_list_item.xml 536 2008-08-19 08:11:57Z jasta00 $
+ #
+ # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ #
+ # This program is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+ # Free Software Foundation; either version 2, or (at your option) any
+ # later version.
+ #
+ # This program is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ # General Public License for more details.
+ -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="horizontal"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:paddingTop="6dip"
+	android:paddingBottom="6dip"
+	android:paddingLeft="12dip"
+	android:paddingRight="12dip"
+	android:baselineAligned="false"
+	android:gravity="center_vertical"
+	>
+
+	<LinearLayout
+		android:layout_width="0px"
+		android:layout_weight="1"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		>
+
+		<TextView
+			android:id="@+id/song_name"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceMedium"
+			android:padding="2dip"
+			android:singleLine="false"
+			/>
+
+		<TextView
+			android:id="@+id/artist_name"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceSmall"
+			android:padding="2dip"
+			android:singleLine="false"
+			/>
+
+	</LinearLayout>
+
+	<ImageView
+		android:id="@+id/song_playing_icon"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:visibility="invisible"
+		android:src="@drawable/btn_play"
+		/>
+
+</LinearLayout>
