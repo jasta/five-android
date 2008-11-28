@@ -20,6 +20,7 @@ import org.devtcg.five.R;
 import org.devtcg.five.music.util.PlaylistServiceActivity;
 import org.devtcg.five.music.util.Song;
 import org.devtcg.five.music.util.PlaylistServiceActivity.TrackChangeListener;
+import org.devtcg.five.provider.Five;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -54,7 +55,7 @@ public class Main extends PlaylistServiceActivity
 	{
 		super.onCreate(icicle);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
-
+		
 		setTrackChangeListener(this);
 	}
 
