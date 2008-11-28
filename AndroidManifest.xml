@@ -16,7 +16,7 @@
 	<application
 		android:icon="@drawable/music_icon"
 		android:label="@string/app_name"
-		android:taskAffinity="org.devtcg.five:Music">
+		android:taskAffinity="org.devtcg.five.task.music">
 
 		<provider android:name=".provider.FiveProvider"
 			android:authorities="org.devtcg.five" />
@@ -30,7 +30,7 @@
 			android:name=".activity.SourceList"
 			android:icon="@drawable/icon"
 			android:label="@string/sync_title"
-			android:taskAffinity="org.devtcg.five:Sync">
+			android:taskAffinity="org.devtcg.five.task.sync">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.DEFAULT" />
@@ -41,7 +41,7 @@
 		<activity
 			android:name=".activity.SourceInfo"
 			android:label="@string/source_info_title"
-			android:taskAffinity="org.devtcg.five:Sync"
+			android:taskAffinity="org.devtcg.five.task.sync"
 			/>
 
 		<activity
