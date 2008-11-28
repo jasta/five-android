@@ -57,6 +57,8 @@ public class SourceAdd extends Activity
 
 		mNext = (Button)findViewById(R.id.next);
 		mNext.setOnClickListener(mNextClick);
+		
+		mHostname.requestFocus();
 
 		/* Differentiates the add versus edit cases. */
 		handleIntent(getIntent());
