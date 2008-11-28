@@ -48,14 +48,14 @@ public class AlbumList extends Activity
 {
 	private static final String TAG = "AlbumList";
 
-	private static final String QUERY_FIELDS[] = 
+	private static final String QUERY_FIELDS[] =
 	  { Five.Music.Albums._ID, Five.Music.Albums.NAME,
 		Five.Music.Albums.FULL_NAME, Five.Music.Albums.ARTWORK,
 		Five.Music.Albums.ARTIST, Five.Music.Albums.ARTWORK_BIG,
 		Five.Music.Albums.ARTIST_ID };
 
 	private AlbumAdapter mAdapter;
-	
+
 	private HashMap<Long, SoftReference<Bitmap>> mArtworkCache =
 	  new HashMap<Long, SoftReference<Bitmap>>();
 
@@ -70,20 +70,20 @@ public class AlbumList extends Activity
 		context.startActivity(new Intent(context, AlbumList.class));
 	}
 
-    @Override
-    public void onCreate(Bundle icicle)
-    {
-        super.onCreate(icicle);        
-        setContentView(R.layout.album_list);
+	@Override
+	public void onCreate(Bundle icicle)
+	{
+		super.onCreate(icicle);
+		setContentView(R.layout.album_list);
 
-        Intent i = getIntent();
-        if (i.getData() == null)
-        	i.setData(Five.Music.Albums.CONTENT_URI_COMPLETE);
+		Intent i = getIntent();
+		if (i.getData() == null)
+			i.setData(Five.Music.Albums.CONTENT_URI_COMPLETE);
 
-        if (i.getAction() == null)
-        	i.setAction(Intent.ACTION_VIEW);
+		if (i.getAction() == null)
+			i.setAction(Intent.ACTION_VIEW);
 
-        Cursor c = getCursor(null, null);
+		Cursor c = getCursor(null, null);
 
 		ListView list = (ListView)findViewById(R.id.album_list);
 
@@ -91,25 +91,25 @@ public class AlbumList extends Activity
 		  R.layout.album_list_item, c,
 		  new String[] { "artwork", "full_name", "artist" },
 		  new int[] { R.id.album_cover, R.id.album_name, R.id.artist_name });
-		
+
 		list.setAdapter(mAdapter);
-        list.setOnItemClickListener(mClickEvent);
-        list.setTextFilterEnabled(true);
-    }
+		list.setOnItemClickListener(mClickEvent);
+		list.setTextFilterEnabled(true);
+	}
 
-    @Override
-    protected void onDestroy()
-    {
-    	mArtworkCache.clear();
-    	mAdapter.changeCursor(null);
-    	super.onDestroy();
-    }
+	@Override
+	protected void onDestroy()
+	{
+		mArtworkCache.clear();
+		mAdapter.changeCursor(null);
+		super.onDestroy();
+	}
 
-    private final OnItemClickListener mClickEvent = new OnItemClickListener()
-    {
+	private final OnItemClickListener mClickEvent = new OnItemClickListener()
+	{
 		public void onItemClick(AdapterView<?> av, View v, int pos, long id)
 		{
-	    	Intent i = getIntent();
+			Intent i = getIntent();
 
 			Intent chosen = new Intent();
 
@@ -144,23 +144,23 @@ public class AlbumList extends Activity
 				chosen.setAction(Intent.ACTION_VIEW);
 				chosen.setClass(AlbumList.this, SongList.class);
 				startActivity(chosen);
-			}    	
+			}
 		}
-    };
+	};
 
-    private class AlbumAdapter extends EfficientCursorAdapter
-      implements FilterQueryProvider, ViewBinder,
-      FastScrollView.SectionIndexer
-    {
-    	private AlphabetIndexer mIndexer;
-    	
+	private class AlbumAdapter extends EfficientCursorAdapter
+	  implements FilterQueryProvider, ViewBinder,
+	  FastScrollView.SectionIndexer
+	{
+		private AlphabetIndexer mIndexer;
+
 		public AlbumAdapter(Context context, int layout, Cursor c,
 		  String[] from, int[] to)
 		{
 			super(context, layout, c, from, to);
 			setFilterQueryProvider(this);
 			setViewBinder(this);
-			
+
 			mIndexer = new AlphabetIndexer(context, c,
 			  c.getColumnIndexOrThrow(Five.Music.Albums.NAME));
 		}
@@ -171,23 +171,23 @@ public class AlbumList extends Activity
 			{
 				Long id = c.getLong(0);
 
-	    		ImageView vv = (ImageView)v;
+				ImageView vv = (ImageView)v;
 
-	    		Bitmap bmp = null;
-	    		SoftReference<Bitmap> hit = mArtworkCache.get(id);
-	    		if (hit != null)
-	    			bmp = hit.get();
+				Bitmap bmp = null;
+				SoftReference<Bitmap> hit = mArtworkCache.get(id);
+				if (hit != null)
+					bmp = hit.get();
 
-	    		if (bmp == null)
-	    		{
-	    			bmp = BetterBitmapFactory.decodeUriWithFallback(AlbumList.this,
-	    	    	  c.getString(col), R.drawable.lastfm_cover_small);
-	    			mArtworkCache.put(id, new SoftReference<Bitmap>(bmp));
-	    		}
+				if (bmp == null)
+				{
+					bmp = BetterBitmapFactory.decodeUriWithFallback(AlbumList.this,
+			    	  c.getString(col), R.drawable.lastfm_cover_small);
+					mArtworkCache.put(id, new SoftReference<Bitmap>(bmp));
+				}
 
-	    		vv.setImageBitmap(bmp);
+				vv.setImageBitmap(bmp);
 
-				return true;				
+				return true;
 			}
 
 			return false;
@@ -232,5 +232,5 @@ public class AlbumList extends Activity
 		{
 			return mIndexer.getSections();
 		}
-    }	
+	}
 }
