@@ -98,14 +98,6 @@ public class ArtistList extends Activity implements ViewBinder
 
         Cursor c = getCursor(null, null);
 
-        if (c.getCount() == 0)
-        {
-        	Toast.makeText(this, "No data, please use Five Sync first",
-        	  Toast.LENGTH_LONG).show();
-        	finish();
-        	return;
-        }
-
 		mList = (ListView)findViewById(R.id.artist_list);
 
 		mAdapter = new ArtistAdapter(this,
