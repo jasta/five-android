@@ -39,6 +39,18 @@
 		</activity>
 
 		<activity
+			android:name=".activity.SourceAdd"
+			android:label="@string/source_add_title"
+			android:taskAffinity="org.devtcg.five.task.sync"
+			/>
+
+		<activity
+			android:name=".activity.SourceCheckSettings"
+			android:label="@string/source_check_settings_title"
+			android:taskAffinity="org.devtcg.five.task.sync"
+			/>
+
+		<activity
 			android:name=".activity.SourceInfo"
 			android:label="@string/source_info_title"
 			android:taskAffinity="org.devtcg.five.task.sync"

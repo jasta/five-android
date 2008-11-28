@@ -50,9 +50,9 @@ public class MetaService extends Service
 	IMetaObserverCallbackList mObservers;
 
 	final SyncHandler mHandler = new SyncHandler();
-	
+
 	private PowerManager.WakeLock mWakeLock;
-	
+
 	@Override
 	public void onCreate()
 	{

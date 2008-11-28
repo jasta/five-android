@@ -605,6 +605,11 @@ public class FiveProvider extends ContentProvider
 			  "SELECT album_id, COUNT(*) FROM music_songs GROUP BY album_id");
 			updateCount(db, "UPDATE music_playlists SET num_songs = ? WHERE _id = ?",
 			  "SELECT playlist_id, COUNT(*) FROM music_playlist_songs GROUP BY playlist_id");
+			
+			/* Now delete all the empty containers that are left. */
+			delete(Five.Music.Playlists.CONTENT_URI, "num_songs=0", null);
+			delete(Five.Music.Albums.CONTENT_URI, "num_songs=0", null);
+			delete(Five.Music.Artists.CONTENT_URI, "num_songs=0", null);
 
 			db.setTransactionSuccessful();
 		} finally {
@@ -785,6 +790,12 @@ public class FiveProvider extends ContentProvider
 	{
 		if (v.containsKey(Five.Music.Artists.NAME) == false)
 			throw new IllegalArgumentException("NAME cannot be NULL");
+
+		if (v.containsKey(Five.Music.Artists.NUM_ALBUMS) == false)
+			v.put(Five.Music.Artists.NUM_ALBUMS, 0);
+		
+		if (v.containsKey(Five.Music.Artists.NUM_SONGS) == false)
+			v.put(Five.Music.Artists.NUM_SONGS, 0);
 		
 		adjustNameWithPrefix(v);
 
@@ -805,6 +816,9 @@ public class FiveProvider extends ContentProvider
 
 		if (v.containsKey(Five.Music.Albums.ARTIST_ID) == false)
 			throw new IllegalArgumentException("ARTIST_ID cannot be NULL");
+		
+		if (v.containsKey(Five.Music.Albums.NUM_SONGS) == false)
+			v.put(Five.Music.Albums.NUM_SONGS, 0);
 
 		adjustNameWithPrefix(v);
 
@@ -866,6 +880,9 @@ public class FiveProvider extends ContentProvider
 		if (v.containsKey(Five.Music.Playlists.NAME) == false)
 			throw new IllegalArgumentException("NAME cannot be NULL");
 		
+		if (v.containsKey(Five.Music.Playlists.NUM_SONGS) == false)
+			v.put(Five.Music.Playlists.NUM_SONGS, 0);
+
 		long id = db.insert(Five.Music.Playlists.SQL.TABLE,
 		  Five.Music.Playlists.NAME, v);
 		
@@ -942,6 +959,13 @@ public class FiveProvider extends ContentProvider
 
 	/*-***********************************************************************/
 
+	private void updateContentRelationships(SQLiteDatabase db)
+	{
+//		db.delete(Five.Music.Albums., whereClause, whereArgs)
+	}
+	
+	/*-***********************************************************************/
+	
 	private static String extendWhere(String old, String[] add)
 	{
 		StringBuilder ret = new StringBuilder();
@@ -974,9 +998,58 @@ public class FiveProvider extends ContentProvider
 	private int deleteSource(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
+		String custom;
 		int count;
 
-		count = db.delete(Five.Sources.SQL.TABLE, selection, selectionArgs);
+		switch (type)
+		{
+		case SOURCES:
+			custom = selection;
+			break;
+
+		case SOURCE:
+			StringBuilder where = new StringBuilder();
+			where.append(Five.Sources._ID).append('=').append(uri.getLastPathSegment());
+
+			if (TextUtils.isEmpty(selection) == false)
+				where.append(" AND (").append(selection).append(')');
+
+			custom = where.toString();			
+			break;
+
+		default:
+			throw new IllegalArgumentException("Cannot delete source URI: " + uri);
+		}
+		
+		/* Trigger deletes of all related content. */
+		db.beginTransaction();
+		try {
+			String[] query = { Five.Sources._ID };
+			Cursor c = db.query(Five.Sources.SQL.TABLE, query,
+			  custom, selectionArgs, null, null, null);
+
+			try {
+				while (c.moveToNext() == true)
+				{
+					long id = c.getLong(0);
+
+					db.delete(Five.SourcesLog.SQL.TABLE,
+					  Five.SourcesLog.SOURCE_ID + '=' + id, null);
+
+					delete(Five.Content.CONTENT_URI, "source_id=" + id, null);
+				}
+			} finally {
+				c.close();
+			}
+
+			/* Finally delete the source itself. */
+			count = db.delete(Five.Sources.SQL.TABLE, custom, selectionArgs);
+			
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
+
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -1012,7 +1085,7 @@ public class FiveProvider extends ContentProvider
 //
 //		return count;
 //	}
-	
+
 	private int deleteContent(SQLiteDatabase db, Uri uri, URIPatternIds type, 
 	  String selection, String[] selectionArgs)
 	{
@@ -1041,27 +1114,51 @@ public class FiveProvider extends ContentProvider
 			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
 		}
 
-		String domo = extendWhere(custom,
-		  Five.Content.CACHED_PATH + " IS NOT NULL");
-
-		/* Make sure we delete any associated cache. */
-		Cursor c = db.query(Five.Content.SQL.TABLE,
-		  new String[] { Five.Content.CACHED_PATH },
-		  domo, selectionArgs, null, null, null);
-
+		/* Tidy up related resources. */
+		db.beginTransaction();
 		try {
-			while (c.moveToNext() == true)
-			{
-				String path = c.getString(0);
+			Cursor c = db.query(Five.Content.SQL.TABLE,
+			  new String[] { Five.Content._ID, Five.Content.CACHED_PATH },
+			  custom, selectionArgs, null, null, null);
 
-				if (path != null)
-					(new File(path)).delete();
+			int affected = 0;
+
+			try {
+				affected = c.getCount();
+
+				while (c.moveToNext() == true)
+				{
+					long id = c.getLong(0);
+
+					/* Delete songs first, then do a sweep improving database
+					 * consistency. */
+					delete(Five.Music.Songs.CONTENT_URI,
+					  Five.Music.Songs.CONTENT_ID + "=" + id, null);
+
+					/* Delete cached files on disk. */
+					String path = c.getString(1);
+					if (path != null)
+						(new File(path)).delete();
+				}
+			} finally {
+				c.close();
 			}
+
+			if (affected > 0)
+			{
+				/* Update cached num_songs, num_albums counts and delete
+				 * any lingering empty containers. */
+				update(Five.Music.AdjustCounts.CONTENT_URI,
+				  null, null, null);
+			}
+
+			count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
+
+			db.setTransactionSuccessful();
 		} finally {
-			c.close();
+			db.endTransaction();
 		}
 
-		count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -1136,29 +1233,57 @@ public class FiveProvider extends ContentProvider
 	{
 		String custom;
 		int count;
-		switch (type)
-		{
-		case SONGS:
-			custom = selection;
-			break;
 
-		case SONG:
-			StringBuilder where = new StringBuilder();
-			where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
-			
-			if (TextUtils.isEmpty(selection) == false)
-				where.append(" AND (").append(selection).append(')');
-			
-			custom = where.toString();	
-			break;
+		db.beginTransaction();
+		try {
+			switch (type)
+			{
+			case SONGS:
+				custom = selection;
+				break;
 
-		default:
-			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
+			case SONG:
+				StringBuilder where = new StringBuilder();
+				where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
+
+				if (TextUtils.isEmpty(selection) == false)
+					where.append(" AND (").append(selection).append(')');
+
+				custom = where.toString();	
+				break;
+
+			default:
+				throw new IllegalArgumentException("Cannot delete song URI: " + uri);
+			}
+			
+			/* Delete related PlaylistSongs entries.  Note that we do not take
+			 * care of deleting potentially now empty artists, albums, or
+			 * playlists yet.  We let the dust settle first in the caller and
+			 * then run ADJUST_COUNTS. */
+			String[] query = { Five.Music.Songs._ID };
+			Cursor c = db.query(Five.Music.Songs.SQL.TABLE, query,
+			  null, null, null, null, null);
+			
+			try {
+				while (c.moveToNext() == true)
+				{
+					long _id = c.getLong(0);
+
+					db.delete(Five.Music.PlaylistSongs.SQL.TABLE,
+					  Five.Music.PlaylistSongs.SONG_ID + '=' + _id, null);
+				}
+			} finally {
+				c.close();
+			}
+
+			count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
 		}
 
-		count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
 		getContext().getContentResolver().notifyChange(uri, null);
-
+		
 		return count;
 	}
 	
@@ -1250,6 +1375,7 @@ public class FiveProvider extends ContentProvider
 		switch (type)
 		{
 		case SOURCES:
+		case SOURCE:
 			return deleteSource(db, uri, type, selection, selectionArgs);
 //		case CACHE:
 //		case CACHE_ITEMS_BY_SOURCE:

@@ -129,17 +129,14 @@ public class MusicMapping implements DatabaseMapping
 	public void beginSyncLocal(int code, long last, long next)
 	{
 		Log.i(TAG, "starting sync, code=" + code);
-		
+
 		/* Slow refresh from server: delete all our local content first. */
 		if (code == 210)
 		{
-			/* TODO: Uhh, don't delete *all* content... just the stuff
-			 * from this source. */
-			mContent.delete(Five.Content.CONTENT_URI, null, null);
-			mContent.delete(Five.Music.Artists.CONTENT_URI, null, null);
-			mContent.delete(Five.Music.Albums.CONTENT_URI, null, null);
-			mContent.delete(Five.Music.Songs.CONTENT_URI, null, null);
-			mContent.delete(Five.Music.Playlists.CONTENT_URI, null, null);
+			/* This will actually take care of deleting cached entries, 
+			 * artists, albums, etc. */
+			mContent.delete(Five.Content.CONTENT_URI,
+			  Five.Content.SOURCE_ID + "=" + mSourceId, null);
 		}
 	}
 

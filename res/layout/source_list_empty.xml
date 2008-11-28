@@ -3,23 +3,17 @@
 	android:orientation="vertical"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:gravity="center_horizontal"
-	android:paddingTop="2px"
 	>
 
 	<TextView
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:text="No server sources configured."
+		android:layout_width="fill_parent"
+		android:layout_height="0px"
+		android:layout_weight="1"
+		android:text="@string/setup_begin"
 		android:padding="20dip"
 		android:textAppearance="?android:attr/textAppearanceMedium"
 		/>
 
-	<Button
-		android:id="@+id/add_server"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:text="Add Server"
-		/>
+	<include layout="@layout/setup_bar" />
 
 </LinearLayout>

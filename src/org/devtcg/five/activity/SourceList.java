@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.devtcg.five.R;
-import org.devtcg.five.activity.SourceAddDialog.OnSourceAddListener;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IMetaObserver;
 import org.devtcg.five.service.IMetaService;
@@ -34,20 +33,24 @@ import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
@@ -166,6 +169,25 @@ public class SourceList extends ServiceActivity<IMetaService>
 		
 		return super.onOptionsItemSelected(item);
 	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v,
+	  ContextMenu.ContextMenuInfo menuInfo)
+	{
+		if (mScreen != null)
+			mScreen.onCreateContextMenu(menu, v, menuInfo);
+
+		super.onCreateContextMenu(menu, v, menuInfo);
+	}
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item)
+	{
+		if (mScreen != null)
+			return mScreen.onContextItemSelected(item);
+
+		return super.onContextItemSelected(item);
+	}
 
 	private interface Screen
 	{
@@ -175,6 +197,9 @@ public class SourceList extends ServiceActivity<IMetaService>
 		public boolean onCreateOptionsMenu(Menu menu);
 		public boolean onPrepareOptionsMenu(Menu menu);
 		public boolean onOptionsItemSelected(MenuItem item);
+		public void onCreateContextMenu(ContextMenu menu, View v,
+		  ContextMenu.ContextMenuInfo menuInfo);
+		public boolean onContextItemSelected(MenuItem item);
 	}
 
 	/**
@@ -190,6 +215,9 @@ public class SourceList extends ServiceActivity<IMetaService>
 
 		protected static final int MENU_SYNC = Menu.FIRST;
 		protected static final int MENU_CANCEL = Menu.FIRST + 1;
+		
+		protected static final int MENU_EDIT = Menu.FIRST + 2;
+		protected static final int MENU_REMOVE = Menu.FIRST + 3;
 
 		private final HashMap<Long, String> mStatus =
 		  new HashMap<Long, String>();
@@ -213,6 +241,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 			adapter.setViewBinder(mListBinder);
 			mList.setAdapter(adapter);
 			mList.setOnItemClickListener(mSourceClick);
+			registerForContextMenu(mList);
 
 			watchService();
 		}
@@ -235,7 +264,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 
 			return true;			
 		}
-
+		
 		public boolean onOptionsItemSelected(MenuItem item)
 		{
 			switch (item.getItemId())
@@ -248,6 +277,48 @@ public class SourceList extends ServiceActivity<IMetaService>
 				return true;
 			}
 			
+			return false;
+		}
+
+		public void onCreateContextMenu(ContextMenu menu, View v,
+		  ContextMenu.ContextMenuInfo menuInfo)
+		{
+			AdapterContextMenuInfo info = (AdapterContextMenuInfo)menuInfo;
+
+			if (info.id == -1)
+				return;
+
+			Cursor c = (Cursor)mList.getAdapter().getItem(info.position);
+			String name =
+			  c.getString(c.getColumnIndexOrThrow(Five.Sources.NAME));
+			menu.setHeaderTitle(name);
+
+			menu.add(0, MENU_EDIT, Menu.NONE, "Edit source");
+			menu.add(0, MENU_REMOVE, Menu.NONE, "Remove");
+		}
+
+		public boolean onContextItemSelected(MenuItem item)
+		{
+			AdapterContextMenuInfo info = (AdapterContextMenuInfo)item.getMenuInfo();
+
+			switch (item.getItemId())
+			{
+			case MENU_EDIT:
+				SourceAdd.actionEditSource(SourceList.this, info.id);
+				return true;
+			case MENU_REMOVE:
+				Uri uri = ContentUris.withAppendedId(Five.Sources.CONTENT_URI,
+				  info.id);
+				getContentResolver().delete(uri, null, null);
+				
+				mCursor.requery();
+				
+				if (mCursor.getCount() == 0)
+					setUI(mScreenNoSources);
+				
+				return true;
+			}
+
 			return false;
 		}
 
@@ -494,7 +565,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 		public void show()
 		{
 			setContentView(LAYOUT);
-			mAddServer = (Button)findViewById(R.id.add_server);
+			mAddServer = (Button)findViewById(R.id.next);
 			mAddServer.setOnClickListener(mAddServerClick);
 		}
 
@@ -523,26 +594,20 @@ public class SourceList extends ServiceActivity<IMetaService>
 			
 			return false;
 		}
-		
+
+		public boolean onContextItemSelected(MenuItem item)
+		{
+			return false;
+		}
+
+		public void onCreateContextMenu(ContextMenu menu, View v,
+		  ContextMenuInfo menuInfo) {}
+
 		private final OnClickListener mAddServerClick = new OnClickListener()
 		{
 			public void onClick(View v)
 			{
-				SourceAddDialog d = new SourceAddDialog(SourceList.this,
-				  mAddSource);
-				d.show();
-			}
-		};
-
-		private final OnSourceAddListener mAddSource = new OnSourceAddListener()
-		{
-			public void sourceAdd(SourceAddDialog dialog, String name,
-			  String host, String password)
-			{
-				mCursor.requery();
-
-				if (mCursor.getCount() > 0)
-					setUI(mScreenNormal);
+				SourceAdd.actionAddSource(SourceList.this);
 			}
 		};
 	}
