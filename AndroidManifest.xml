@@ -38,14 +38,17 @@
 			</intent-filter>
 		</activity>
 
-		<activity android:name=".activity.SourceInfo" android:label="@string/source_info_title" />
+		<activity
+			android:name=".activity.SourceInfo"
+			android:label="@string/source_info_title"
+			android:taskAffinity="org.devtcg.five:Sync"
+			/>
 
 		<activity
 			android:name=".music.activity.Main"
 			android:icon="@drawable/music_icon"
 			android:theme="@android:style/Theme.NoTitleBar"
-			android:label="@string/music_title"
-			android:taskAffinity="org.devtcg.five:Sync">
+			android:label="@string/music_title">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.DEFAULT" />
