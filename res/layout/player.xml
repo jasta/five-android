@@ -22,51 +22,41 @@
 	>
 
 	<LinearLayout
-		android:orientation="horizontal"
+		android:orientation="vertical"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:background="@drawable/playlist_top_bg"
 		android:padding="6dip"
 		>
 
-		<LinearLayout
-			android:orientation="vertical"
-			android:layout_width="0px"
-			android:layout_weight="1"
+		<TextView
+			android:id="@+id/artist_name"
+			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
-			android:paddingLeft="24px"
-			>
+			android:textAppearance="?android:attr/textAppearanceSmall"
+			android:gravity="center_horizontal"
+			android:singleLine="true"
+			/>
 
-			<TextView
-				android:id="@+id/artist_name"
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:textAppearance="?android:attr/textAppearanceSmall"
-				android:gravity="center_horizontal"
-				android:singleLine="true"
-				/>
+		<TextView
+			android:id="@+id/song_name"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceMedium"
+			android:textSize="16sp"
+			android:gravity="center_horizontal"
+			android:singleLine="true"
+			/>
 
-			<TextView
-				android:id="@+id/song_name"
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:textAppearance="?android:attr/textAppearanceMedium"
-				android:textSize="16sp"
-				android:gravity="center_horizontal"
-				android:singleLine="true"
-				/>
-
-			<TextView
-				android:id="@+id/album_name"
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:textAppearance="?android:attr/textAppearanceSmall"
-				android:textStyle="bold"
-				android:gravity="center_horizontal"
-				android:singleLine="true"
-				/>
-
-		</LinearLayout>
+		<TextView
+			android:id="@+id/album_name"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceSmall"
+			android:textStyle="bold"
+			android:gravity="center_horizontal"
+			android:singleLine="true"
+			/>
 
 	</LinearLayout>
 
