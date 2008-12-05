@@ -35,7 +35,7 @@ public class SourceAdd extends Activity
 	{
 		context.startActivity(new Intent(context, SourceAdd.class));
 	}
-	
+
 	public static void actionEditSource(Context context, long sourceId)
 	{
 		Intent i = new Intent(context, SourceAdd.class);
@@ -50,14 +50,14 @@ public class SourceAdd extends Activity
 	{
 		super.onCreate(icicle);
 		setContentView(R.layout.source_add);
-		
+
 		mLabel = (EditText)findViewById(R.id.source_label);
 		mHostname = (EditText)findViewById(R.id.source_host);
 		mPassword = (EditText)findViewById(R.id.source_password);
 
 		mNext = (Button)findViewById(R.id.next);
 		mNext.setOnClickListener(mNextClick);
-		
+
 		mHostname.requestFocus();
 
 		/* Differentiates the add versus edit cases. */
