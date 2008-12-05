@@ -644,6 +644,9 @@ public class Player extends PlaylistServiceActivity
 					try {
 						setNowPlaying(songId, pos);
 					} catch (RemoteException e) {}
+
+					/* Jump implicitly unpauses. */
+					setPausedState(false);
 				}
 			});
 		}
