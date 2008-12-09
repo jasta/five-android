@@ -193,7 +193,6 @@ public class PlaylistService extends Service implements ServiceConnection,
 			mDownloadListeners.kill();
 			mBufferListeners.kill();
 
-			mPlayer.stop();
 			mPlayer.reset();
 			mPlayer.release();			
 			mPlayer = null;
