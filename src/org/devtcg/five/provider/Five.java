@@ -298,7 +298,7 @@ public final class Five
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  CONTENT_ID + " INTEGER, " +
-				  MBID + " INTEGER UNIQUE, " +
+				  MBID + " INTEGER, " +
 				  TITLE + " TEXT COLLATE UNICODE NOT NULL, " +
 				  ARTIST_ID + " INTEGER NOT NULL, " +
 				  ALBUM_ID + " INTEGER, " +
@@ -370,7 +370,7 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-				  MBID + " INTEGER UNIQUE, " +
+				  MBID + " INTEGER, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  PHOTO + " TEXT, " +
@@ -437,7 +437,7 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-				  MBID + " INTEGER UNIQUE, " +
+				  MBID + " INTEGER, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
 				  ARTIST_ID + " INTEGER, " +
