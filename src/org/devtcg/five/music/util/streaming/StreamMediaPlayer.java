@@ -139,7 +139,7 @@ public class StreamMediaPlayer extends MediaPlayer
 			super.setOnSeekCompleteListener(mSeekCompleteListener);
 
 			Log.d(TAG, "setDataSource(path=" + path + ") *AGAIN*");
-			setDataSource(path);
+			super.setDataSource(path);
 		}			
 	}
 
