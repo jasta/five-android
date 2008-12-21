@@ -536,9 +536,15 @@ public class SongList extends PlaylistServiceActivity
 	  ContextMenu.ContextMenuInfo menuInfo)
 	{
 		AdapterContextMenuInfo info = (AdapterContextMenuInfo)menuInfo;
-		
+
 		if (info.id == -1)
 			return;
+		
+		Cursor c = (Cursor)mAdapter.getItem(info.position -
+		  mList.getHeaderViewsCount());
+		String trackName = 
+		  c.getString(c.getColumnIndex(Five.Music.Songs.TITLE));
+		menu.setHeaderTitle(trackName);
 
 		if (mSongPlaying == info.id)
 		{
