@@ -61,6 +61,7 @@ public class FiveProvider extends ContentProvider
 		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONGS_BY_ARTIST_ON_ALBUM, SONG,
 		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
+		  PLAYLIST_SONGS,
 		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE,
 		ADJUST_COUNTS,
@@ -1123,6 +1124,12 @@ public class FiveProvider extends ContentProvider
 
 			int affected = 0;
 
+			BulkDeleteQuery bulkQuery =
+			  new BulkDeleteQuery(getContext(), Five.Music.Songs.CONTENT_URI,
+			    Five.Music.Songs.CONTENT_ID);
+
+			Log.i(TAG, "Deleting " + c.getCount() + " records...");
+
 			try {
 				affected = c.getCount();
 
@@ -1132,8 +1139,7 @@ public class FiveProvider extends ContentProvider
 
 					/* Delete songs first, then do a sweep improving database
 					 * consistency. */
-					delete(Five.Music.Songs.CONTENT_URI,
-					  Five.Music.Songs.CONTENT_ID + "=" + id, null);
+					bulkQuery.delete(id);
 
 					/* Delete cached files on disk. */
 					String path = c.getString(1);
@@ -1142,6 +1148,8 @@ public class FiveProvider extends ContentProvider
 				}
 			} finally {
 				c.close();
+
+				bulkQuery.execute();
 			}
 
 			if (affected > 0)
@@ -1234,28 +1242,28 @@ public class FiveProvider extends ContentProvider
 		String custom;
 		int count;
 
+		switch (type)
+		{
+		case SONGS:
+			custom = selection;
+			break;
+
+		case SONG:
+			StringBuilder where = new StringBuilder();
+			where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
+
+			if (TextUtils.isEmpty(selection) == false)
+				where.append(" AND (").append(selection).append(')');
+
+			custom = where.toString();	
+			break;
+
+		default:
+			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
+		}
+
 		db.beginTransaction();
 		try {
-			switch (type)
-			{
-			case SONGS:
-				custom = selection;
-				break;
-
-			case SONG:
-				StringBuilder where = new StringBuilder();
-				where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
-
-				if (TextUtils.isEmpty(selection) == false)
-					where.append(" AND (").append(selection).append(')');
-
-				custom = where.toString();	
-				break;
-
-			default:
-				throw new IllegalArgumentException("Cannot delete song URI: " + uri);
-			}
-			
 			/* Delete related PlaylistSongs entries.  Note that we do not take
 			 * care of deleting potentially now empty artists, albums, or
 			 * playlists yet.  We let the dust settle first in the caller and
@@ -1263,17 +1271,21 @@ public class FiveProvider extends ContentProvider
 			String[] query = { Five.Music.Songs._ID };
 			Cursor c = db.query(Five.Music.Songs.SQL.TABLE, query,
 			  null, null, null, null, null);
-			
+
+			BulkDeleteQuery bulkQuery =
+			  new BulkDeleteQuery(getContext(),
+			    Five.Music.PlaylistSongs.CONTENT_URI,
+			    Five.Music.PlaylistSongs.SONG_ID);
+
 			try {
 				while (c.moveToNext() == true)
 				{
 					long _id = c.getLong(0);
-
-					db.delete(Five.Music.PlaylistSongs.SQL.TABLE,
-					  Five.Music.PlaylistSongs.SONG_ID + '=' + _id, null);
+					bulkQuery.delete(_id);
 				}
 			} finally {
 				c.close();
+				bulkQuery.execute();
 			}
 
 			count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
@@ -1339,16 +1351,21 @@ public class FiveProvider extends ContentProvider
 	private int deletePlaylistSongs(SQLiteDatabase db, Uri uri, URIPatternIds type,
 	  String selection, String[] selectionArgs)
 	{
-		String custom;
+		List<Long> numsegs = null;
+		String custom = selection;
 		int count;
 
-		List<Long> numsegs = getNumericPathSegments(uri);
-
-		custom = extendWhere(selection,
-		  Five.Music.PlaylistSongs.PLAYLIST_ID + '=' + numsegs.get(0));
+		if (type != URIPatternIds.PLAYLIST_SONGS)
+		{
+			numsegs = getNumericPathSegments(uri);
+			custom = extendWhere(custom,
+			  Five.Music.PlaylistSongs.PLAYLIST_ID + '=' + numsegs.get(0));
+		}
 
 		switch (type)
 		{
+		case PLAYLIST_SONGS:
+			break;
 		case SONGS_IN_PLAYLIST:
 			break;
 		case SONG_IN_PLAYLIST:
@@ -1396,6 +1413,7 @@ public class FiveProvider extends ContentProvider
 		case PLAYLISTS:
 		case PLAYLIST:
 			return deletePlaylists(db, uri, type, selection, selectionArgs);
+		case PLAYLIST_SONGS:
 		case SONGS_IN_PLAYLIST:
 			return deletePlaylistSongs(db, uri, type, selection, selectionArgs);
 		default:
@@ -1477,6 +1495,7 @@ public class FiveProvider extends ContentProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/song/#", URIPatternIds.SONG_IN_PLAYLIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs", URIPatternIds.PLAYLIST_SONGS.ordinal());
 		
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/adjust_counts", URIPatternIds.ADJUST_COUNTS.ordinal());
 
@@ -1529,4 +1548,3 @@ public class FiveProvider extends ContentProvider
 		songsMap.put(Five.Music.Songs.DISCOVERY_DATE, "s." + Five.Music.Songs.DISCOVERY_DATE + " AS " + Five.Music.Songs.DISCOVERY_DATE);
 	}
 }
- 

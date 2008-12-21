@@ -501,6 +501,10 @@ public final class Five
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists.songs";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists.songs";
 
+			/** Access URI. */
+			public static final Uri CONTENT_URI =
+			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/songs");
+
 			/** Playlist ID. */
 			public static final String PLAYLIST_ID = "playlist_id";
 
