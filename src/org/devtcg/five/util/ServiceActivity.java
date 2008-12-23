@@ -33,43 +33,26 @@ import android.view.ViewGroup;
 
 /**
  * Utility class to create activities which critically depend on a service 
- * connection. 
+ * connection.
  */
 public abstract class ServiceActivity<T extends IInterface> extends Activity
 {
 	public static final String TAG = "ServiceActivity";
 
+	/**
+	 * When connected, references the service interface as a convenience to
+	 * subclasses.
+	 */
 	protected T mService = null;
 
 	/**
-	 * Convenience feature to allow ServiceActivity subclasses to defer
-	 * UI construction/assignment until the service is connected, and then
-	 * manage hiding/showing the UI to match the service state.
+	 * Convenience feature to allow subclasses to defer UI
+	 * construction/assignment until the service is connected, and then manage
+	 * hiding/showing the UI to match the service state.
 	 * 
 	 * @see onInitUI
 	 */
 	private boolean mShowingUI = false;
-
-//	@Override
-//	public void onCreate(Bundle icicle)
-//	{
-//		super.onCreate(icicle);
-//
-//		Log.d(TAG, "onCreate(): Binding service...");
-//
-//		if (bindService() == false)
-//			onServiceFatal();
-//	}
-//	
-//	@Override
-//	protected void onDestroy()
-//	{
-//		Log.d(TAG, "onDestroy(): Unbinding service...");
-//
-//		unbindService();
-//
-//		super.onDestroy();
-//	}
 
 	@Override
 	protected void onStart()
@@ -80,12 +63,6 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 		
 		if (bindService() == false)
 			onServiceFatal();
-
-//		if (mService != null)
-//		{
-//			showUI(true);
-//			onAttached();
-//		}
 	}
 
 	@Override
