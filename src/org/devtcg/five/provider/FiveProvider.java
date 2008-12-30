@@ -606,7 +606,7 @@ public class FiveProvider extends ContentProvider
 			  "SELECT album_id, COUNT(*) FROM music_songs GROUP BY album_id");
 			updateCount(db, "UPDATE music_playlists SET num_songs = ? WHERE _id = ?",
 			  "SELECT playlist_id, COUNT(*) FROM music_playlist_songs GROUP BY playlist_id");
-			
+
 			/* Now delete all the empty containers that are left. */
 			delete(Five.Music.Playlists.CONTENT_URI, "num_songs=0", null);
 			delete(Five.Music.Albums.CONTENT_URI, "num_songs=0", null);
@@ -1270,7 +1270,7 @@ public class FiveProvider extends ContentProvider
 			 * then run ADJUST_COUNTS. */
 			String[] query = { Five.Music.Songs._ID };
 			Cursor c = db.query(Five.Music.Songs.SQL.TABLE, query,
-			  null, null, null, null, null);
+			  custom, selectionArgs, null, null, null);
 
 			BulkDeleteQuery bulkQuery =
 			  new BulkDeleteQuery(getContext(),
