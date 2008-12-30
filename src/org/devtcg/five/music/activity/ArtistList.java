@@ -132,7 +132,9 @@ public class ArtistList extends Activity implements ViewBinder
 			if (nalbums != 1)
 				b.append('s');
 			b.append(", ");
-			b.append(nsongs).append(" songs");
+			b.append(nsongs).append(" song");
+			if (nsongs != 1)
+				b.append('s');
 
 			((TextView)view).setText(b.toString());
 
