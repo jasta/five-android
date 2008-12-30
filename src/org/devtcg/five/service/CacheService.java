@@ -229,8 +229,6 @@ OUTER:
 			
 			File sdcard = Environment.getExternalStorageDirectory();
 			
-			/* I don't fully trust that getExternalStorageState() is
-			 * correct... */
 			if (sdcard.exists() == false)
 				throw new NoStorageCardException();
 
