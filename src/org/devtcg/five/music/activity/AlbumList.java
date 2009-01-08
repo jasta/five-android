@@ -181,7 +181,7 @@ public class AlbumList extends Activity
 				if (bmp == null)
 				{
 					bmp = BetterBitmapFactory.decodeUriWithFallback(AlbumList.this,
-			    	  c.getString(col), R.drawable.lastfm_cover_small);
+			    	  c.getString(col), R.drawable.albumart_mp_unknown);
 					mArtworkCache.put(id, new SoftReference<Bitmap>(bmp));
 				}
 
