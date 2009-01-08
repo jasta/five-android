@@ -227,6 +227,13 @@ public class SongList extends PlaylistServiceActivity
 		mList.setOnItemClickListener(mOnItemClickListener);
 		registerForContextMenu(mList);
 		mList.setAdapter(mAdapter);
+		
+		if (mExtras.playQueue == true)
+		{
+			try {
+				mList.setSelection(mService.getPosition());
+			} catch (RemoteException e) {}
+		}
 	}
 
 	public String getArtistName(long artistId)
