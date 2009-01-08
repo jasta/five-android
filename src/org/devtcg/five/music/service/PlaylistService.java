@@ -42,7 +42,7 @@ import org.devtcg.five.music.util.streaming.StreamMediaPlayer;
 import org.devtcg.five.music.util.streaming.TailStream;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.Sources;
-import org.devtcg.five.service.ICacheService;
+import org.devtcg.five.service.CacheManager;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -72,7 +72,7 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.RemoteViews;
 
-public class PlaylistService extends Service implements ServiceConnection,
+public class PlaylistService extends Service implements
   MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnErrorListener,
   MediaPlayer.OnCompletionListener, MediaPlayer.OnPreparedListener
 {
@@ -90,7 +90,7 @@ public class PlaylistService extends Service implements ServiceConnection,
 	 * changes to the playlist state at any time. */
 	final Object mBinderLock = new Object();
 
-	ICacheService mCache = null;
+	CacheManager mCacheMgr = null;
 
 	StreamMediaPlayer mPlayer = null;
 	NotificationManager mNM = null;
@@ -150,6 +150,8 @@ public class PlaylistService extends Service implements ServiceConnection,
 		mBufferListeners = new IPlaylistBufferListenerCallbackList();
 
 		mManager = new SongDownloadManager(this);
+		
+		mCacheMgr = CacheManager.getInstance(this);
 
 		/* When the service dies we attempt to serialize playlist state to
 		 * disk.  Check for, and recover from, this state file. */
@@ -164,8 +166,6 @@ public class PlaylistService extends Service implements ServiceConnection,
 		 * stalled or failed downloads. */
 		registerReceiver(mConnectivityReceiver,
 		  new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-
-		bindCacheService();
 	}
 
 	@Override
@@ -197,8 +197,6 @@ public class PlaylistService extends Service implements ServiceConnection,
 			mPlayer.release();			
 			mPlayer = null;
 		}
-
-		unbindService(this);
 
 		mWakeLock.release();
 
@@ -332,62 +330,6 @@ public class PlaylistService extends Service implements ServiceConnection,
 			} catch (RemoteException e) {}
 		}
 	};
-
-	private void bindCacheService()
-	{
-		ComponentName service = new ComponentName("org.devtcg.five",
-		  "org.devtcg.five.service.CacheService");
-
-		bindService(new Intent().setComponent(service),
-		  this, BIND_AUTO_CREATE);
-	}
-
-	private void waitForCacheService()
-	{
-		long now = -1;
-		long then;
-
-		/* Wait up to 1s before critically failing. */
-		int timeout = 1000;
-
-		synchronized(mCacheLock) {
-			while (mCache == null)
-			{
-				then = now;
-				now = System.currentTimeMillis();
-
-				if (then >= 0)
-				{
-					timeout -= (now - then);
-
-					if (timeout <= 0)
-					{
-						throw new IllegalStateException("Cannot proceed " +
-						  "without a connection to the cache service");
-					}
-				}
-
-				try { mCacheLock.wait(timeout); }
-				catch (InterruptedException e) {}
-			}
-		}
-	}
-
-	public void onServiceConnected(ComponentName name, IBinder binder)
-	{
-		synchronized(mCacheLock) {
-			assert mCache == null;
-			mCache = ICacheService.Stub.asInterface(binder);
-			mCacheLock.notifyAll();
-		}
-	}
-
-	public void onServiceDisconnected(ComponentName name)
-	{
-		/* AIEEEEEE! */
-		throw new IllegalStateException("Cannot proceed without a connection" +
-		  " to " + name);
-	}
 
 	private final DeferredStopHandler mHandler = new DeferredStopHandler();
 	private class DeferredStopHandler extends Handler
@@ -564,12 +506,6 @@ public class PlaylistService extends Service implements ServiceConnection,
 	 */
 	private boolean playInternal(long songId)
 	{
-		/* Blocking wait for the cache service to become connected now that
-		 * we critically require it.  If the service is not made available 
-		 * within a reasonable time, we will halt. */
-		waitForCacheService();
-		assert mCache != null;
-
 		mHandler.cancelStopSelf();
 
 		Cursor c = getContentCursor(songId);
@@ -648,7 +584,7 @@ public class PlaylistService extends Service implements ServiceConnection,
 			{
 				assert mManager.lookupDownload(songId) == null;
 
-				cachePath = mCache.requestStorageAsPath(sourceId, contentId);
+				cachePath = mCacheMgr.requestStorage(sourceId, contentId);
 
 				URL url = Sources.getContentURL(getContentResolver(),
 				  sourceId, contentId);
@@ -682,12 +618,6 @@ public class PlaylistService extends Service implements ServiceConnection,
 	/* XXX: Copy/paste job from playInternal.  Refactor SOON. */
 	private DownloadManager.Download preempt(long songId)
 	{
-		/* Blocking wait for the cache service to become connected now that
-		 * we critically require it.  If the service is not made available 
-		 * within a reasonable time, we will halt. */
-		waitForCacheService();
-		assert mCache != null;
-
 		Cursor c = getContentCursor(songId);
 
 		long contentId;
@@ -757,7 +687,7 @@ public class PlaylistService extends Service implements ServiceConnection,
 			{
 				assert mManager.lookupDownload(songId) == null;
 
-				cachePath = mCache.requestStorageAsPath(sourceId, contentId);
+				cachePath = mCacheMgr.requestStorage(sourceId, contentId);
 
 				URL url = Sources.getContentURL(getContentResolver(),
 				  sourceId, contentId);
@@ -859,11 +789,7 @@ public class PlaylistService extends Service implements ServiceConnection,
 				c.close();
 			}
 
-			try {
-				mCache.commitStorage(sourceId, contentId);
-			} catch (RemoteException e) {
-				return false;
-			}
+			mCacheMgr.commitStorage(sourceId, contentId);
 
 			return true;
 		}

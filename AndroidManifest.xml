@@ -22,7 +22,6 @@
 			android:authorities="org.devtcg.five" />
 
 		<service android:name=".service.MetaService" />
-		<service android:name=".service.CacheService" />
 
 		<service android:name=".music.service.PlaylistService" />
 
