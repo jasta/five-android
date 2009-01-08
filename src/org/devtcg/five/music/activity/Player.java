@@ -387,17 +387,22 @@ public class Player extends PlaylistServiceActivity
 			removeMessages(MSG_HIDE_PROGRESS);
 		}
 
-		public void startPlaybackMonitoring()
+		public void startPlaybackMonitoring(boolean updateNow)
 		{
 			removeMessages(MSG_PLAYBACK_PROGRESS);
-			sendMessage(obtainMessage(MSG_PLAYBACK_PROGRESS));
+			Message msg = obtainMessage(MSG_PLAYBACK_PROGRESS);
+			
+			if (updateNow == true)
+				handleMessage(msg);
+			else
+				sendMessage(msg);
 		}
-		
+
 		public void stopPlaybackMonitoring()
 		{
 			removeMessages(MSG_PLAYBACK_PROGRESS);
 		}
-		
+
 		public void sendDownloadProgress(long songId, int progress)
 		{
 			sendMessage(obtainMessage(MSG_DOWNLOAD_PROGRESS,
@@ -554,7 +559,7 @@ public class Player extends PlaylistServiceActivity
 
 		mPlaylistPos.setText((pos + 1) + " of " + len);
 
-		mHandler.startPlaybackMonitoring();
+		mHandler.startPlaybackMonitoring(true);
 	}
 
 	private void setNowPlaying(long songId, int pos)
