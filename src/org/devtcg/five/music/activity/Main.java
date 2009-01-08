@@ -105,7 +105,7 @@ public class Main extends PlaylistServiceActivity
 		case R.id.tracks_button:
 			break;
 		case R.id.playlists_button:
-			Playlists.show(this);
+			PlaylistList.show(this);
 			break;
 		case R.id.nowplaying:
 			Player.show(this);

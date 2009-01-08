@@ -35,7 +35,7 @@ import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.SimpleCursorAdapter.ViewBinder;
 
-public class Playlists extends Activity implements ViewBinder
+public class PlaylistList extends Activity implements ViewBinder
 {
 	public static final String TAG = "Playlists";
 	
@@ -57,7 +57,7 @@ public class Playlists extends Activity implements ViewBinder
 	
 	public static void show(Context context)
 	{
-		context.startActivity(new Intent(context, Playlists.class));
+		context.startActivity(new Intent(context, PlaylistList.class));
 	}
 
 	@Override
@@ -170,7 +170,7 @@ public class Playlists extends Activity implements ViewBinder
 //			String action = i.getAction();
 			
 			chosen.setAction(Intent.ACTION_VIEW);
-			chosen.setClass(Playlists.this, SongList.class);
+			chosen.setClass(PlaylistList.this, SongList.class);
 			startActivity(chosen);
 		}
 	};
