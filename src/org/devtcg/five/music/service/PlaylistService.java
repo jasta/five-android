@@ -127,8 +127,8 @@ public class PlaylistService extends Service implements
 		super.onCreate();
 
 		/* We use a wake lock for the entire time the service is alive.
-		 * When playback is explicitly, we delay for a short while then die,
-		 * releasing the wake lock. */
+		 * When playback is explicitly stopped, we delay for a short while
+		 * then die, releasing the wake lock. */
 		PowerManager pm = (PowerManager)getSystemService(POWER_SERVICE);
 		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 		mWakeLock.acquire();
