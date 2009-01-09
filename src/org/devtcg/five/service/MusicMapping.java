@@ -172,11 +172,15 @@ public class MusicMapping implements DatabaseMapping
 			Uri source = ContentUris.withAppendedId(Five.Sources.CONTENT_URI, mSourceId);
 			mContent.update(source, v, null, null);
 			
-			updateCounts();
-
 			/* XXX: This does nothing... */
 			mLastAnchor = getNextAnchor();
 		}
+
+		/* XXX: For now, since we update into the live database we need to
+		 * adjust counts for all the operations we did sucessfully work
+		 * through.  When we move to a transactional sync engine, we won't
+		 * need this unless we definitely succeeded. */
+		updateCounts();
 		
 		mArtistMap.clear();
 		mAlbumMap.clear();
