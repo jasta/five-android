@@ -35,11 +35,15 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.Handler;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -65,6 +69,8 @@ public class Player extends PlaylistServiceActivity
 	private ImageButton mControlPause;
 	private ImageButton mControlNext;
 	
+	private GestureDetector mGestureDetector;
+	
 	/* How many milliseconds to display the progress controls?  This
 	 * timer begins after a user-initiated gesture or after the playback
 	 * buffer becomes full. */
@@ -85,6 +91,8 @@ public class Player extends PlaylistServiceActivity
 	private static final int MENU_RETURN_LIBRARY = Menu.FIRST + 2;
 	private static final int MENU_ARTIST_BIO = Menu.FIRST + 3;
 	private static final int MENU_PLAYQUEUE = Menu.FIRST + 4;
+	
+	private static final int MAJOR_MOVE = 60;
 	
 	public static void show(Context context)
 	{
@@ -130,6 +138,7 @@ public class Player extends PlaylistServiceActivity
 
 		mAlbumCover = (BetterReflectionLayout)findViewById(R.id.album_cover);
 		mAlbumCover.setOnClickListener(mAlbumClick);
+		mAlbumCover.setOnTouchListener(mAlbumTouch);
 
 		mProgressControls = mAlbumCover.findViewById(R.id.progress_controls);
 
@@ -147,6 +156,8 @@ public class Player extends PlaylistServiceActivity
 		mControlPrev.setOnClickListener(mDoPrev);
 		mControlPause.setOnClickListener(mDoPauseToggle);
 		mControlNext.setOnClickListener(mDoNext);
+
+		mGestureDetector = new GestureDetector(mGestureListener);
 	}
 
 	@Override
@@ -241,7 +252,37 @@ public class Player extends PlaylistServiceActivity
 				hideProgress();
 		}
 	};
+
+	GestureDetector.SimpleOnGestureListener mGestureListener =
+	  new GestureDetector.SimpleOnGestureListener()
+	{
+		public boolean onFling(MotionEvent e1, MotionEvent e2,
+		  float velocityX, float velocityY)
+		{
+			int dx = (int) (e2.getX() - e1.getX());
+
+			/* Don't accept the fling if it's too short... */
+			if (Math.abs(dx) > MAJOR_MOVE && Math.abs(velocityX) > Math.abs(velocityY))
+			{
+				if (velocityX > 0)
+					doNext();
+				else
+					doPrev();
+				return true;
+			}
+			
+			return false;			
+		}
+	};
 	
+	private final OnTouchListener mAlbumTouch = new OnTouchListener()
+	{
+		public boolean onTouch(View v, MotionEvent event)
+		{
+			return mGestureDetector.onTouchEvent(event);
+		}
+	};
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
@@ -253,13 +294,13 @@ public class Player extends PlaylistServiceActivity
 
 		menu.add(0, MENU_MORE_BY_ARTIST, Menu.NONE, "More By Artist")
 		  .setIcon(R.drawable.ic_menu_add);
-		
+
 		menu.add(0, MENU_RETURN_LIBRARY, Menu.NONE, R.string.return_library)
 		  .setIcon(R.drawable.ic_menu_music_library);
-		
+
 		menu.add(0, MENU_ARTIST_BIO, Menu.NONE, "Artist Info")
 		  .setIcon(R.drawable.ic_menu_artist_info);
-		
+
 		menu.add(0, MENU_PLAYQUEUE, Menu.NONE, "Play queue")
 		  .setIcon(R.drawable.ic_menu_playqueue);
 
@@ -434,21 +475,26 @@ public class Player extends PlaylistServiceActivity
 	{
 		public void onClick(View v)
 		{
-			if (mService == null)
-				return;
-
-			int pos;
-			
-			try { pos = mService.previous(); }
-			catch (RemoteException e) { finish(); return; }
-			
-			if (pos == -1)
-			{
-				Toast.makeText(Player.this, "End of playlist",
-				  Toast.LENGTH_SHORT).show();
-			}
+			doPrev();
 		}
 	};
+	
+	private void doPrev()
+	{
+		if (mService == null)
+			return;
+
+		int pos;
+		
+		try { pos = mService.previous(); }
+		catch (RemoteException e) { finish(); return; }
+		
+		if (pos == -1)
+		{
+			Toast.makeText(Player.this, "End of playlist",
+			  Toast.LENGTH_SHORT).show();
+		}
+	}
 	
 	private final OnClickListener mDoPauseToggle = new OnClickListener()
 	{
@@ -485,21 +531,26 @@ public class Player extends PlaylistServiceActivity
 	{
 		public void onClick(View v)
 		{
-			if (mService == null)
-				return;
-			
-			int pos;
-			
-			try { pos = mService.next(); }
-			catch (RemoteException e) { finish(); return; }
-			
-			if (pos == -1)
-			{
-				Toast.makeText(Player.this, "End of playlist",
-				  Toast.LENGTH_SHORT).show();
-			}
+			doNext();
 		}
 	};
+	
+	private void doNext()
+	{
+		if (mService == null)
+			return;
+		
+		int pos;
+		
+		try { pos = mService.next(); }
+		catch (RemoteException e) { finish(); return; }
+		
+		if (pos == -1)
+		{
+			Toast.makeText(Player.this, "End of playlist",
+			  Toast.LENGTH_SHORT).show();
+		}
+	}
 
 	private void setNotPlaying()
 	{
