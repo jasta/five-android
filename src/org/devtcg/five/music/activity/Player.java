@@ -153,9 +153,9 @@ public class Player extends PlaylistServiceActivity
 		mControlPause = (ImageButton)mAlbumCover.findViewById(R.id.control_pause);
 		mControlNext = (ImageButton)mAlbumCover.findViewById(R.id.control_next);
 
-		mControlPrev.setOnClickListener(mDoPrev);
-		mControlPause.setOnClickListener(mDoPauseToggle);
-		mControlNext.setOnClickListener(mDoNext);
+		mControlPrev.setOnClickListener(mControlClick);
+		mControlPause.setOnClickListener(mControlClick);
+		mControlNext.setOnClickListener(mControlClick);
 
 		mGestureDetector = new GestureDetector(mGestureListener);
 	}
@@ -265,9 +265,10 @@ public class Player extends PlaylistServiceActivity
 			if (Math.abs(dx) > MAJOR_MOVE && Math.abs(velocityX) > Math.abs(velocityY))
 			{
 				if (velocityX > 0)
-					doNext();
+					doMove(1);
 				else
-					doPrev();
+					doMove(-1);
+
 				return true;
 			}
 			
@@ -471,84 +472,73 @@ public class Player extends PlaylistServiceActivity
 		public void onStopTrackingTouch(SeekBar seekBar) {}
 	};
 	
-	private final OnClickListener mDoPrev = new OnClickListener()
+	private final OnClickListener mControlClick = new OnClickListener()
 	{
 		public void onClick(View v)
 		{
-			doPrev();
+			switch (v.getId())
+			{
+			case R.id.control_next:
+				doMove(1);
+				break;
+			case R.id.control_prev:
+				doMove(-1);
+				break;
+			case R.id.control_pause:
+				doPauseToggle();
+				break;
+			}
 		}
 	};
 	
-	private void doPrev()
+	private void doMove(int direction)
 	{
 		if (mService == null)
 			return;
-
+		
 		int pos;
 		
-		try { pos = mService.previous(); }
-		catch (RemoteException e) { finish(); return; }
-		
+		try {
+			if (direction > 0)
+				pos = mService.next();
+			else 
+				pos = mService.previous();
+		} catch (RemoteException e) {
+			return;
+		}
+
 		if (pos == -1)
 		{
 			Toast.makeText(Player.this, "End of playlist",
 			  Toast.LENGTH_SHORT).show();
-		}
+		}		
 	}
 	
-	private final OnClickListener mDoPauseToggle = new OnClickListener()
-	{
-		public void onClick(View v)
-		{
-			if (mService == null)
-				return;
-
-			try
-			{
-				if (mPaused == true)
-				{
-					if (mService.isPaused() == true)
-						mService.unpause();
-					else
-						mService.play();
-
-					setPausedState(false);
-				}
-				else
-				{
-					mService.pause();
-					setPausedState(true);
-				}
-			}
-			catch (RemoteException e)
-			{
-				finish();
-			}
-		}
-	};
-	
-	private final OnClickListener mDoNext = new OnClickListener()
-	{
-		public void onClick(View v)
-		{
-			doNext();
-		}
-	};
-	
-	private void doNext()
+	private void doPauseToggle()
 	{
 		if (mService == null)
 			return;
-		
-		int pos;
-		
-		try { pos = mService.next(); }
-		catch (RemoteException e) { finish(); return; }
-		
-		if (pos == -1)
+
+		try
 		{
-			Toast.makeText(Player.this, "End of playlist",
-			  Toast.LENGTH_SHORT).show();
+			if (mPaused == true)
+			{
+				if (mService.isPaused() == true)
+					mService.unpause();
+				else
+					mService.play();
+
+				setPausedState(false);
+			}
+			else
+			{
+				mService.pause();
+				setPausedState(true);
+			}
+		}
+		catch (RemoteException e)
+		{
+			finish();
 		}
 	}
 
