@@ -41,6 +41,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.Window;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
@@ -85,14 +86,16 @@ public class Player extends PlaylistServiceActivity
 	/* Flag used to determine if we have exercised an optimization potential
 	 * given by the supplied Intent's extras. */
 	private boolean mHintedOpt = false;
+	
+	/* Minimum distance a fling must move along the X axis in order
+	 * to be considered a gesture to jump to a new playlist position. */
+	private static final int MINIMUM_GESTURE_DISTANCE = 50;
 
 	private static final int MENU_SET_RANDOM = Menu.FIRST;
 	private static final int MENU_MORE_BY_ARTIST = Menu.FIRST + 1;
 	private static final int MENU_RETURN_LIBRARY = Menu.FIRST + 2;
 	private static final int MENU_ARTIST_BIO = Menu.FIRST + 3;
 	private static final int MENU_PLAYQUEUE = Menu.FIRST + 4;
-	
-	private static final int MAJOR_MOVE = 60;
 	
 	public static void show(Context context)
 	{
@@ -259,16 +262,22 @@ public class Player extends PlaylistServiceActivity
 		public boolean onFling(MotionEvent e1, MotionEvent e2,
 		  float velocityX, float velocityY)
 		{
-			int dx = (int) (e2.getX() - e1.getX());
+			int dx = (int)(e2.getX() - e1.getX());
 
-			/* Don't accept the fling if it's too short... */
-			if (Math.abs(dx) > MAJOR_MOVE && Math.abs(velocityX) > Math.abs(velocityY))
+			if (Math.abs(dx) > MINIMUM_GESTURE_DISTANCE &&
+			  Math.abs(velocityX) > Math.abs(velocityY))
 			{
+				/* Some may consider this logic backward, but I hope to
+				 * introduce an animation soon which makes it seem
+				 * clearer that you're "dragging" in the next song, not
+				 * flicking a directional gesture.  That is, flinging
+				 * to the left actually moves to the next song and
+				 * vice versa. */
 				if (velocityX > 0)
-					doMove(1);
-				else
 					doMove(-1);
-
+				else
+					doMove(1);
+				
 				return true;
 			}
 			
