@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- # $Id: album_list_item.xml 829 2008-10-14 07:13:56Z jasta00 $
+ # $Id: artist_album_list_item.xml 1007 2008-11-27 07:49:21Z jasta00 $
  #
  # Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  #
@@ -15,20 +15,46 @@
  # General Public License for more details.
  -->
 
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="horizontal"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:baselineAligned="false"
+	android:minHeight="66px"
+	>
 
-	<TextView
-		android:id="@+id/album_name"
-		android:layout_width="fill_parent"
-		android:layout_height="wrap_content"
-		android:layout_gravity="center_vertical"
-		android:layout_marginLeft="64px"
-		android:paddingLeft="11dip"
-		android:paddingRight="9dip"
-		android:layout_marginTop="12dip"
-		android:layout_marginBottom="12dip"
-		android:textAppearance="?android:attr/textAppearanceMedium"
-		android:text="All Albums"
+	<ImageView
+		android:id="@+id/album_cover"
+		android:layout_width="64px"
+		android:layout_height="fill_parent"
+		android:scaleType="center"
+		android:src="@drawable/albumart_mp_unknown"
+		android:layout_marginTop="1px"
+		android:layout_marginBottom="1px"
+		android:layout_marginRight="2dip"
 		/>
 
-</merge>
+	<LinearLayout
+		android:layout_width="0px"
+		android:layout_weight="1"
+		android:layout_height="wrap_content"
+		android:layout_gravity="center_vertical"
+		android:orientation="vertical"
+		android:paddingTop="3dip"
+		android:paddingBottom="3dip"
+		android:paddingLeft="9dip"
+		android:paddingRight="9dip"
+		>
+
+		<TextView
+			android:text="All Albums"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:textAppearance="?android:attr/textAppearanceMedium"
+			android:ellipsize="end"
+			android:singleLine="true"
+			/>
+
+	</LinearLayout>
+
+</LinearLayout>

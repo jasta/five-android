@@ -195,7 +195,7 @@ public class ArtistAlbumList extends Activity
 			ImageView vv = (ImageView)view;
 			
 			if (c.isNull(col) == true)
-				vv.setImageResource(R.drawable.lastfm_cover_small);
+				vv.setImageResource(R.drawable.albumart_mp_unknown);
 			else
 				vv.setImageURI(Uri.parse(c.getString(col)));
 	
