@@ -51,7 +51,7 @@ import android.util.Log;
 public class MusicMapping implements DatabaseMapping
 {
 	private static final String TAG = "MusicMapping";
-	
+
 	private SyncHttpConnection mConn;
 	private String mBaseUrl;
 
@@ -598,7 +598,7 @@ public class MusicMapping implements DatabaseMapping
 			return 211;
 		}
 
-		Uri uri;
+		Uri uri = null;
 		long id = Long.valueOf(item.getTargetId());
 
 		if (format.equals("artist") == true)
@@ -607,20 +607,16 @@ public class MusicMapping implements DatabaseMapping
 			uri = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
 		else if (format.equals("song") == true)
 		{
-			uri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, id);
-
-			Cursor c = mContent.query(uri,
+			Uri suri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, id);
+			Cursor c = mContent.query(suri,
 			  new String[] { Five.Music.Songs.CONTENT_ID }, null, null, null);
 
-			if (c.moveToFirst() == false)
-				uri = null;
-			else
-			{
-				Uri curi = ContentUris.withAppendedId(Five.Content.CONTENT_URI, c.getLong(0));
-				mContent.delete(curi, null, null);
+			try {
+				if (c.moveToFirst() == true)
+					uri = ContentUris.withAppendedId(Five.Content.CONTENT_URI, c.getLong(0));
+			} finally {
+				c.close();
 			}
-
-			c.close();
 		}
 		else if (format.equals("playlist") == true)
 			uri = ContentUris.withAppendedId(Five.Music.Playlists.CONTENT_URI, id);
