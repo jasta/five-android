@@ -1,3 +1,19 @@
+/*
+ * $Id$
+ *
+ * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2, or (at your option) any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ */
+
 package org.devtcg.five.music.util;
 
 import java.io.FileNotFoundException;
@@ -17,10 +33,18 @@ import android.net.Uri;
  */
 public class BetterBitmapFactory extends BitmapFactory
 {
+	public static Bitmap decodeUri(Context ctx, String uri)
+	{
+		if (uri == null)
+			return null;
+		
+		return decodeUri(ctx, Uri.parse(uri));
+	}
+	
 	/**
 	 * Decode a Uri as a bitmap, as ImageView.setImageURI would do.
 	 */
-	public static Bitmap decodeURI(Context ctx, Uri uri)
+	public static Bitmap decodeUri(Context ctx, Uri uri)
 	{
 		InputStream in = null;
 
@@ -47,12 +71,27 @@ public class BetterBitmapFactory extends BitmapFactory
 			return decodeResource(ctx.getResources(), resId);
 		else
 		{
-			Bitmap r = decodeURI(ctx, Uri.parse(uri));
+			Bitmap r = decodeUri(ctx, Uri.parse(uri));
 
 			if (r == null)
 				r = decodeResource(ctx.getResources(), resId);
 
 			return r;
 		}		
+	}
+	
+	public static Bitmap decodeUriWithFallback(Context ctx, String uri, Bitmap fallback)
+	{
+		if (uri == null)
+			return fallback;
+		else
+		{
+			Bitmap r = decodeUri(ctx, Uri.parse(uri));
+
+			if (r == null)
+				return fallback;
+
+			return r;
+		}
 	}
 }
