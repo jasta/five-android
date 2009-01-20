@@ -107,7 +107,7 @@ public class IdleListDetector
 	}
 
 	public void onScrollStateChanged(AbsListView view, int scrollState)
-    {
+	{
 		if (mScrollState == OnScrollListener.SCROLL_STATE_FLING &&
 		  scrollState != OnScrollListener.SCROLL_STATE_FLING)
 			mScrollHandler.sendListIdle(mFingerUp);
@@ -115,7 +115,7 @@ public class IdleListDetector
 			mScrollHandler.cancelListIdle();
 		
 		mScrollState = scrollState;
-    }
+	}
 
 	private class ScrollHandler extends Handler
 	{
