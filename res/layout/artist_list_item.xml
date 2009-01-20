@@ -28,7 +28,6 @@
 		android:layout_width="64px"
 		android:layout_height="fill_parent"
 		android:scaleType="center"
-		android:background="@drawable/white"
 		android:layout_marginTop="1px"
 		android:layout_marginBottom="1px"
 		android:layout_marginRight="2dip"
