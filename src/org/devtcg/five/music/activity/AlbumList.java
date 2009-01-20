@@ -20,15 +20,21 @@ import java.lang.ref.SoftReference;
 import java.util.HashMap;
 
 import org.devtcg.five.R;
+import org.devtcg.five.music.widget.IdleListDetector.OnListIdleListener;
 import org.devtcg.five.music.util.BetterBitmapFactory;
+import org.devtcg.five.music.util.ImageMemCache;
 import org.devtcg.five.music.widget.AlphabetIndexer;
+import org.devtcg.five.music.widget.CrossFadeDrawable;
+import org.devtcg.five.music.widget.FastBitmapDrawable;
 import org.devtcg.five.music.widget.FastScrollView;
+import org.devtcg.five.music.widget.IdleListDetector;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.widget.EfficientCursorAdapter;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.database.CharArrayBuffer;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -36,12 +42,21 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.View.OnTouchListener;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.CursorAdapter;
 import android.widget.FilterQueryProvider;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 import android.widget.SimpleCursorAdapter.ViewBinder;
+import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView.OnItemClickListener;
 
 public class AlbumList extends Activity
@@ -53,11 +68,15 @@ public class AlbumList extends Activity
 		Five.Music.Albums.FULL_NAME, Five.Music.Albums.ARTWORK,
 		Five.Music.Albums.ARTIST, Five.Music.Albums.ARTWORK_BIG,
 		Five.Music.Albums.ARTIST_ID };
+	
+	private static final int ARTWORK_TRANSITION_DURATION = 175;
 
+	private ListView mList;
+	private FastScrollView mFastScroller;
 	private AlbumAdapter mAdapter;
+	private IdleListDetector mImageLoader;
 
-	private HashMap<Long, SoftReference<Bitmap>> mArtworkCache =
-	  new HashMap<Long, SoftReference<Bitmap>>();
+	private static final ImageMemCache mCache = new ImageMemCache();
 
 	private Cursor getCursor(String selection, String[] args)
 	{
@@ -76,6 +95,9 @@ public class AlbumList extends Activity
 		super.onCreate(icicle);
 		setContentView(R.layout.album_list);
 
+		if (mCache.getFallback() == null)
+			mCache.setFallback(getResources(), R.drawable.albumart_mp_unknown);
+
 		Intent i = getIntent();
 		if (i.getData() == null)
 			i.setData(Five.Music.Albums.CONTENT_URI_COMPLETE);
@@ -87,23 +109,88 @@ public class AlbumList extends Activity
 
 		ListView list = (ListView)findViewById(R.id.album_list);
 
-		mAdapter = new AlbumAdapter(this,
-		  R.layout.album_list_item, c,
-		  new String[] { "artwork", "full_name", "artist" },
-		  new int[] { R.id.album_cover, R.id.album_name, R.id.artist_name });
+		mAdapter = new AlbumAdapter(c);
+
+		mImageLoader = new IdleListDetector(mListIdleListener);
+		mFastScroller = (FastScrollView)list.getParent();
+		mFastScroller.setOnIdleListDetector(mImageLoader);
 
 		list.setAdapter(mAdapter);
 		list.setOnItemClickListener(mClickEvent);
 		list.setTextFilterEnabled(true);
+		list.setOnScrollListener(mScrollListener);
+		list.setOnTouchListener(mTouchListener);
+
+		mList = list;
 	}
 
 	@Override
 	protected void onDestroy()
 	{
-		mArtworkCache.clear();
+		mCache.cleanup();
 		mAdapter.changeCursor(null);
 		super.onDestroy();
 	}
+	
+	private final OnListIdleListener mListIdleListener =
+	  new OnListIdleListener()
+	{
+		public void onListIdle()
+        {
+			int first = mList.getFirstVisiblePosition();
+			int n = mList.getChildCount();
+
+			Log.i(TAG, String.format("onListIdle(%d, %d)", first, n));
+
+			for (int i = 0; i < n; i++)
+			{
+				View row = mList.getChildAt(i);
+				AlbumViewHolder holder = (AlbumViewHolder)row.getTag();
+
+				if (holder.tempBind == true)
+				{
+					Cursor c = (Cursor)mAdapter.getItem(first + i);
+					FastBitmapDrawable d =
+					  mAdapter.getCachedArtwork(holder.albumId, c);
+
+					if (d != mCache.getFallback())
+					{
+						CrossFadeDrawable transition = holder.transition;
+						transition.setEnd(d.getBitmap());
+						holder.albumArtwork.setImageDrawable(transition);
+						transition.startTransition(ARTWORK_TRANSITION_DURATION);
+					}
+
+					holder.tempBind = false;
+				}
+			}
+
+			mList.invalidate();
+        }
+	};
+
+	private final OnScrollListener mScrollListener = new OnScrollListener()
+	{
+		public void onScroll(AbsListView view, int firstVisibleItem,
+		  int visibleItemCount, int totalItemCount)
+		{
+			mFastScroller.onScroll(view, firstVisibleItem,
+			  visibleItemCount, totalItemCount);
+		}
+
+		public void onScrollStateChanged(AbsListView view, int scrollState)
+        {
+			mImageLoader.onScrollStateChanged(view, scrollState);
+        }
+	};
+	
+	private final OnTouchListener mTouchListener = new OnTouchListener()
+	{
+		public boolean onTouch(View v, MotionEvent event)
+        {
+	        return mImageLoader.onTouch(v, event);
+        }
+	};
 
 	private final OnItemClickListener mClickEvent = new OnItemClickListener()
 	{
@@ -148,50 +235,97 @@ public class AlbumList extends Activity
 		}
 	};
 
-	private class AlbumAdapter extends EfficientCursorAdapter
-	  implements FilterQueryProvider, ViewBinder,
-	  FastScrollView.SectionIndexer
+	private class AlbumAdapter extends CursorAdapter
+	  implements FilterQueryProvider, FastScrollView.SectionIndexer
 	{
-		private AlphabetIndexer mIndexer;
+		private final AlphabetIndexer mIndexer;
+		private final LayoutInflater mInflater;
 
-		public AlbumAdapter(Context context, int layout, Cursor c,
-		  String[] from, int[] to)
+		private final int mIdIdx;
+		private final int mAlbumArtworkIdx;
+		private final int mAlbumNameIdx;
+		private final int mArtistNameIdx;
+		private final FastBitmapDrawable mDefaultArtwork;
+
+		public AlbumAdapter(Cursor c)
 		{
-			super(context, layout, c, from, to);
+			super(AlbumList.this, c);
 			setFilterQueryProvider(this);
-			setViewBinder(this);
 
-			mIndexer = new AlphabetIndexer(context, c,
+			mInflater = LayoutInflater.from(AlbumList.this);
+			mIdIdx = c.getColumnIndexOrThrow(Five.Music.Albums._ID);
+			mAlbumArtworkIdx = c.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK);
+			mAlbumNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.NAME);
+			mArtistNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.ARTIST);
+
+			Bitmap bmp = BitmapFactory.decodeResource(getResources(),
+			  R.drawable.albumart_mp_unknown);
+			mDefaultArtwork = new FastBitmapDrawable(bmp); 
+
+			mIndexer = new AlphabetIndexer(AlbumList.this, c,
 			  c.getColumnIndexOrThrow(Five.Music.Albums.NAME));
 		}
 
-		public boolean setViewValue(View v, Cursor c, int col)
+		private FastBitmapDrawable getCachedArtwork(Long id, Cursor c)
 		{
-			if (QUERY_FIELDS[col] == Five.Music.Albums.ARTWORK)
+			return mCache.fetchFromDatabase(id, AlbumList.this,
+			  c, mAlbumArtworkIdx);
+		}
+
+		@Override
+        public View newView(Context context, Cursor cursor, ViewGroup parent)
+        {
+	        View row = mInflater.inflate(R.layout.album_list_item,
+	          parent, false);
+
+	        AlbumViewHolder holder = new AlbumViewHolder();
+	        row.setTag(holder);
+
+	        holder.artistName = (TextView)row.findViewById(R.id.artist_name);
+	        holder.albumName = (TextView)row.findViewById(R.id.album_name);
+	        holder.albumArtwork = (ImageView)row.findViewById(R.id.album_cover);
+
+	        CrossFadeDrawable transition =
+	          new CrossFadeDrawable(mDefaultArtwork.getBitmap(), null);
+	        transition.setCrossFadeEnabled(true);
+	        holder.transition = transition;
+
+	        return row;
+        }
+		
+		private void setCursorText(Cursor c, TextView view, int idx,
+		  CharArrayBuffer buf)
+		{
+			c.copyStringToBuffer(idx, buf);
+			int n = buf.sizeCopied;
+			if (n > 0)
+				view.setText(buf.data, 0, n);
+		}
+
+		@Override
+        public void bindView(View view, Context context, Cursor cursor)
+        {
+			AlbumViewHolder holder = (AlbumViewHolder)view.getTag();
+
+			holder.albumId = cursor.getLong(mIdIdx);
+
+			if (mImageLoader.isListIdle() == true)
 			{
-				Long id = c.getLong(0);
-
-				ImageView vv = (ImageView)v;
-
-				Bitmap bmp = null;
-				SoftReference<Bitmap> hit = mArtworkCache.get(id);
-				if (hit != null)
-					bmp = hit.get();
-
-				if (bmp == null)
-				{
-					bmp = BetterBitmapFactory.decodeUriWithFallback(AlbumList.this,
-			    	  c.getString(col), R.drawable.albumart_mp_unknown);
-					mArtworkCache.put(id, new SoftReference<Bitmap>(bmp));
-				}
-
-				vv.setImageBitmap(bmp);
-
-				return true;
+				holder.albumArtwork
+				  .setImageDrawable(getCachedArtwork(holder.albumId, cursor));
+				holder.tempBind = false;
+			}
+			else
+			{
+				holder.albumArtwork.setImageDrawable(mDefaultArtwork);
+				holder.tempBind = true;
 			}
 
-			return false;
-		}
+			setCursorText(cursor, holder.albumName, mAlbumNameIdx,
+			  holder.albumBuffer);
+			setCursorText(cursor, holder.artistName, mArtistNameIdx,
+			  holder.artistBuffer);
+	    }
 
 		public Cursor runQuery(CharSequence constraint)
 		{
@@ -232,5 +366,17 @@ public class AlbumList extends Activity
 		{
 			return mIndexer.getSections();
 		}
+	}
+
+	public static class AlbumViewHolder
+	{
+		long albumId;
+		ImageView albumArtwork;
+		TextView albumName;
+		TextView artistName;
+		boolean tempBind;
+		CrossFadeDrawable transition;
+		final CharArrayBuffer albumBuffer = new CharArrayBuffer(64);
+		final CharArrayBuffer artistBuffer = new CharArrayBuffer(64);
 	}
 }

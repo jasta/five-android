@@ -17,6 +17,7 @@
 package org.devtcg.five.music.widget;
 
 import org.devtcg.five.R;
+import org.devtcg.five.music.widget.IdleListDetector;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -78,6 +79,10 @@ public class FastScrollView extends FrameLayout
     private Handler mHandler = new Handler();
     
     private BaseAdapter mListAdapter;
+    
+    private IdleListDetector mIdleListDetector;
+    public static final int SCROLL_STATE_FAST_SCROLLING = 4;
+    public static final int SCROLL_STATE_FAST_IDLE = 5;
 
     private boolean mChangedBounds;
 
@@ -146,6 +151,17 @@ public class FastScrollView extends FrameLayout
         invalidate();
     }
     
+    public void setOnIdleListDetector(IdleListDetector l)
+    {
+    	mIdleListDetector = l;
+    }
+    
+    private void reportFastScrollState(int scrollState)
+    {
+    	if (mIdleListDetector != null)
+    		mIdleListDetector.onFastScrollStateChanged(mList, scrollState);
+    }
+
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
@@ -251,7 +267,7 @@ public class FastScrollView extends FrameLayout
     public void onChildViewAdded(View parent, View child) {
         if (child instanceof ListView) {
             mList = (ListView)child;
-            
+
             mList.setOnScrollListener(this);
             getSections();
         }
@@ -360,7 +376,7 @@ public class FastScrollView extends FrameLayout
     private void cancelFling() {
         // Cancel the list fling
         MotionEvent cancelFling = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
-        mList.onTouchEvent(cancelFling);
+        mList.dispatchTouchEvent(cancelFling);
         cancelFling.recycle();
     }
     
@@ -375,8 +391,9 @@ public class FastScrollView extends FrameLayout
                 if (mListAdapter == null && mList != null) {
                     getSections();
                 }
-
+                
                 cancelFling();
+                reportFastScrollState(SCROLL_STATE_FAST_SCROLLING);
                 return true;
             }
         } else if (me.getAction() == MotionEvent.ACTION_UP) {
@@ -385,6 +402,7 @@ public class FastScrollView extends FrameLayout
                 final Handler handler = mHandler;
                 handler.removeCallbacks(mScrollFade);
                 handler.postDelayed(mScrollFade, 1000);
+                reportFastScrollState(SCROLL_STATE_FAST_IDLE);
                 return true;
             }
         } else if (me.getAction() == MotionEvent.ACTION_MOVE) {
@@ -407,6 +425,7 @@ public class FastScrollView extends FrameLayout
                 	mLastScrollThumbY = mThumbY;
                     scrollTo((float) mThumbY / (viewHeight - mThumbH));
                 }
+                reportFastScrollState(SCROLL_STATE_FAST_SCROLLING);
                 return true;
             }
         }
