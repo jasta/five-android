@@ -23,6 +23,7 @@ import org.devtcg.five.music.widget.CrossFadeDrawable;
 import org.devtcg.five.music.widget.FastBitmapDrawable;
 import org.devtcg.five.music.widget.FastScrollView;
 import org.devtcg.five.music.widget.IdleListDetector;
+import org.devtcg.five.music.widget.ImageLoaderIdleListener;
 import org.devtcg.five.music.widget.IdleListDetector.OnListIdleListener;
 import org.devtcg.five.provider.Five;
 
@@ -61,10 +62,7 @@ public class AlbumList extends Activity
 		Five.Music.Albums.ARTIST, Five.Music.Albums.ARTWORK_BIG,
 		Five.Music.Albums.ARTIST_ID };
 	
-	private static final int ARTWORK_TRANSITION_DURATION = 175;
-
 	private ListView mList;
-	private FastScrollView mFastScroller;
 	private AlbumAdapter mAdapter;
 	private IdleListDetector mImageLoader;
 
@@ -100,20 +98,21 @@ public class AlbumList extends Activity
 		Cursor c = getCursor(null, null);
 
 		ListView list = (ListView)findViewById(R.id.album_list);
+		mList = list;
 
 		mAdapter = new AlbumAdapter(c);
-
-		mImageLoader = new IdleListDetector(mListIdleListener);
-		mFastScroller = (FastScrollView)list.getParent();
-		mFastScroller.setOnIdleListDetector(mImageLoader);
-
 		list.setAdapter(mAdapter);
+
+		/* Hook up the mechanism to load images only when the list "slows"
+		 * down. */
+		ImageLoaderIdleListener idleListener =
+		  new ImageLoaderIdleListener(this, list, mCache);
+		mImageLoader = new IdleListDetector(idleListener);
+		FastScrollView fastScroller = (FastScrollView)list.getParent();
+		fastScroller.setOnIdleListDetector(mImageLoader);
+
 		list.setOnItemClickListener(mClickEvent);
 		list.setTextFilterEnabled(true);
-		list.setOnScrollListener(mScrollListener);
-		list.setOnTouchListener(mTouchListener);
-
-		mList = list;
 	}
 
 	@Override
@@ -123,66 +122,6 @@ public class AlbumList extends Activity
 		mAdapter.changeCursor(null);
 		super.onDestroy();
 	}
-	
-	private final OnListIdleListener mListIdleListener =
-	  new OnListIdleListener()
-	{
-		public void onListIdle()
-        {
-			int first = mList.getFirstVisiblePosition();
-			int n = mList.getChildCount();
-
-			Log.i(TAG, String.format("onListIdle(%d, %d)", first, n));
-
-			for (int i = 0; i < n; i++)
-			{
-				View row = mList.getChildAt(i);
-				AlbumViewHolder holder = (AlbumViewHolder)row.getTag();
-
-				if (holder.tempBind == true)
-				{
-					Cursor c = (Cursor)mAdapter.getItem(first + i);
-					FastBitmapDrawable d =
-					  mAdapter.getCachedArtwork(holder.albumId, c);
-
-					if (d != mCache.getFallback())
-					{
-						CrossFadeDrawable transition = holder.transition;
-						transition.setEnd(d.getBitmap());
-						holder.albumArtwork.setImageDrawable(transition);
-						transition.startTransition(ARTWORK_TRANSITION_DURATION);
-					}
-
-					holder.tempBind = false;
-				}
-			}
-
-			mList.invalidate();
-        }
-	};
-
-	private final OnScrollListener mScrollListener = new OnScrollListener()
-	{
-		public void onScroll(AbsListView view, int firstVisibleItem,
-		  int visibleItemCount, int totalItemCount)
-		{
-			mFastScroller.onScroll(view, firstVisibleItem,
-			  visibleItemCount, totalItemCount);
-		}
-
-		public void onScrollStateChanged(AbsListView view, int scrollState)
-        {
-			mImageLoader.onScrollStateChanged(view, scrollState);
-        }
-	};
-	
-	private final OnTouchListener mTouchListener = new OnTouchListener()
-	{
-		public boolean onTouch(View v, MotionEvent event)
-        {
-	        return mImageLoader.onTouch(v, event);
-        }
-	};
 
 	private final OnItemClickListener mClickEvent = new OnItemClickListener()
 	{
@@ -228,7 +167,8 @@ public class AlbumList extends Activity
 	};
 
 	private class AlbumAdapter extends CursorAdapter
-	  implements FilterQueryProvider, FastScrollView.SectionIndexer
+	  implements FilterQueryProvider, FastScrollView.SectionIndexer,
+	    ImageLoaderIdleListener.ImageLoaderAdapter
 	{
 		private final AlphabetIndexer mIndexer;
 		private final LayoutInflater mInflater;
@@ -237,7 +177,6 @@ public class AlbumList extends Activity
 		private final int mAlbumArtworkIdx;
 		private final int mAlbumNameIdx;
 		private final int mArtistNameIdx;
-		private final FastBitmapDrawable mDefaultArtwork;
 
 		public AlbumAdapter(Cursor c)
 		{
@@ -250,18 +189,8 @@ public class AlbumList extends Activity
 			mAlbumNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.NAME);
 			mArtistNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.ARTIST);
 
-			Bitmap bmp = BitmapFactory.decodeResource(getResources(),
-			  R.drawable.albumart_mp_unknown);
-			mDefaultArtwork = new FastBitmapDrawable(bmp); 
-
 			mIndexer = new AlphabetIndexer(AlbumList.this, c,
 			  c.getColumnIndexOrThrow(Five.Music.Albums.NAME));
-		}
-
-		private FastBitmapDrawable getCachedArtwork(Long id, Cursor c)
-		{
-			return mCache.fetchFromDatabase(id, AlbumList.this,
-			  c, mAlbumArtworkIdx);
 		}
 
 		@Override
@@ -278,7 +207,7 @@ public class AlbumList extends Activity
 	        holder.albumArtwork = (ImageView)row.findViewById(R.id.album_cover);
 
 	        CrossFadeDrawable transition =
-	          new CrossFadeDrawable(mDefaultArtwork.getBitmap(), null);
+	          new CrossFadeDrawable(mCache.getFallback().getBitmap(), null);
 	        transition.setCrossFadeEnabled(true);
 	        holder.transition = transition;
 
@@ -303,14 +232,16 @@ public class AlbumList extends Activity
 
 			if (mImageLoader.isListIdle() == true)
 			{
-				holder.albumArtwork
-				  .setImageDrawable(getCachedArtwork(holder.albumId, cursor));
-				holder.tempBind = false;
+				FastBitmapDrawable d =
+				  mCache.fetchFromDatabase(holder.albumId, AlbumList.this,
+				    cursor, mAlbumArtworkIdx);
+				holder.albumArtwork.setImageDrawable(d);
+				holder.setTemporaryBind(false);
 			}
 			else
 			{
-				holder.albumArtwork.setImageDrawable(mDefaultArtwork);
-				holder.tempBind = true;
+				holder.albumArtwork.setImageDrawable(mCache.getFallback());
+				holder.setTemporaryBind(true);
 			}
 
 			setCursorText(cursor, holder.albumName, mAlbumNameIdx,
@@ -358,9 +289,15 @@ public class AlbumList extends Activity
 		{
 			return mIndexer.getSections();
 		}
+
+		public int getImageColumnIndex()
+        {
+			return mAlbumArtworkIdx;
+        }
 	}
 
 	public static class AlbumViewHolder
+	  implements ImageLoaderIdleListener.ImageLoaderHolder
 	{
 		long albumId;
 		ImageView albumArtwork;
@@ -370,5 +307,11 @@ public class AlbumList extends Activity
 		CrossFadeDrawable transition;
 		final CharArrayBuffer albumBuffer = new CharArrayBuffer(64);
 		final CharArrayBuffer artistBuffer = new CharArrayBuffer(64);
+		
+		public Long getItemId() { return albumId; }
+		public boolean isTemporaryBind() { return tempBind; }
+		public void setTemporaryBind(boolean temp) { tempBind = temp; }
+		public ImageView getImageLoaderView() { return albumArtwork; }
+		public CrossFadeDrawable getTransitionDrawable() { return transition; }
 	}
 }

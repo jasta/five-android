@@ -80,10 +80,10 @@ public class IdleListDetector
 	public boolean onTouch(View v, MotionEvent ev)
 	{
 		int action = ev.getAction();
-		
+
 		mFingerUp = (action == MotionEvent.ACTION_UP ||
 		  action == MotionEvent.ACTION_CANCEL);
-		
+
 		if (mFingerUp &&
 		  mScrollState != OnScrollListener.SCROLL_STATE_FLING)
 			mScrollHandler.sendListIdle(true);
@@ -98,6 +98,9 @@ public class IdleListDetector
 			mScrollHandler.sendListIdle(true);
 		else if (scrollState == FastScrollView.SCROLL_STATE_FAST_SCROLLING)
 			mScrollHandler.sendListIdle(DELAY_FAST_IDLE_DETECTION);
+
+		if (scrollState == FastScrollView.SCROLL_STATE_FAST_IDLE)
+			mFingerUp = true;
 
 		mFastScrollState = scrollState;
 		mScrollState = OnScrollListener.SCROLL_STATE_IDLE;

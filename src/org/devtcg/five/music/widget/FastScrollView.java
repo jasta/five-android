@@ -30,6 +30,7 @@ import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnTouchListener;
 import android.view.ViewGroup.OnHierarchyChangeListener;
 import android.widget.AbsListView;
 import android.widget.Adapter;
@@ -47,7 +48,7 @@ import android.widget.AbsListView.OnScrollListener;
  * {@link BaseAdapter}.
  */
 public class FastScrollView extends FrameLayout 
-        implements OnScrollListener, OnHierarchyChangeListener {
+        implements OnScrollListener, OnTouchListener, OnHierarchyChangeListener {
 
     private Drawable mCurrentThumb;
     private Drawable mOverlayDrawable;
@@ -154,6 +155,9 @@ public class FastScrollView extends FrameLayout
     public void setOnIdleListDetector(IdleListDetector l)
     {
     	mIdleListDetector = l;
+    	
+        if (l != null)
+        	mList.setOnTouchListener(this);
     }
     
     private void reportFastScrollState(int scrollState)
@@ -221,7 +225,17 @@ public class FastScrollView extends FrameLayout
                 (int) pos.right, (int) pos.bottom);
     }
     
+	public boolean onTouch(View v, MotionEvent event)
+    {
+		if (mIdleListDetector != null)
+			return mIdleListDetector.onTouch(v, event);
+		
+		return false;
+    }
+    
     public void onScrollStateChanged(AbsListView view, int scrollState) {
+    	if (mIdleListDetector != null)
+    		mIdleListDetector.onScrollStateChanged(view, scrollState);
     }
     
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, 
@@ -269,6 +283,10 @@ public class FastScrollView extends FrameLayout
             mList = (ListView)child;
 
             mList.setOnScrollListener(this);
+
+            if (mIdleListDetector != null)
+            	mList.setOnTouchListener(this);
+            
             getSections();
         }
     }
