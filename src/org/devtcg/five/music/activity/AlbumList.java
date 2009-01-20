@@ -16,20 +16,15 @@
 
 package org.devtcg.five.music.activity;
 
-import java.lang.ref.SoftReference;
-import java.util.HashMap;
-
 import org.devtcg.five.R;
-import org.devtcg.five.music.widget.IdleListDetector.OnListIdleListener;
-import org.devtcg.five.music.util.BetterBitmapFactory;
 import org.devtcg.five.music.util.ImageMemCache;
 import org.devtcg.five.music.widget.AlphabetIndexer;
 import org.devtcg.five.music.widget.CrossFadeDrawable;
 import org.devtcg.five.music.widget.FastBitmapDrawable;
 import org.devtcg.five.music.widget.FastScrollView;
 import org.devtcg.five.music.widget.IdleListDetector;
+import org.devtcg.five.music.widget.IdleListDetector.OnListIdleListener;
 import org.devtcg.five.provider.Five;
-import org.devtcg.five.widget.EfficientCursorAdapter;
 
 import android.app.Activity;
 import android.content.Context;
@@ -38,7 +33,6 @@ import android.database.CharArrayBuffer;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -53,9 +47,7 @@ import android.widget.CursorAdapter;
 import android.widget.FilterQueryProvider;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.SimpleCursorAdapter.ViewBinder;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView.OnItemClickListener;
 
