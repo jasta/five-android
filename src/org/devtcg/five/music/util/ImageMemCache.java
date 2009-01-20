@@ -68,7 +68,7 @@ public class ImageMemCache
 	 * The cached entries stored here represent Drawable primitives which
 	 * can be attached to views and associated with an Android context.
 	 * To avoid leaks, you must call cleanup to disassociate all 
-	 * bitmap drawables.  This normally would occur during an activities
+	 * bitmap drawables.  This normally would occur during an activity's
 	 * {@link Activity#onDestroy} method.
 	 */
 	public void cleanup()
@@ -85,7 +85,7 @@ public class ImageMemCache
 	}
 
 	/**
-	 * Sets the fallback drawable to return from fetch methods would
+	 * Sets the fallback drawable to return from fetch methods when they would
 	 * otherwise return null.  This mechanism is provided both as an
 	 * optimization and a convenience.
 	 */
