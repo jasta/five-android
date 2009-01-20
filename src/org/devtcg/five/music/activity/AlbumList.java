@@ -58,9 +58,9 @@ public class AlbumList extends Activity
 
 	private static final String QUERY_FIELDS[] =
 	  { Five.Music.Albums._ID, Five.Music.Albums.NAME,
-		Five.Music.Albums.FULL_NAME, Five.Music.Albums.ARTWORK,
-		Five.Music.Albums.ARTIST, Five.Music.Albums.ARTWORK_BIG,
-		Five.Music.Albums.ARTIST_ID };
+	    Five.Music.Albums.FULL_NAME, Five.Music.Albums.ARTWORK,
+	    Five.Music.Albums.ARTIST, Five.Music.Albums.ARTWORK_BIG,
+	    Five.Music.Albums.ARTIST_ID };
 	
 	private ListView mList;
 	private AlbumAdapter mAdapter;
@@ -194,25 +194,25 @@ public class AlbumList extends Activity
 		}
 
 		@Override
-        public View newView(Context context, Cursor cursor, ViewGroup parent)
-        {
-	        View row = mInflater.inflate(R.layout.album_list_item,
-	          parent, false);
+		public View newView(Context context, Cursor cursor, ViewGroup parent)
+		{
+			View row = mInflater.inflate(R.layout.album_list_item,
+			  parent, false);
 
-	        AlbumViewHolder holder = new AlbumViewHolder();
-	        row.setTag(holder);
+			AlbumViewHolder holder = new AlbumViewHolder();
+			row.setTag(holder);
 
-	        holder.artistName = (TextView)row.findViewById(R.id.artist_name);
-	        holder.albumName = (TextView)row.findViewById(R.id.album_name);
-	        holder.albumArtwork = (ImageView)row.findViewById(R.id.album_cover);
+			holder.artistName = (TextView)row.findViewById(R.id.artist_name);
+			holder.albumName = (TextView)row.findViewById(R.id.album_name);
+			holder.albumArtwork = (ImageView)row.findViewById(R.id.album_cover);
 
-	        CrossFadeDrawable transition =
-	          new CrossFadeDrawable(mCache.getFallback().getBitmap(), null);
-	        transition.setCrossFadeEnabled(true);
-	        holder.transition = transition;
+			CrossFadeDrawable transition =
+			  new CrossFadeDrawable(mCache.getFallback().getBitmap(), null);
+			transition.setCrossFadeEnabled(true);
+			holder.transition = transition;
 
-	        return row;
-        }
+			return row;
+		}
 		
 		private void setCursorText(Cursor c, TextView view, int idx,
 		  CharArrayBuffer buf)
@@ -224,8 +224,8 @@ public class AlbumList extends Activity
 		}
 
 		@Override
-        public void bindView(View view, Context context, Cursor cursor)
-        {
+		public void bindView(View view, Context context, Cursor cursor)
+		{
 			AlbumViewHolder holder = (AlbumViewHolder)view.getTag();
 
 			holder.albumId = cursor.getLong(mIdIdx);
@@ -248,7 +248,7 @@ public class AlbumList extends Activity
 			  holder.albumBuffer);
 			setCursorText(cursor, holder.artistName, mArtistNameIdx,
 			  holder.artistBuffer);
-	    }
+		}
 
 		public Cursor runQuery(CharSequence constraint)
 		{
@@ -291,9 +291,9 @@ public class AlbumList extends Activity
 		}
 
 		public int getImageColumnIndex()
-        {
+		{
 			return mAlbumArtworkIdx;
-        }
+		}
 	}
 
 	public static class AlbumViewHolder
