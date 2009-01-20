@@ -38,6 +38,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,12 +63,15 @@ public class AlbumList extends Activity
 	    Five.Music.Albums.FULL_NAME, Five.Music.Albums.ARTWORK,
 	    Five.Music.Albums.ARTIST, Five.Music.Albums.ARTWORK_BIG,
 	    Five.Music.Albums.ARTIST_ID };
-	
+
 	private ListView mList;
 	private AlbumAdapter mAdapter;
 	private IdleListDetector mImageLoader;
 
 	private static final ImageMemCache mCache = new ImageMemCache();
+
+	private static final int MENU_RETURN_LIBRARY = Menu.FIRST;
+	private static final int MENU_GOTO_PLAYER = Menu.FIRST + 1;
 
 	private Cursor getCursor(String selection, String[] args)
 	{
@@ -166,6 +171,42 @@ public class AlbumList extends Activity
 		}
 	};
 
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		super.onCreateOptionsMenu(menu);
+		
+		menu.add(0, MENU_RETURN_LIBRARY, 0, R.string.return_library)
+		  .setIcon(R.drawable.ic_menu_music_library);
+		menu.add(0, MENU_GOTO_PLAYER, 0, R.string.goto_player)
+		  .setIcon(R.drawable.ic_menu_playback);
+		
+		return true;
+	}
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+//		menu.findItem(MENU_GOTO_PLAYER).setVisible(mSongPlaying >= 0);
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch (item.getItemId())
+		{
+		case MENU_RETURN_LIBRARY:
+			Main.show(this);
+			return true;
+		case MENU_GOTO_PLAYER:
+			Player.show(this);
+			return true;
+		}
+
+		return false;
+	}
+    
 	private class AlbumAdapter extends CursorAdapter
 	  implements FilterQueryProvider, FastScrollView.SectionIndexer,
 	    ImageLoaderIdleListener.ImageLoaderAdapter
@@ -186,7 +227,7 @@ public class AlbumList extends Activity
 			mInflater = LayoutInflater.from(AlbumList.this);
 			mIdIdx = c.getColumnIndexOrThrow(Five.Music.Albums._ID);
 			mAlbumArtworkIdx = c.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK);
-			mAlbumNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.NAME);
+			mAlbumNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.FULL_NAME);
 			mArtistNameIdx = c.getColumnIndexOrThrow(Five.Music.Albums.ARTIST);
 
 			mIndexer = new AlphabetIndexer(AlbumList.this, c,
@@ -213,7 +254,7 @@ public class AlbumList extends Activity
 
 			return row;
 		}
-		
+
 		private void setCursorText(Cursor c, TextView view, int idx,
 		  CharArrayBuffer buf)
 		{
@@ -296,7 +337,7 @@ public class AlbumList extends Activity
 		}
 	}
 
-	public static class AlbumViewHolder
+	private static class AlbumViewHolder
 	  implements ImageLoaderIdleListener.ImageLoaderHolder
 	{
 		long albumId;
