@@ -2,15 +2,9 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
-   <parent>
-      <groupId>org.devtcg</groupId>
-      <artifactId>five</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
-   </parent>
-
    <modelVersion>4.0.0</modelVersion>
    <groupId>org.devtcg.five</groupId>
-   <artifactId>five-client</artifactId>
+   <artifactId>android-client</artifactId>
    <version>0.0.1-SNAPSHOT</version>
    <packaging>android:apk</packaging>
    <name>Five Client for Android</name>
@@ -21,9 +15,9 @@
          <version>1.0_r1</version>
       </dependency>
       <dependency>
-         <groupId>org.devtcg.syncml</groupId>
-         <artifactId>libsyncml</artifactId>
-         <version>0.0.1-SNAPSHOT</version>
+         <groupId>net.sf.kxml</groupId>
+         <artifactId>kxml2</artifactId>
+         <version>2.2.2</version>
       </dependency>
    </dependencies>
    <build>
