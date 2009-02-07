@@ -90,6 +90,8 @@ public class PlaylistService extends Service implements
 	 * changes to the playlist state at any time. */
 	final Object mBinderLock = new Object();
 
+	SongDownloadManager mManager; 
+
 	CacheManager mCacheMgr = null;
 
 	StreamMediaPlayer mPlayer = null;
@@ -172,6 +174,8 @@ public class PlaylistService extends Service implements
 	public void onDestroy()
 	{
 		Log.d(TAG, "onDestroy");
+
+		mManager.stopAllDownloads();
 
 		try {
 			saveState();
@@ -749,7 +753,6 @@ public class PlaylistService extends Service implements
 		preempt(nextId);
 	}
 
-	private SongDownloadManager mManager; 
 	private class SongDownloadManager extends DownloadManager
 	{
 		private final Map<String, Long> mUrlToSongMap =
