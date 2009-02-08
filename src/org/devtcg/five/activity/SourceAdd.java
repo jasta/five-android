@@ -1,5 +1,8 @@
 package org.devtcg.five.activity;
 
+import java.text.ParseException;
+import java.util.regex.Pattern;
+
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 
@@ -18,6 +21,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class SourceAdd extends Activity
 {
@@ -75,7 +79,7 @@ public class SourceAdd extends Activity
 		if (action.equals(Intent.ACTION_EDIT) == true)
 		{
 			String[] fields = { Five.Sources._ID,
-			  Five.Sources.NAME, Five.Sources.HOST };
+			  Five.Sources.NAME, Five.Sources.HOST, Five.Sources.PORT };
 			Cursor c = getContentResolver().query(data, fields,
 			  null, null, null);
 
@@ -85,7 +89,16 @@ public class SourceAdd extends Activity
 
 				mExisting = data;
 				mLabel.setText(c.getString(1));
-				mHostname.setText(c.getString(2));
+				
+				StringBuilder host = new StringBuilder(c.getString(2));
+				if (c.isNull(3) == false)
+				{
+					int port = c.getInt(3);
+					if (port != DEFAULT_PORT)
+						host.append(':').append(port);
+				}
+				
+				mHostname.setText(host.toString());
 			} finally {
 				c.close();
 			}
@@ -102,6 +115,30 @@ public class SourceAdd extends Activity
 
 	private OnClickListener mNextClick = new OnClickListener()
 	{
+		private void insertValues(ContentValues values, String name,
+		  String host)
+		  throws ParseException
+		{
+			values.put(Five.Sources.NAME, name);
+
+			int colon;
+			if ((colon = host.indexOf(':')) >= 0)
+			{
+				String port = host.substring(colon + 1);
+
+				if (colon == 0 || Pattern.matches("^\\d+$", port) == false)
+					throw new ParseException("Unable to parse hostname, expected <hostname>[:<port>]", colon);
+
+				values.put(Five.Sources.HOST, host.substring(0, colon));
+				values.put(Five.Sources.PORT, Integer.parseInt(port));
+			}
+			else
+			{
+				values.put(Five.Sources.HOST, host);
+				values.put(Five.Sources.PORT, DEFAULT_PORT);
+			}
+		}
+		
 		public void onClick(View v)
 		{
 			ContentValues values = new ContentValues();
@@ -111,10 +148,14 @@ public class SourceAdd extends Activity
 
 			if (TextUtils.isEmpty(name) == true)
 				name = "<Default>";
-
-			values.put(Five.Sources.NAME, name);
-			values.put(Five.Sources.HOST, host);
-			values.put(Five.Sources.PORT, DEFAULT_PORT);
+			
+			try {
+				insertValues(values, name, host);
+			} catch (ParseException e) {
+				Toast.makeText(SourceAdd.this, e.getMessage(),
+				  Toast.LENGTH_LONG).show();
+				return;
+			}
 
 			Uri uri;
 
