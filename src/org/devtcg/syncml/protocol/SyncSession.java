@@ -275,12 +275,12 @@ public class SyncSession
 								}
 
 								if (item.getTargetId() == null)
-									throw new Exception("db.insert did not setTargetId, but returned status 201");
+									throw new Exception("db.insert did not setTargetId, but returned status " + ret);
 
 								MapItem mitem = new MapItem();
 								mitem.setTargetId(item.getSourceId());
 								mitem.setSourceId(item.getTargetId());
-								
+
 								map.addItem(mitem);
 							}
 
