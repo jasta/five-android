@@ -263,7 +263,7 @@ public class SyncSession
 
 							subStatus.setStatus(ret);
 
-							if (ret != 201)
+							if (ret < 200 || ret >= 300)
 								updateAnchors = false;
 							else
 							{
@@ -307,7 +307,7 @@ public class SyncSession
 							else /* if (actCmd.getType().equals("Replace") == true) */
 								ret = db.update(item);
 
-							if (ret != 200)
+							if (ret < 200 || ret >= 300)
 								updateAnchors = false;
 
 							subStatus.setStatus(ret);
