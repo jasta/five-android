@@ -62,9 +62,9 @@ public class SyncItem
 				 * perhaps? */
 				if (type == XmlPullParser.END_TAG || type == XmlPullParser.START_TAG)
 				{
-					WbxmlParserWithOpaque hack = (WbxmlParserWithOpaque)xpp;
-					Object data = hack.myGetWapExtensionData();
-					assert hack.myGetWapCode() == Wbxml.OPAQUE;
+					WbxmlParser hack = (WbxmlParser)xpp;
+					Object data = hack.getWapExtensionData();
+					assert hack.getWapCode() == Wbxml.OPAQUE;
 					mData = (byte[])data;
 					xpp.next();
 					xpp.require(XmlPullParser.END_TAG, null, "Data");

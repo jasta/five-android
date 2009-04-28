@@ -43,8 +43,7 @@ public class SyncPackage
 	{
 		mSession = session;
 
-//		WbxmlParser p = SyncML.createParser();
-		WbxmlParser p = WbxmlParserWithOpaque.createSyncmlParser();
+		WbxmlParser p = SyncML.createParser();
 		p.setInput(msg, null);
 
 		processDocument(p);
