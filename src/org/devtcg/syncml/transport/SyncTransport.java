@@ -24,14 +24,14 @@ import org.devtcg.syncml.protocol.SyncAuthInfo;
 /**
  * Manages transport-specific connection details.
  */
-public abstract class SyncConnection
+public abstract class SyncTransport
 {
 	protected SyncAuthInfo mAuth;
 	protected String mTarget;
 	protected String mSource;
 	protected boolean mOpened;
 
-	public SyncConnection(String name)
+	public SyncTransport(String name)
 	{
 		mTarget = name;
 	}

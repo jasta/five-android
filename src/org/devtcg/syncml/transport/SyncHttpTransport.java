@@ -30,7 +30,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import org.devtcg.syncml.protocol.SyncPackage;
 
-public class SyncHttpConnection extends SyncConnection
+public class SyncHttpTransport extends SyncTransport
 {
 	protected HttpClient mClient;
 	protected HttpPost mLastMethod;
@@ -39,12 +39,12 @@ public class SyncHttpConnection extends SyncConnection
 
 	private InputStream mResponse;
 
-	public SyncHttpConnection(String uri)
+	public SyncHttpTransport(String uri)
 	{
 		this(uri, uri);
 	}
 
-	public SyncHttpConnection(String uri, String name)
+	public SyncHttpTransport(String uri, String name)
 	{
 		super(name);
 		mURI = uri;
@@ -136,7 +136,7 @@ public class SyncHttpConnection extends SyncConnection
 	public HttpClient getHttpClient()
 	{
 		if (mOpened == false)
-			throw new IllegalStateException("Open this SyncConnection first");
+			throw new IllegalStateException("Open this SyncTransport first");
 
 		if (mLastMethod != null)
 			throw new IllegalStateException("Invoke releaseConnection first");

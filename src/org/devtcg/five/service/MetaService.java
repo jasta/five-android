@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
-import org.devtcg.syncml.transport.SyncHttpConnection;
+import org.devtcg.syncml.transport.SyncHttpTransport;
 import org.devtcg.syncml.protocol.SyncAuthInfo;
 import org.devtcg.syncml.protocol.SyncSession;
 
@@ -184,7 +184,7 @@ public class MetaService extends Service
 			Log.i(TAG, "Synchronizing with " + name + " (" + url + "), " +
 			  "currently at revision " + revision + "...");
 
-			SyncHttpConnection server = new SyncHttpConnection(url);
+			SyncHttpTransport server = new SyncHttpTransport(url);
 
 			SyncAuthInfo info = 
 			  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);

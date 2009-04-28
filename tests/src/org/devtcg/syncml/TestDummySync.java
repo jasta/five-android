@@ -41,7 +41,7 @@ public class TestDummySync extends TestCase
 
 	public void testDummySync()
 	{
-		SyncHttpConnection server = new SyncHttpConnection(SYNC_URL);
+		SyncHttpTransport server = new SyncHttpTransport(SYNC_URL);
 
 		server.setAuthentication(SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE));
 		server.setSourceURI("IMEI:1234");
@@ -66,10 +66,10 @@ public class TestDummySync extends TestCase
 
 	private static class TestMapping implements DatabaseMapping
 	{
-		private SyncHttpConnection mConn;
+		private SyncHttpTransport mConn;
 		private long mNextId = 1;
 
-		public TestMapping(SyncHttpConnection conn)
+		public TestMapping(SyncHttpTransport conn)
 		{
 			mConn = conn;
 		}

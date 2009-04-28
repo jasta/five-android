@@ -33,7 +33,7 @@ import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.syncml.model.DatabaseMapping;
 import org.devtcg.syncml.protocol.SyncItem;
-import org.devtcg.syncml.transport.SyncHttpConnection;
+import org.devtcg.syncml.transport.SyncHttpTransport;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -52,7 +52,7 @@ public class MusicMapping implements DatabaseMapping
 {
 	private static final String TAG = "MusicMapping";
 
-	private SyncHttpConnection mConn;
+	private SyncHttpTransport mConn;
 	private String mBaseUrl;
 
 	protected MetaService.SyncHandler mHandler;
@@ -81,7 +81,7 @@ public class MusicMapping implements DatabaseMapping
 
 	private static final String mimePrefix = "application/x-fivedb-";
 
-	public MusicMapping(SyncHttpConnection conn, String baseUrl,
+	public MusicMapping(SyncHttpTransport conn, String baseUrl,
 	  ContentResolver content, MetaService.SyncHandler handler,
 	  long sourceId, long lastAnchor)
 	{

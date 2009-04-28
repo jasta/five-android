@@ -18,7 +18,7 @@ package org.devtcg.syncml.protocol;
 
 import java.util.UUID;
 import java.util.HashMap;
-import org.devtcg.syncml.transport.SyncConnection;
+import org.devtcg.syncml.transport.SyncTransport;
 import org.devtcg.syncml.model.DatabaseMapping;
 import java.io.ByteArrayOutputStream;
 
@@ -28,7 +28,7 @@ import java.io.ByteArrayOutputStream;
  */
 public class SyncSession
 {
-	protected SyncConnection mConn;
+	protected SyncTransport mConn;
 	protected String mId;
 	protected long mNextMsgId = 1;
 
@@ -41,12 +41,12 @@ public class SyncSession
 	public static final int ALERT_CODE_ONE_WAY_FROM_SERVER = 204;
 	public static final int ALERT_CODE_REFRESH_FROM_SERVER = 210;
 
-	public SyncSession(SyncConnection conn)
+	public SyncSession(SyncTransport conn)
 	{
 		this(conn, UUID.randomUUID().toString());
 	}
 
-	protected SyncSession(SyncConnection conn, String id)
+	protected SyncSession(SyncTransport conn, String id)
 	{
 		mConn = conn;
 		mId = id;
