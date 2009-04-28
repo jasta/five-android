@@ -66,7 +66,6 @@ public class SyncItem
 					Object data = hack.getWapExtensionData();
 					assert hack.getWapCode() == Wbxml.OPAQUE;
 					mData = (byte[])data;
-					xpp.next();
 					xpp.require(XmlPullParser.END_TAG, null, "Data");
 				}
 				else
