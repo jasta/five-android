@@ -25,6 +25,7 @@ import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.syncml.transport.SyncHttpTransport;
 import org.devtcg.syncml.protocol.SyncAuthInfo;
 import org.devtcg.syncml.protocol.SyncSession;
+import org.devtcg.util.ThreadUtilities;
 
 import android.app.Service;
 import android.content.ContentResolver;
@@ -323,13 +324,7 @@ public class MetaService extends Service
 			case MSG_END_SYNC:
 				mObservers.broadcastEndSync();
 
-				while (true)
-				{
-					try {
-						mSyncThread.join();
-						break;
-					} catch (InterruptedException e) {}
-				}
+				ThreadUtilities.joinUninterruptibly(mSyncThread);
 
 				synchronized(MetaService.this) {
 					mSyncing = false;
