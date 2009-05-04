@@ -44,9 +44,15 @@ public class SyncPackage
 		mSession = session;
 
 		WbxmlParser p = SyncML.createParser();
-		p.setInput(msg, null);
 
-		processDocument(p);
+		try {
+			p.setInput(msg, null);
+			processDocument(p);
+		} finally {
+			try {
+				msg.close();
+			} catch (IOException e) {}
+		}
 	}
 	
 	public void processDocument(XmlPullParser xpp)
