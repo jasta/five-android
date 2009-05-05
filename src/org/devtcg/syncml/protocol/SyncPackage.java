@@ -19,9 +19,11 @@ package org.devtcg.syncml.protocol;
 import java.util.ArrayList;
 
 import org.devtcg.syncml.parser.*;
+import org.devtcg.util.IOUtilities;
 
 import java.net.*;
 import java.io.*;
+
 import org.kxml2.wap.syncml.SyncML;
 import org.kxml2.wap.WbxmlParser;
 import org.xmlpull.v1.*;
@@ -39,20 +41,14 @@ public class SyncPackage
 	protected boolean mFinal = false;
 
 	public SyncPackage(SyncSession session, InputStream msg)
-	  throws Exception
+	  throws XmlPullParserException, IOException
 	{
 		mSession = session;
 
 		WbxmlParser p = SyncML.createParser();
 
-		try {
-			p.setInput(msg, null);
-			processDocument(p);
-		} finally {
-			try {
-				msg.close();
-			} catch (IOException e) {}
-		}
+		p.setInput(msg, null);
+		processDocument(p);
 	}
 	
 	public void processDocument(XmlPullParser xpp)
@@ -137,6 +133,11 @@ public class SyncPackage
 	public long getId()
 	{
 		return mID;
+	}
+	
+	public SyncSession getSession()
+	{
+		return mSession;
 	}
 
 	public boolean isFinal()

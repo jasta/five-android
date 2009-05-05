@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.IOException;
 import org.devtcg.syncml.protocol.SyncPackage;
 import org.devtcg.syncml.protocol.SyncAuthInfo;
+import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * Manages transport-specific connection details.
@@ -29,7 +30,6 @@ public abstract class SyncTransport
 	protected SyncAuthInfo mAuth;
 	protected String mTarget;
 	protected String mSource;
-	protected boolean mOpened;
 
 	public SyncTransport(String name)
 	{
@@ -66,14 +66,8 @@ public abstract class SyncTransport
 		mSource = ident;
 	}
 
-	public boolean isOpened()
-	{
-		return mOpened;
-	}
-
-	public abstract void open();
-	public abstract void sendPackage(SyncPackage msg) throws Exception;
-	public abstract InputStream recvPackage() throws Exception;
-	public abstract void releaseConnection() throws IOException;
-	public abstract void close();
+	public abstract SyncPackage sendMessage(SyncPackage msg)
+	  throws IOException, XmlPullParserException;
+	
+	public abstract void release();
 }

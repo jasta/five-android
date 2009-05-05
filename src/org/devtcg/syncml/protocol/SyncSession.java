@@ -20,7 +20,10 @@ import java.util.UUID;
 import java.util.HashMap;
 import org.devtcg.syncml.transport.SyncTransport;
 import org.devtcg.syncml.model.DatabaseMapping;
+import org.xmlpull.v1.XmlPullParserException;
+
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
  * SyncML session, containing a single message-passing instance with the
@@ -31,6 +34,8 @@ public class SyncSession
 	protected SyncTransport mConn;
 	protected String mId;
 	protected long mNextMsgId = 1;
+	
+	protected boolean mOpened;
 
 	protected HashMap<Long, BaseCommand> mPending =
 	  new HashMap<Long, BaseCommand>();
@@ -69,12 +74,17 @@ public class SyncSession
 
 	public void open()
 	{
-		mConn.open();
+		/* OK? */
+		mOpened = true;
 	}
-	
+
 	public void close()
 	{
-		mConn.close();
+		/* Maybe not the right semantics here? */
+		if (mOpened == true)
+			mConn.release();
+
+		mOpened = false;
 	}
 
 	public void sync(DatabaseMapping db)
@@ -85,16 +95,13 @@ public class SyncSession
 
 	/* This is absolute rubbish.  Should be redesigned using java.nio.*, and
 	 * far less sucky. */
-	public void sync(DatabaseMapping db, int code)
-	  throws Exception
+	public void sync(DatabaseMapping db, int code) 
+	  throws IOException, XmlPullParserException
 	{
-		if (mConn.isOpened() == false)
+		if (mOpened == false)
 			throw new IllegalStateException("Must call open() first.");
 
-		syncInit(db, code);	
-
-		SyncPackage in = new SyncPackage(this, mConn.recvPackage());
-		mConn.releaseConnection();
+		SyncPackage in = syncInit(db, code);
 
 		SyncPackage out = obtainSyncPackage();
 
@@ -177,7 +184,7 @@ public class SyncSession
 
 		out.addCommand(dummySync);
 
-		mConn.sendPackage(out);
+		in = mConn.sendMessage(out);
 
 		/* To implement <MoreData /> */
 		ByteArrayOutputStream mLastItemData = null;
@@ -189,8 +196,6 @@ public class SyncSession
 
 		while (true)
 		{
-			in = new SyncPackage(this, mConn.recvPackage());
-			mConn.releaseConnection();
 			out = obtainSyncPackage();
 
 			n = in.getCommandLength();
@@ -265,7 +270,7 @@ public class SyncSession
 
 							if (ret < 200 || ret >= 300)
 								updateAnchors = false;
-							else
+							else if (item.getTargetId() != null)
 							{
 								if (map == null)
 								{
@@ -273,9 +278,6 @@ public class SyncSession
 									map.setTargetId(db.getName());
 									map.setSourceId(db.getName());
 								}
-
-								if (item.getTargetId() == null)
-									throw new Exception("db.insert did not setTargetId, but returned status " + ret);
 
 								MapItem mitem = new MapItem();
 								mitem.setTargetId(item.getSourceId());
@@ -344,15 +346,14 @@ public class SyncSession
 				out.addCommand(alertNext);
 				mPending.put(alertNext.getId(), alertNext);
 			}
+			
+			boolean isFinal = in.isFinal();
 
-			mConn.sendPackage(out);
+			in = mConn.sendMessage(out);
 
-			if (in.isFinal() == true)
+			if (isFinal == true)
 				break;
 		}
-
-		in = new SyncPackage(this, mConn.recvPackage());
-		mConn.releaseConnection();
 
 		n = in.getCommandLength();
 
@@ -375,7 +376,7 @@ public class SyncSession
 				int status = statusCmd.getStatus();
 
 				if (status != 200)
-					throw new Exception("Shit, didn't accept our changes!");
+					throw new RuntimeException("Shit, didn't accept our changes!");
 			}
 		}
 
@@ -386,8 +387,8 @@ public class SyncSession
 		db.endSync(updateAnchors);
 	}
 
-	private void syncInit(DatabaseMapping db, int code)
-	  throws Exception
+	private SyncPackage syncInit(DatabaseMapping db, int code)
+	  throws IOException, XmlPullParserException
 	{
 		SyncPackage msg = obtainSyncPackage();
 
@@ -397,8 +398,8 @@ public class SyncSession
 		msg.setMaxMsgSize(MAX_MSG_SIZE);
 		msg.addCommand(cmd);
 		mPending.put(cmd.getId(), cmd);
-
-		mConn.sendPackage(msg);
+		
+		return mConn.sendMessage(msg);
 	}
 
 	protected SyncPackage obtainSyncPackage()
@@ -411,8 +412,8 @@ public class SyncSession
 	{
 		try
 		{
-			if (mConn.isOpened() == true)
-				mConn.close();
+			if (mOpened == true)
+				close();
 		}
 		finally
 		{

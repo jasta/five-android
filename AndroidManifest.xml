@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="org.devtcg.five">
 
+	<!-- We don't really require SDK version 3, but we do require Android 1.5
+	   - for access to kxml2 2.3.0.
+		- TODO: Should be fixed. -->
+	<uses-sdk android:minSdkVersion="3" />
+
 	<!-- Access PROPERTY_IMEI for unique device signature. 
 	   - TODO: Generate my own unique id. -->
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
