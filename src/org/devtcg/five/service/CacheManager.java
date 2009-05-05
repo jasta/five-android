@@ -17,6 +17,7 @@
 package org.devtcg.five.service;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -194,11 +195,17 @@ OUTER:
 		if (deleteSufficientSpace(sdcard, size) == false)
 			throw new OutOfSpaceException();
 
-		String path = sdcard.getAbsolutePath() + "/five/cache/" +
-		  sourceId + '/' + contentId +
-		  '.' + getExtensionFromMimeType(mime);
+		String basePath = sdcard.getAbsolutePath() + "/five/cache/" + sourceId;
+		File basePathFile = new File(basePath);
+		
+		if (basePathFile.exists() == false)
+		{
+			if (basePathFile.mkdirs() == false)
+				throw new CacheAllocationException("Could not create cache directory: " + basePath);
+		}
 
-		return path;
+		return basePath + '/' + contentId + '.' +
+		  getExtensionFromMimeType(mime);
 	}
 		
 	/**
