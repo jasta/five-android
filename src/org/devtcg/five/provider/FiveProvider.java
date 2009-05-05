@@ -182,7 +182,7 @@ public class FiveProvider extends ContentProvider
 
 		b.append(path);
 		File file = new File(b.toString());
-		
+
 		if (file.exists() == true)
 			return b;
 
@@ -191,20 +191,44 @@ public class FiveProvider extends ContentProvider
 
 		return b;
 	}
-
-	private static int stringModeToInt(String mode)
+	
+    private static int stringModeToInt(Uri uri, String mode)
 	  throws FileNotFoundException
 	{
-		if (mode.equals("rw") == true)
+		int modeBits;
+		if ("r".equals(mode))
 		{
-			return ParcelFileDescriptor.MODE_CREATE | 
-			  ParcelFileDescriptor.MODE_READ_WRITE |
-			  ParcelFileDescriptor.MODE_TRUNCATE;
+			modeBits = ParcelFileDescriptor.MODE_READ_ONLY;
+		}
+		else if ("w".equals(mode) || "wt".equals(mode))
+		{
+			modeBits = ParcelFileDescriptor.MODE_WRITE_ONLY
+					| ParcelFileDescriptor.MODE_CREATE
+					| ParcelFileDescriptor.MODE_TRUNCATE;
+		}
+		else if ("wa".equals(mode))
+		{
+			modeBits = ParcelFileDescriptor.MODE_WRITE_ONLY
+					| ParcelFileDescriptor.MODE_CREATE
+					| ParcelFileDescriptor.MODE_APPEND;
+		}
+		else if ("rw".equals(mode))
+		{
+			modeBits = ParcelFileDescriptor.MODE_READ_WRITE
+					| ParcelFileDescriptor.MODE_CREATE;
+		}
+		else if ("rwt".equals(mode))
+		{
+			modeBits = ParcelFileDescriptor.MODE_READ_WRITE
+					| ParcelFileDescriptor.MODE_CREATE
+					| ParcelFileDescriptor.MODE_TRUNCATE;
 		}
 		else
 		{
-			return ParcelFileDescriptor.MODE_READ_ONLY;
+			throw new FileNotFoundException("Bad mode for " + uri + ": " + mode);
 		}
+
+		return modeBits;
 	}
 
 	@Override
@@ -253,7 +277,7 @@ public class FiveProvider extends ContentProvider
 				ensureSdCardPath("cache/" + c.getLong(0) + "/");
 
 				file = new File(c.getString(1));
-				modeint = stringModeToInt(mode);
+				modeint = stringModeToInt(uri, mode);
 
 				Log.i(TAG, "Opening " + file.getAbsolutePath() + " in mode " + mode);
 
@@ -276,7 +300,7 @@ public class FiveProvider extends ContentProvider
 				filename = path.append(albumId).append("-big").toString();
 
 			file = new File(filename);
-			modeint = stringModeToInt(mode);
+			modeint = stringModeToInt(uri, mode);
 
 			return ParcelFileDescriptor.open(file, modeint);
 
@@ -286,7 +310,7 @@ public class FiveProvider extends ContentProvider
 			path = ensureSdCardPath("music/artist/");
 
 			file = new File(path.append(artistId).toString());
-			modeint = stringModeToInt(mode);
+			modeint = stringModeToInt(uri, mode);
 
 			return ParcelFileDescriptor.open(file, modeint);			
 
