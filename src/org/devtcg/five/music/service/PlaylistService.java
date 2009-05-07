@@ -77,7 +77,7 @@ public class PlaylistService extends Service implements
   MediaPlayer.OnCompletionListener, MediaPlayer.OnPreparedListener
 {
 	public static final String TAG = "PlaylistService";
-	
+
 	private static final String STATE_FILE = "playlist_state";
 	private static final int STATE_FILE_FORMAT = 3;
 
@@ -162,6 +162,10 @@ public class PlaylistService extends Service implements
 		} catch (IOException e) {
 			Log.e(TAG, "Couldn't recover state!", e);
 		}
+		
+		/* Detect when the headphone jack is suddenly unplugged. */
+		registerReceiver(mNoisyReceiver,
+		  new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
 
 		/* Detect changes in the network state to adjust behaviour accordingly.
 		 * For instance, if the connectivity leaves and then returns, restart
@@ -183,6 +187,7 @@ public class PlaylistService extends Service implements
 			Log.e(TAG, "Couldn't save state!", e);
 		}
 
+		unregisterReceiver(mNoisyReceiver);
 		unregisterReceiver(mConnectivityReceiver);
 
 		TelephonyManager tm =
@@ -291,6 +296,17 @@ public class PlaylistService extends Service implements
 				inf.close();
 		}
 	}
+	
+	private final BroadcastReceiver mNoisyReceiver = new BroadcastReceiver()
+	{
+		public void onReceive(Context context, Intent intent)
+		{
+			try {
+				if (mBinder.isPlaying() == true && mBinder.isPaused() == false)
+					mBinder.pause();
+			} catch (RemoteException e) {}
+		}
+	};
 	
 	/* Logic taken from packages/apps/Music.  Will pause when an incoming
 	 * call rings (volume > 0), or if a call (incoming or outgoing) is
@@ -1140,7 +1156,7 @@ public class PlaylistService extends Service implements
 				boolean ret = playInternal(songId);
 				assert ret == true;
 			}
-
+			
 			mMoveListeners.broadcastOnPlay();
 		}
 
@@ -1159,7 +1175,7 @@ public class PlaylistService extends Service implements
 
 				mPaused = true;
 			}
-
+			
 			mMoveListeners.broadcastOnPause();
 		}
 
@@ -1188,7 +1204,7 @@ public class PlaylistService extends Service implements
 
 				mPaused = false;
 			}
-
+			
 			mMoveListeners.broadcastOnUnpause();
 		}
 
@@ -1211,7 +1227,7 @@ public class PlaylistService extends Service implements
 				mPaused = false;
 				mPlaying = false;
 			}
-
+			
 			mMoveListeners.broadcastOnStop();
 		}
 
