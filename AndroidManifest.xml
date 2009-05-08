@@ -78,9 +78,25 @@
 
 		<activity android:name=".music.activity.ArtistAlbumList" />
 
-		<activity android:name=".music.activity.SongList" android:label="@string/tracks_title" />
+		<activity android:name=".music.activity.SongList" android:label="@string/tracks_title">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<data android:mimeType="vnd.android.cursor.item/vnd.five.music.playlists" />
+			</intent-filter>
+		</activity>
 
 		<activity android:name=".music.activity.PlaylistList" android:label="@string/playlists_title" />
+
+		<activity-alias android:name=".music.activity.PlaylistListShortcut"
+			android:targetActivity=".music.activity.PlaylistList"
+			android:label="@string/playlists_shortcut_title"
+			android:icon="@drawable/ic_launcher_shortcut_music_playlist">
+			<intent-filter>
+				<action android:name="android.intent.action.CREATE_SHORTCUT" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+		</activity-alias>
 
 		<activity
 			android:name=".music.activity.Player"

@@ -24,6 +24,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -41,6 +42,8 @@ public class PlaylistList extends Activity implements ViewBinder
 	
 	private ListView mList;
 	private EfficientCursorAdapter mAdapter;
+	
+	private boolean mCreateShortcut = false;
 
 	private static final String QUERY_FIELDS[] =
 	  { Five.Music.Playlists._ID, Five.Music.Playlists.NAME,
@@ -70,8 +73,11 @@ public class PlaylistList extends Activity implements ViewBinder
 		if (i.getData() == null)
 			i.setData(Five.Music.Playlists.CONTENT_URI);
 
-		if (i.getAction() == null)
+		String action = i.getAction();
+		if (action == null)
 			i.setAction(Intent.ACTION_VIEW);
+		else if (action.equals(Intent.ACTION_CREATE_SHORTCUT) == true)
+			mCreateShortcut = true;
 
 		Cursor c = getCursor(null, null);
 
@@ -119,10 +125,13 @@ public class PlaylistList extends Activity implements ViewBinder
 	{
 		super.onCreateOptionsMenu(menu);
 		
-		menu.add(0, MENU_RETURN_LIBRARY, 0, R.string.return_library)
-		  .setIcon(R.drawable.ic_menu_music_library);
-		menu.add(0, MENU_GOTO_PLAYER, 0, R.string.goto_player)
-		  .setIcon(R.drawable.ic_menu_playback);
+		if (mCreateShortcut == false)
+		{
+			menu.add(0, MENU_RETURN_LIBRARY, 0, R.string.return_library)
+			.setIcon(R.drawable.ic_menu_music_library);
+			menu.add(0, MENU_GOTO_PLAYER, 0, R.string.goto_player)
+			.setIcon(R.drawable.ic_menu_playback);
+		}
 		
 		return true;
 	}
@@ -158,20 +167,37 @@ public class PlaylistList extends Activity implements ViewBinder
 
 			Intent chosen = new Intent();
 
-			chosen.setData(i.getData().buildUpon()
-			  .appendEncodedPath(String.valueOf(id)).build());
+			chosen.setDataAndType(i.getData().buildUpon()
+			  .appendEncodedPath(String.valueOf(id)).build(),
+			  Five.Music.Playlists.CONTENT_ITEM_TYPE);
 
 			Cursor c = (Cursor)av.getItemAtPosition(pos);
 
 			chosen.putExtra("playlistId", id);
-			chosen.putExtra("playlistName",
-			  c.getString(c.getColumnIndexOrThrow(Five.Music.Playlists.NAME)));
-
-//			String action = i.getAction();
 			
+			String playlistName =
+			  c.getString(c.getColumnIndexOrThrow(Five.Music.Playlists.NAME));
+			chosen.putExtra("playlistName", playlistName);
+
 			chosen.setAction(Intent.ACTION_VIEW);
-			chosen.setClass(PlaylistList.this, SongList.class);
-			startActivity(chosen);
+			
+			if (mCreateShortcut == true)
+			{
+				Intent shortcut = new Intent();
+				shortcut.putExtra(Intent.EXTRA_SHORTCUT_INTENT, chosen);
+				shortcut.putExtra(Intent.EXTRA_SHORTCUT_NAME, playlistName);
+				shortcut.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
+				  Intent.ShortcutIconResource.fromContext(PlaylistList.this,
+				    R.drawable.ic_launcher_shortcut_music_playlist));
+
+	            setResult(RESULT_OK, shortcut);
+	            finish();
+			}
+			else
+			{
+				chosen.setClass(PlaylistList.this, SongList.class);
+				startActivity(chosen);
+			}
 		}
 	};
 }
