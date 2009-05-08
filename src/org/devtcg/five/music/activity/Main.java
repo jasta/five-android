@@ -62,7 +62,7 @@ public class Main extends PlaylistServiceActivity
 	@Override
 	protected void onInitUI()
 	{
-		setContentView(R.layout.main);
+		setContentView(R.layout.music_library);
 		
 		mNowPlaying = findViewById(R.id.nowplaying);
 		mTitle = (TextView)findViewById(R.id.title);
