@@ -80,7 +80,6 @@
 
 		<activity android:name=".music.activity.SongList" android:label="@string/tracks_title" />
 
-		<!-- XXX: Rename to PlaylistList -->
 		<activity android:name=".music.activity.PlaylistList" android:label="@string/playlists_title" />
 
 		<activity
