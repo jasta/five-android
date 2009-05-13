@@ -70,6 +70,7 @@ public class PlaybackBar extends ViewSwitcher
 	{
 		SeekBar current = (SeekBar)getCurrentView();
 		SeekBar hidden = (SeekBar)getNextView();
+		hidden.setMax(current.getMax());
 		hidden.setProgress(current.getProgress());
 		hidden.setSecondaryProgress(0);
 		hidden.setEnabled(current.isEnabled());
