@@ -50,6 +50,10 @@ public class PlaybackBar extends ViewSwitcher
 		mChangeListener = l;
 		mCurrent.setOnSeekBarChangeListener(l);
 	}
+	
+	public void setKeyProgressIncrement(int increment) {
+		mCurrent.setKeyProgressIncrement(increment);
+	}
 
 	public void setMax(int max)
 	{
@@ -70,6 +74,7 @@ public class PlaybackBar extends ViewSwitcher
 	{
 		SeekBar current = (SeekBar)getCurrentView();
 		SeekBar hidden = (SeekBar)getNextView();
+		hidden.setKeyProgressIncrement(mCurrent.getKeyProgressIncrement());
 		hidden.setMax(current.getMax());
 		hidden.setProgress(current.getProgress());
 		hidden.setSecondaryProgress(0);

@@ -150,6 +150,7 @@ public class Player extends PlaylistServiceActivity
 		mPlaylistPos = (TextView)mAlbumCover.findViewById(R.id.playlist_position);
 		
 		mPlaybackInfo = (PlaybackBar)mAlbumCover.findViewById(R.id.playback_info);
+		mPlaybackInfo.setKeyProgressIncrement(10);
 		mPlaybackInfo.setOnSeekBarChangeListener(mSeeked);
 
 		mControlPrev = (ImageButton)mAlbumCover.findViewById(R.id.control_prev);
