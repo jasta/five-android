@@ -17,8 +17,4 @@
 
 <resources>
 	<drawable name="white">#ffffffff</drawable>
-	<drawable name="gray">#ffcccccc</drawable>
-	<drawable name="black">#ff000000</drawable>
-	<drawable name="translucent_background">#99222222</drawable>
-	<drawable name="header">#ff363952</drawable>
 </resources>

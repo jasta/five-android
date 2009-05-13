@@ -30,15 +30,11 @@
 	<string name="goto_player">Playback</string>
 	<string name="shuffle_all">Shuffle</string>
 
-	<string name="lastfm_top_albums_title">Last.fm: Top Albums</string>
-	<string name="lastfm_top_artists_title">Last.fm: Top Artists</string>
 	<string name="alphabet">\u0020ABCDEFGHIJKLMNOPQRSTUVWXYZ</string>
 
 	<string name="source_info_title">Source Information</string>
 	<string name="source_add_title">Add Five Server</string>
 	<string name="source_check_settings_title">Checking connection</string>
-
-	<string name="source_list_title">Five Sync</string>
 
 	<string name="setup_begin">Welcome to Five setup!\n\nTo use Five, you must have installed the Five server on your desktop PC.\n\nClick Next to begin configuration.</string>
 
