@@ -25,7 +25,7 @@ import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.syncml.transport.SyncHttpTransport;
 import org.devtcg.syncml.protocol.SyncAuthInfo;
 import org.devtcg.syncml.protocol.SyncSession;
-import org.devtcg.util.ThreadUtilities;
+import org.devtcg.util.CancelableThread;
 
 import android.app.Service;
 import android.content.ContentResolver;
@@ -161,14 +161,14 @@ public class MetaService extends Service
 				}
 
 				mSyncing = false;
-				mSyncThread.shutdown();
+				mSyncThread.requestCancelAndWait();
 
 				return false;
 			}
 		}
 	};
 
-	private class SyncThread extends Thread
+	private class SyncThread extends CancelableThread
 	{
 		private final String[] QUERY_FIELDS = new String[] {
 		  Five.Sources._ID, Five.Sources.NAME,
@@ -286,10 +286,9 @@ public class MetaService extends Service
 			mWakeLock.release();
 		}
 
-		public void shutdown()
+		@Override
+		protected void onRequestCancel()
 		{
-			interrupt();
-
 			synchronized(this)
 			{
 				if (mActive != null)
@@ -324,7 +323,7 @@ public class MetaService extends Service
 			case MSG_END_SYNC:
 				mObservers.broadcastEndSync();
 
-				ThreadUtilities.joinUninterruptibly(mSyncThread);
+				mSyncThread.joinUninterruptibly();
 
 				synchronized(MetaService.this) {
 					mSyncing = false;
