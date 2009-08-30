@@ -38,6 +38,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.devtcg.util.CancelableThread;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -144,13 +145,11 @@ public abstract class DownloadManager
 	{
 		if (d != null)
 		{
-			d.abort();
-
 			/* It's important that we synchronously join this thread as an
 			 * abort causes the HttpClient instance we use to shutdown
 			 * and recreate.  It's important that we don't then schedule
 			 * some new download on the soon-to-be-closed instance. */
-			d.joinUninterruptibly();
+			d.requestCancelAndWait();
 		}
 	}
 	
@@ -236,7 +235,7 @@ public abstract class DownloadManager
 
 	public abstract void onFinished(String url);
 
-	public static class Download extends Thread
+	public static class Download extends CancelableThread
 	{
 		private static final int BUFFER_SIZE = 2048;
 
@@ -301,20 +300,21 @@ public abstract class DownloadManager
 			return mStateMsg;
 		}
 
-		public synchronized void abort()
+		@Override
+		protected void onRequestCancel()
 		{
-			mState = STATE_ABORTED;
-			mManager.onStateChange(mUrl, STATE_ABORTED, null);
+			synchronized(this) {
+				mState = STATE_ABORTED;
+				mManager.onStateChange(mUrl, STATE_ABORTED, null);
 
-			interrupt();
+				if (mMethod != null)
+					mMethod.abort();
 
-			if (mMethod != null)
-				mMethod.abort();
-
-			/* We've changed the state away from paused so this should
-			 * work just fine to break out of that loop. */
-			synchronized(mPauseLock) {
-				mPauseLock.notify();
+				/* We've changed the state away from paused so this should
+				 * work just fine to break out of that loop. */
+				synchronized(mPauseLock) {
+					mPauseLock.notify();
+				}
 			}
 		}
 
@@ -624,17 +624,6 @@ DOWNLOAD_RETRY_LOOP:
 			}
 
 			mManager.removeDownload(mUrl);
-		}
-
-		public void joinUninterruptibly()
-		{
-			while (true)
-			{
-				try {
-					join();
-					break;
-				} catch (InterruptedException e) {}
-			}
 		}
 
 		private static class AbortedException extends Exception {}

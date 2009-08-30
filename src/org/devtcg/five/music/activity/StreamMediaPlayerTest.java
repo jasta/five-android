@@ -143,7 +143,7 @@ public class StreamMediaPlayerTest extends Activity
 				Toast.makeText(StreamMediaPlayerTest.this,
 				  "Fatal MediaPlayer error: " + e.toString(), Toast.LENGTH_LONG)
 				    .show();
-				dl.abort();
+				mManager.stopDownload(dl);
 				player.reset();
 				return;
 			}
