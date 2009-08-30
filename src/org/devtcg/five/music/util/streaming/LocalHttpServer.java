@@ -59,6 +59,8 @@ public abstract class LocalHttpServer extends Thread
 	
 	public LocalHttpServer()
 	{
+		super("LocalHttpServer");
+
 		mParams = new BasicHttpParams();
 		mParams
 		  .setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 5000)

@@ -18,6 +18,26 @@ public abstract class CancelableThread extends Thread
 {
 	private volatile boolean mCanceled = false;
 
+	public CancelableThread()
+	{
+		super();
+	}
+
+	public CancelableThread(Runnable runnable, String threadName)
+	{
+		super(runnable, threadName);
+	}
+
+	public CancelableThread(Runnable runnable)
+	{
+		super(runnable);
+	}
+
+	public CancelableThread(String threadName)
+	{
+		super(threadName);
+	}
+
 	public void requestCancel()
 	{
 		if (mCanceled == true)

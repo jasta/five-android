@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -239,6 +240,8 @@ public abstract class DownloadManager
 	{
 		private static final int BUFFER_SIZE = 2048;
 
+		private static final AtomicInteger mCount = new AtomicInteger(1);
+
 		private final DownloadManager mManager;
 		private final String mUrl;
 		private final File mDest;
@@ -266,6 +269,8 @@ public abstract class DownloadManager
 		  long resumeFrom)
 		  throws IOException
 		{
+			super("Download #" + mCount.getAndIncrement() + ": " + url);
+
 			mManager = mgr;
 			mUrl = url;
 			mDest = new File(path);
