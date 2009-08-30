@@ -14,8 +14,12 @@
 
 package org.devtcg.util;
 
+import android.util.Log;
+
 public abstract class CancelableThread extends Thread
 {
+	public static final String TAG = "CancelableThread";
+
 	private volatile boolean mCanceled = false;
 
 	public CancelableThread()
@@ -64,6 +68,9 @@ public abstract class CancelableThread extends Thread
 
 	public void joinUninterruptibly()
 	{
+		long startTime;
+		startTime = System.currentTimeMillis();
+
 		while (true)
 		{
 			try {
@@ -71,5 +78,8 @@ public abstract class CancelableThread extends Thread
 				break;
 			} catch (InterruptedException e) {}
 		}
+
+		long elapsed = System.currentTimeMillis() - startTime;
+		Log.e(TAG, toString() + " took " + elapsed + "ms to join.");
 	}
 }
