@@ -52,27 +52,28 @@ public final class Sources
 		  new String[] { Five.Sources.HOST, Five.Sources.PORT },
 		  null, null, null);
 
-		if (c.getCount() == 0)
-			throw new IllegalStateException("No source record found for id=" + sourceId);
+		try {
+			if (c.getCount() == 0)
+				throw new IllegalArgumentException("No source record found for id=" + sourceId);
 
-		c.moveToFirst();
+			c.moveToFirst();
 
-		StringBuilder url = new StringBuilder();
+			StringBuilder url = new StringBuilder();
 
-		url.append("http://");
-		url.append(c.getString(0));
-		url.append(':');
-		url.append(c.getString(1));
-		url.append("/content/");
-		url.append(contentId);
+			url.append("http://");
+			url.append(c.getString(0));
+			url.append(':');
+			url.append(c.getString(1));
+			url.append("/content/");
+			url.append(contentId);
 
-		try
-		{
-			return new URL(url.toString());
-		}
-		catch (MalformedURLException e)
-		{
-			throw new IllegalStateException("Database in inconsistent state: " + url);
+			try {
+				return new URL(url.toString());
+			} catch (MalformedURLException e) {
+				throw new IllegalStateException("Database in inconsistent state: " + url);
+			}
+		} finally {
+			c.close();
 		}
 	}
 }
