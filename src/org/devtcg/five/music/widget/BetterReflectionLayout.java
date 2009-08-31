@@ -56,7 +56,6 @@ public class BetterReflectionLayout extends ViewGroup
 	public void setDividerDrawable(Drawable d)
 	{
 		mDivider = d;
-		Log.d(TAG, "mDivider height=" + d.getIntrinsicHeight());
 	}
 
 	public void setImageResource(int id)
@@ -127,8 +126,6 @@ public class BetterReflectionLayout extends ViewGroup
 	@Override
 	protected void onLayout(boolean changed, int l, int t, int r, int b)
 	{
-		Log.i(TAG, "onLayout()");
-
 		int selfw = getMeasuredWidth();
 		int selfh = getMeasuredHeight();
 
@@ -266,8 +263,6 @@ public class BetterReflectionLayout extends ViewGroup
 				mScaledPoolRect.top = (int)(mPoolRect.top * mScaleY);
 				mScaledPoolRect.bottom = (int)(mPoolRect.bottom * mScaleY);
 			}
-
-			Log.i(TAG, "scale=" + mScaleX + "," + mScaleY);
 
 			super.onBoundsChange(bounds);
 		}
