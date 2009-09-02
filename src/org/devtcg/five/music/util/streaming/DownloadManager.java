@@ -435,14 +435,15 @@ public abstract class DownloadManager
 				HttpEntity ent = null;
 				
 				try {
-					HttpResponse resp;
-					
 					/* Synchronization is necessary as we need to
 					 * reset the mClient instance to work around a 
-					 * connection release bug in HttpClient 4.x. */ 
+					 * connection release bug in HttpClient 4.x. */
+					HttpClient client;
 					synchronized(this) {
-						resp = mClient.execute(mMethod);
+						client = mClient;
 					}
+
+					HttpResponse resp = client.execute(mMethod);
 					
 					setState(STATE_CONNECTED);
 
