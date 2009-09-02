@@ -336,7 +336,7 @@ public abstract class DownloadManager
 		
 		public void retry()
 		{
-			Log.i(TAG, "Forcing retry: " + mUrl);
+			Log.i(DownloadManager.TAG, "Forcing retry: " + mUrl);
 
 			assert isPaused() == true;
 			
@@ -558,7 +558,8 @@ DOWNLOAD_RETRY_LOOP:
 					mManager.onFinished(mUrl);
 					break;
 				} catch (Exception e) {
-					Log.d(TAG, "Download of " + mUrl + " failed: " + e.toString());
+					Log.d(DownloadManager.TAG,
+						"Download of " + mUrl + " failed: " + e.toString());
 
 					switch (mState)
 					{
@@ -599,7 +600,8 @@ DOWNLOAD_RETRY_LOOP:
 				{
 					/* Wait until we are manually restarted or stopped.  Will
 					 * never expire. */
-					Log.i(TAG, "Waiting indefinitely to retry failed download: " + mUrl);
+					Log.i(DownloadManager.TAG,
+						"Waiting indefinitely to retry failed download: " + mUrl);
 					
 					synchronized(mPauseLock) {
 						try {
@@ -612,20 +614,20 @@ DOWNLOAD_RETRY_LOOP:
 				{
 					/* Wait longer after each failed attempt. */
 					int wait = RETRY_DISTANCE[mAttempts];
-					Log.i(TAG, "Waiting " + wait +
+					Log.i(DownloadManager.TAG, "Waiting " + wait +
 					  " seconds to retry failed download: " + mUrl);
 					try {
 						Thread.sleep(wait * 1000);
 					} catch (InterruptedException e) {}
 				}
 
-				Log.i(TAG, "Retrying download: " + mUrl);
+				Log.i(DownloadManager.TAG, "Retrying download: " + mUrl);
 			}
 
 			try {
 				mOut.close();
 			} catch (IOException e) {
-				Log.e(TAG, "TODO: HANDLE ME", e);
+				Log.e(DownloadManager.TAG, "TODO: HANDLE ME", e);
 			}
 
 			mManager.removeDownload(mUrl);
