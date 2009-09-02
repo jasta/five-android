@@ -74,7 +74,8 @@ import android.text.TextUtils;
  *
  * <pre>context.setAttribute(ClientContext.COOKIE_STORE, cookieStore);</pre>
  * 
- * {@hide}
+ * <p>Uses an alternate ClientConnectionManager ultimately to work around
+ * HARMONY-6326.</p>
  */
 public final class FailfastHttpClient implements HttpClient {
         
@@ -126,7 +127,7 @@ public final class FailfastHttpClient implements HttpClient {
         schemeRegistry.register(new Scheme("http",
                 PlainSocketFactory.getSocketFactory(), 80));
         ClientConnectionManager manager =
-                new ThreadSafeClientConnManager(params, schemeRegistry);
+                new HackThreadSafeClientConnManager(params, schemeRegistry);
 
         // We use a factory method to modify superclass initialization
         // parameters without the funny call-a-static-method dance.

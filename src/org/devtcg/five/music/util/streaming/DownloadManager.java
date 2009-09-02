@@ -315,6 +315,18 @@ public abstract class DownloadManager
 				if (mMethod != null)
 					mMethod.abort();
 
+				/*
+				 * HttpClient4 that ships with Android apparently has issues
+				 * releasing connections properly when their method is
+				 * prematurely aborted. To work around this issue, we recreate
+				 * the HttpClient object on abort only.
+				 */
+				if (mClient != null)
+				{
+					mClient.close();
+					mClient = FailfastHttpClient.newInstance(null);
+				}
+
 				/* We've changed the state away from paused so this should
 				 * work just fine to break out of that loop. */
 				synchronized(mPauseLock) {
@@ -481,6 +493,9 @@ public abstract class DownloadManager
 					}
 				}
 
+				if (hasCanceled())
+					return;
+
 				in = ent.getContent();
 
 				byte[] b = new byte[BUFFER_SIZE];
@@ -489,6 +504,9 @@ public abstract class DownloadManager
 
 				while ((n = in.read(b)) >= 0)
 				{
+					if (hasCanceled())
+						break;
+
 					try {
 						mOut.write(b, 0, n);
 					} catch (IOException e) {
@@ -516,19 +534,6 @@ public abstract class DownloadManager
 				setState(STATE_FILE_ERROR, e.toString());
 				throw e;
 			} catch (IOException e) {
-				/* HttpClient4 that ships with Android apparently leaks
-				 * connections that have been aborted from a separate thread.
-				 * To avoid this issue, we will simply tear down and rebuild
-				 * our HttpClient instance. */
-				if (mState == STATE_ABORTED)
-				{
-					synchronized(this)
-					{
-						mClient.close();
-						mClient = FailfastHttpClient.newInstance(null);
-					}
-				}
-
 				if (mManager.isNetworkAvailable() == false)
 					setState(STATE_PAUSED_LOCAL_FAILURE, e.toString());
 				else
