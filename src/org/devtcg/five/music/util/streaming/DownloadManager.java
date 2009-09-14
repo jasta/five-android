@@ -61,8 +61,10 @@ public abstract class DownloadManager
 
 	protected final ConnectivityManager mConnMan;
 	
-	private static FailfastHttpClient mClient =
+	private FailfastHttpClient mClient =
 	  FailfastHttpClient.newInstance(null);
+
+	private volatile boolean mDuringShutdown = false;
 
 	/**
 	 * Number of times we will retry after unhandled errors.  Note that we
@@ -112,6 +114,27 @@ public abstract class DownloadManager
 	{
 		mConnMan = (ConnectivityManager)ctx.getSystemService
 		  (Context.CONNECTIVITY_SERVICE);
+	}
+
+	/**
+	 * This method is provided to work around an apparent bug in HttpClient
+	 * where aborted connections stay in the connection pool. Therefore,
+	 * aborting downloads up to the connection pool limit will cause the
+	 * HttpClient to refuse to execute new methods.
+	 */
+	/* package */ void refreshHttpClient()
+	{
+		if (mDuringShutdown == false && mClient != null)
+		{
+			mClient.close();
+			mClient = FailfastHttpClient.newInstance(null);
+		}
+	}
+
+	public void shutdown()
+	{
+		mDuringShutdown = true;
+		stopAllDownloads();
 	}
 
 	public Download lookupDownload(String url)
@@ -321,11 +344,7 @@ public abstract class DownloadManager
 				 * prematurely aborted. To work around this issue, we recreate
 				 * the HttpClient object on abort only.
 				 */
-				if (mClient != null)
-				{
-					mClient.close();
-					mClient = FailfastHttpClient.newInstance(null);
-				}
+				mManager.refreshHttpClient();
 
 				/* We've changed the state away from paused so this should
 				 * work just fine to break out of that loop. */
@@ -439,8 +458,8 @@ public abstract class DownloadManager
 					 * reset the mClient instance to work around a 
 					 * connection release bug in HttpClient 4.x. */
 					HttpClient client;
-					synchronized(this) {
-						client = mClient;
+					synchronized(mManager) {
+						client = mManager.mClient;
 					}
 
 					HttpResponse resp = client.execute(mMethod);

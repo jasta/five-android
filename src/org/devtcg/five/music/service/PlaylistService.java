@@ -179,7 +179,7 @@ public class PlaylistService extends Service implements
 	{
 		Log.d(TAG, "onDestroy");
 
-		mManager.stopAllDownloads();
+		mManager.shutdown();
 
 		try {
 			saveState();
