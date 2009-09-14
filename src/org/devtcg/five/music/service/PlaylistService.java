@@ -79,6 +79,7 @@ public class PlaylistService extends Service implements
 	public static final String TAG = "PlaylistService";
 
 	private static final String STATE_FILE = "playlist_state";
+	private static final String STATE_FILE_TMP = "playlist_state.tmp";
 	private static final int STATE_FILE_FORMAT = 3;
 
 	/* Lock allowing us to guarantee the presence of the cache service
@@ -181,11 +182,7 @@ public class PlaylistService extends Service implements
 
 		mManager.shutdown();
 
-		try {
-			saveState();
-		} catch (IOException e) {
-			Log.e(TAG, "Couldn't save state!", e);
-		}
+		saveStateQuietly();
 
 		unregisterReceiver(mNoisyReceiver);
 		unregisterReceiver(mConnectivityReceiver);
@@ -215,11 +212,12 @@ public class PlaylistService extends Service implements
 	public void saveState()
 	  throws IOException
 	{
-		FileOutputStream outf = openFileOutput(STATE_FILE, MODE_PRIVATE);
+		FileOutputStream outf = openFileOutput(STATE_FILE_TMP, MODE_PRIVATE);
 		DataOutputStream out = null;
 
 		try {
-			out = new DataOutputStream(new BufferedOutputStream(outf, 2048));
+			int bufferSize = Math.min(18 + (mPlaylist.size() * 8), 2048);
+			out = new DataOutputStream(new BufferedOutputStream(outf, bufferSize));
 
 			out.writeInt(STATE_FILE_FORMAT);
 			out.writeInt(mPosition);
@@ -239,6 +237,18 @@ public class PlaylistService extends Service implements
 				out.close();
 			else
 				outf.close();
+		}
+
+		File tmp = new File(STATE_FILE_TMP);
+		tmp.renameTo(new File(STATE_FILE));
+	}
+
+	public void saveStateQuietly()
+	{
+		try {
+			saveState();
+		} catch (IOException e) {
+			Log.e(TAG, "Couldn't save state!", e);
 		}
 	}
 
@@ -375,6 +385,7 @@ public class PlaylistService extends Service implements
 		{
 			Log.i(TAG, "Service stop scheduled " + (DEFERRAL_DELAY / 1000 / 60) + " minutes from now.");
 			sendMessageDelayed(obtainMessage(DEFERRED_STOP), DEFERRAL_DELAY); 
+			saveStateQuietly();
 		}
 
 		public void cancelStopSelf()
