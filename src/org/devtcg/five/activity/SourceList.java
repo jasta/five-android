@@ -61,7 +61,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 	private static final String[] QUERY_FIELDS = {
 	  Five.Sources._ID, Five.Sources.NAME,
 	  Five.Sources.REVISION, Five.Sources.LAST_ERROR };
-	
+
 	private Cursor mCursor;
 
 	private Screen mScreen;
@@ -112,7 +112,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 
 		setUI(mScreenNormal);
 	}
-	
+
 	protected void onDetached()
 	{
 		if (mScreen == mScreenNormal)
@@ -137,7 +137,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 	{
 		return new Intent(this, MetaService.class);
 	}
-	
+
 	protected IMetaService getServiceInterface(IBinder service)
 	{
 		return IMetaService.Stub.asInterface(service);
@@ -157,7 +157,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 	{
 		if (mScreen != null)
 			return mScreen.onPrepareOptionsMenu(menu);
-		
+
 		return super.onPrepareOptionsMenu(menu);
 	}
 
@@ -166,10 +166,10 @@ public class SourceList extends ServiceActivity<IMetaService>
 	{
 		if (mScreen != null)
 			return mScreen.onOptionsItemSelected(item);
-		
+
 		return super.onOptionsItemSelected(item);
 	}
-	
+
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v,
 	  ContextMenu.ContextMenuInfo menuInfo)
@@ -215,7 +215,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 
 		protected static final int MENU_SYNC = Menu.FIRST;
 		protected static final int MENU_CANCEL = Menu.FIRST + 1;
-		
+
 		protected static final int MENU_EDIT = Menu.FIRST + 2;
 		protected static final int MENU_REMOVE = Menu.FIRST + 3;
 
@@ -262,9 +262,9 @@ public class SourceList extends ServiceActivity<IMetaService>
 			else
 				menu.add(0, MENU_SYNC, Menu.NONE, "Synchronize");
 
-			return true;			
+			return true;
 		}
-		
+
 		public boolean onOptionsItemSelected(MenuItem item)
 		{
 			switch (item.getItemId())
@@ -276,7 +276,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 				menuCancelSync();
 				return true;
 			}
-			
+
 			return false;
 		}
 
@@ -310,12 +310,12 @@ public class SourceList extends ServiceActivity<IMetaService>
 				Uri uri = ContentUris.withAppendedId(Five.Sources.CONTENT_URI,
 				  info.id);
 				getContentResolver().delete(uri, null, null);
-				
+
 				mCursor.requery();
-				
+
 				if (mCursor.getCount() == 0)
 					setUI(mScreenNoSources);
-				
+
 				return true;
 			}
 
@@ -363,13 +363,13 @@ public class SourceList extends ServiceActivity<IMetaService>
 					return true;
 				}
 
-				int rev = c.getInt(col);
+				int rev = (int)(c.getLong(col) / 1000);
 
 				if (rev == 0)
 					vv.setText("Never synchronized.");
 				else
 				{
-					vv.setText("Last synchronized: " + 
+					vv.setText("Last synchronized: " +
 					  DateUtils.formatTimeAgo(rev) + ".");
 				}
 
@@ -420,11 +420,11 @@ public class SourceList extends ServiceActivity<IMetaService>
 			{
 				Intent i = new Intent(SourceList.this, SourceInfo.class);
 				i.setData(ContentUris.withAppendedId(Five.Sources.CONTENT_URI, id));
-				
+
 				startActivity(i);
 			}
 		};
-		
+
 		protected void notSyncing()
 		{
 			mSyncing = false;
@@ -451,7 +451,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 		protected void yesSyncing(List which)
 		{
 			yesSyncing();
-			
+
 			mStatus.clear();
 
 			for (Object o: which)
@@ -473,11 +473,11 @@ public class SourceList extends ServiceActivity<IMetaService>
 				onServiceFatal();
 			}
 		}
-		
+
 		public void unwatchService()
 		{
 			assert mService != null;
-			
+
 			try {
 				mService.unregisterObserver(mSyncObserver);
 			} catch (RemoteException e) {
@@ -526,7 +526,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 			{
 				Log.i(TAG, "endSource: " + sourceId);
 				SourceList.this.runOnUiThread(new Runnable() {
-					public void run() {						
+					public void run() {
 						setSourceStatus(sourceId, null);
 					}
 				});
@@ -550,8 +550,8 @@ public class SourceList extends ServiceActivity<IMetaService>
 	}
 
 	/**
-	 * Encapsulate logic to handle the initial screen presented without 
-	 * sources. 
+	 * Encapsulate logic to handle the initial screen presented without
+	 * sources.
 	 */
 	private class ScreenNoSources implements Screen
 	{
@@ -577,12 +577,12 @@ public class SourceList extends ServiceActivity<IMetaService>
 
 			return true;
 		}
-		
+
 		public boolean onPrepareOptionsMenu(Menu menu)
 		{
 			return true;
 		}
-		
+
 		public boolean onOptionsItemSelected(MenuItem item)
 		{
 			switch (item.getItemId())
@@ -591,7 +591,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 				mAddServer.performClick();
 				return true;
 			}
-			
+
 			return false;
 		}
 

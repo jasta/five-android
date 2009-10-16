@@ -30,6 +30,12 @@ import android.util.Log;
 
 public final class Sources
 {
+	public static Cursor getSources(Context context)
+	{
+		return context.getContentResolver().query(Five.Sources.CONTENT_URI,
+			null, null, null, null);
+	}
+	
 	/**
 	 * Convenience method to access the HTTP URL to download content from
 	 * this service.  Accesses the database to perform this operation.

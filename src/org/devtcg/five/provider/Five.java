@@ -16,25 +16,18 @@
 
 package org.devtcg.five.provider;
 
+import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
+
 import android.net.Uri;
 import android.provider.BaseColumns;
 
 /**
- * Structured representation of the Five Meta Data ContentProvider.  
+ * Structured representation of the Five Meta Data ContentProvider.
  */
 public final class Five
 {
 	public static final String AUTHORITY = "org.devtcg.five";
 
-	public interface Pragma
-	{
-		public static final Uri SYNCHRONOUS_OFF =
-		  Uri.parse("content://" + AUTHORITY + "/pragma/synchronous/OFF");
-
-		public static final Uri SYNCHRONOUS_FULL =
-		  Uri.parse("content://" + AUTHORITY + "/pragma/synchronous/FULL");
-	}
-	
 	/**
 	 * Concrete synchronization source.  Under this implementation, a TCP
 	 * server on the Internet.
@@ -59,7 +52,7 @@ public final class Five
 
 		/** Current sync revision (last time in seconds). */
 		public static final String REVISION = "revision";
-		
+
 		/** Last log of type SourceLog.TYPE_ERROR with a SourceLog.TIMESTAMP > REVISION. */
 		public static final String LAST_ERROR = "last_error";
 
@@ -69,7 +62,7 @@ public final class Five
 
 			public static final String CREATE =
 			  "CREATE TABLE " + TABLE + " (" +
-			  "_id INTEGER PRIMARY KEY AUTOINCREMENT, " + 
+			  "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
 			  NAME + " TEXT NOT NULL, " +
 			  HOST + " TEXT UNIQUE NOT NULL, " +
 			  PORT + " INTEGER NOT NULL, " +
@@ -118,10 +111,10 @@ public final class Five
 		public static final class SQL
 		{
 			public static final String TABLE = "sources_log";
-			
+
 			public static final String CREATE =
 			  "CREATE TABLE " + TABLE + " (" +
-			  	_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + 
+			  	_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 			  	SOURCE_ID + " INTEGER NOT NULL, " +
 			  	TIMESTAMP + " DATETIME NOT NULL, " +
 			  	TYPE + " INTEGER NOT NULL, " +
@@ -130,8 +123,8 @@ public final class Five
 
 			public static final String[] INDEX =
 			{
-				"CREATE INDEX " + 
-			  	  TABLE + "_" + SOURCE_ID + "_" + TIMESTAMP + 
+				"CREATE INDEX " +
+			  	  TABLE + "_" + SOURCE_ID + "_" + TIMESTAMP +
 			  	  " ON " + TABLE + " (" +
 			  	  SOURCE_ID + ", " +
 			  	  TIMESTAMP + " " +
@@ -168,9 +161,9 @@ public final class Five
 
 		/** Server source. */
 		public static final String SOURCE_ID = "source_id";
-		
+
 		/** Media meta data. */
-		public static final String MIME_TYPE = "mime_type"; 
+		public static final String MIME_TYPE = "mime_type";
 
 		/** Raw media size in bytes. */
 		public static final String SIZE = "size";
@@ -198,7 +191,7 @@ public final class Five
 
 			public static final String[] INDEX =
 			{
-				"CREATE UNIQUE INDEX " + 
+				"CREATE UNIQUE INDEX " +
 			  	  TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
 			  	  " ON " + TABLE + " (" +
 			  	  SOURCE_ID + ", " +
@@ -220,14 +213,14 @@ public final class Five
 	{
 		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.image";
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.image";
-		
+
 		/** Access URI. */
 		public static final Uri CONTENT_URI =
 		  Uri.parse("content://" + AUTHORITY + "/media/images");
-		
+
 		/** Key to access potentially cached or remote data. */
 		public static final String CONTENT_ID = "content_id";
-		
+
 		/** Title, if any; otherwise, filename. */
 		public static final String TITLE = "title";
 
@@ -246,18 +239,18 @@ public final class Five
 		 */
 		public static final String LAST_PLAYED = "last_played";
 
-		public interface Songs extends BaseColumns
+		public interface Songs extends SyncableColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.song";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.song";
-			
+
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/songs");
 
 			/** Key to access potentially cached or remote data. */
 			public static final String CONTENT_ID = "content_id";
-			
+
 			/** MusicBrainz identifier. */
 			public static final String MBID = "mbid";
 
@@ -297,6 +290,8 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  _SYNC_ID + " INTEGER, " +
+				  _SYNC_TIME + " BIGINT, " +
 				  CONTENT_ID + " INTEGER, " +
 				  MBID + " INTEGER, " +
 				  TITLE + " TEXT COLLATE UNICODE NOT NULL, " +
@@ -313,10 +308,10 @@ public final class Five
 
 				public static final String[] INDEX =
 				{
-					"CREATE INDEX " + 
+					"CREATE INDEX " +
 				  	  TABLE + "_" + ARTIST_ID +
 				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
-				  	"CREATE INDEX " + 
+				  	"CREATE INDEX " +
 				  	  TABLE + "_" + ALBUM_ID +
 				  	  " ON " + TABLE + " (" + ALBUM_ID + ");",
 				};
@@ -326,7 +321,7 @@ public final class Five
 			}
 		}
 
-		public interface Artists extends BaseColumns
+		public interface Artists extends SyncableColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.artist";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.artist";
@@ -352,11 +347,11 @@ public final class Five
 
 			/** General musical style, if applicable. */
 			public static final String GENRE = "genre";
-			
+
 			/** Date that this artist was first introduced into the collection. */
 			public static final String DISCOVERY_DATE = "discovery_date";
-			
-			/** Number of unique albums belonging to this artist in the 
+
+			/** Number of unique albums belonging to this artist in the
 			 * collection. */
 			public static final String NUM_ALBUMS = "num_albums";
 
@@ -370,6 +365,8 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  _SYNC_ID + " INTEGER, " +
+				  _SYNC_TIME + " BIGINT, " +
 				  MBID + " INTEGER, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
@@ -385,7 +382,7 @@ public final class Five
 			}
 		}
 
-		public interface Albums extends BaseColumns
+		public interface Albums extends SyncableColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.album";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.album";
@@ -393,7 +390,7 @@ public final class Five
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
-			
+
 			/** Access URI for "complete" albums only. */
 			public static final Uri CONTENT_URI_COMPLETE =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums/complete");
@@ -437,6 +434,8 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  _SYNC_ID + " INTEGER, " +
+				  _SYNC_TIME + " BIGINT, " +
 				  MBID + " INTEGER, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  NAME_PREFIX + " TEXT, " +
@@ -450,7 +449,7 @@ public final class Five
 
 				public static final String[] INDEX =
 				{
-					"CREATE INDEX " + 
+					"CREATE INDEX " +
 				  	  TABLE + "_" + ARTIST_ID +
 				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
 				};
@@ -459,7 +458,7 @@ public final class Five
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}
 		}
-		
+
 		public interface Playlists extends BaseColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists";
@@ -474,9 +473,9 @@ public final class Five
 
 			/** Playlist create date (might be guessed). */
 			public static final String CREATED_DATE = "created_date";
-			
+
 			/** Number of songs in this play queue. */
-			public static final String NUM_SONGS = "num_songs"; 
+			public static final String NUM_SONGS = "num_songs";
 
 			public static final class SQL
 			{
@@ -513,11 +512,11 @@ public final class Five
 
 			/** Reference to song. */
 			public static final String SONG_ID = "song_id";
-			
+
 			public static final class SQL
 			{
 				public static final String TABLE = "music_playlist_songs";
-				
+
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -528,7 +527,7 @@ public final class Five
 
 				public static final String[] INDEX =
 				{
-				  "CREATE INDEX " + 
+				  "CREATE INDEX " +
 				    TABLE + "_" + PLAYLIST_ID +
 				    " ON " + TABLE + " (" + PLAYLIST_ID + ");",
 				};
@@ -537,10 +536,10 @@ public final class Five
 				  "DROP TABLE IF EXISTS " + TABLE;
 			}
 		}
-		
+
 		public interface AdjustCounts
 		{
-			/** 
+			/**
 			 * Efficiently updates NUM_ALBUMS, NUM_SONGS on Artists, Albums,
 			 * and Playlists.
 			 */
