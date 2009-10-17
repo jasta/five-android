@@ -60,7 +60,7 @@ public abstract class DownloadManager
 	  Collections.synchronizedMap(new HashMap<String, Download>());
 
 	protected final ConnectivityManager mConnMan;
-	
+
 	private FailfastHttpClient mClient =
 	  FailfastHttpClient.newInstance(null);
 
@@ -92,7 +92,7 @@ public abstract class DownloadManager
 	 * when connectivity returns. */
 	public static final int STATE_PAUSED_LOCAL_FAILURE = 1;
 
-	/** Download has permanently failed due to an unexpected failure 
+	/** Download has permanently failed due to an unexpected failure
 	 * negotiating with server. */
 	public static final int STATE_HTTP_ERROR = 2;
 
@@ -107,9 +107,9 @@ public abstract class DownloadManager
 	/** Intentionally aborted. */
 	public static final int STATE_ABORTED = 5;
 
-	/** Download has permanently failed after too many unsuccessful retries. */ 
+	/** Download has permanently failed after too many unsuccessful retries. */
 	public static final int STATE_TOO_MANY_RETRIES = 6;
-	
+
 	public DownloadManager(Context ctx)
 	{
 		mConnMan = (ConnectivityManager)ctx.getSystemService
@@ -141,7 +141,7 @@ public abstract class DownloadManager
 	{
 		return mDownloads.get(url);
 	}
-	
+
 	public Download startDownload(String url, String path, long resumeFrom)
 	  throws IOException
 	{
@@ -176,11 +176,11 @@ public abstract class DownloadManager
 			d.requestCancelAndWait();
 		}
 	}
-	
+
 	public void stopAllDownloads()
 	{
 		Download[] downloadsCopy;
-		
+
 		synchronized(mDownloads) {
 			downloadsCopy =
 			  mDownloads.values().toArray(new Download[mDownloads.size()]);
@@ -217,7 +217,7 @@ public abstract class DownloadManager
 	{
 		mDownloads.remove(url);
 	}
-	
+
 	public List<Download> getDownloadsCopy()
 	{
 		synchronized(mDownloads) {
@@ -248,7 +248,7 @@ public abstract class DownloadManager
 	}
 
 	/**
-	 * Triggered after a download was aborted.  Default response is 
+	 * Triggered after a download was aborted.  Default response is
 	 * to delete the destination file.
 	 */
 	public void onAborted(String url)
@@ -271,7 +271,7 @@ public abstract class DownloadManager
 
 		private final FileOutputStream mOut;
 		private HttpGet mMethod;
-		
+
 		private final Object mPauseLock = new Object();
 		private volatile int mState = STATE_UNKNOWN;
 		private String mStateMsg;
@@ -299,6 +299,7 @@ public abstract class DownloadManager
 			mDest = new File(path);
 
 			mResumeFrom = resumeFrom;
+			mBytes = resumeFrom;
 			mOut = new FileOutputStream(path, (resumeFrom > 0));
 		}
 
@@ -364,13 +365,13 @@ public abstract class DownloadManager
 
 			return false;
 		}
-		
+
 		public void retry()
 		{
 			Log.i(DownloadManager.TAG, "Forcing retry: " + mUrl);
 
 			assert isPaused() == true;
-			
+
 			/* Break out of a timed wait... */
 			interrupt();
 
@@ -382,18 +383,18 @@ public abstract class DownloadManager
 				} catch (AbortedException e) {}
 			}
 		}
-		
+
 		public long getContentLength()
 		{
 			return mLength;
 		}
 
 		/**
-		 * Efficiently wait on the download thread to get a 
+		 * Efficiently wait on the download thread to get a
 		 * response from the remote peer.  Intended to be called from
-		 * an external thread in order to access the response 
+		 * an external thread in order to access the response
 		 * content length.
-		 * 
+		 *
 		 * Returns immediately if the response is already available.
 		 */
 		public void waitForResponse()
@@ -452,10 +453,10 @@ public abstract class DownloadManager
 
 			try {
 				HttpEntity ent = null;
-				
+
 				try {
 					/* Synchronization is necessary as we need to
-					 * reset the mClient instance to work around a 
+					 * reset the mClient instance to work around a
 					 * connection release bug in HttpClient 4.x. */
 					HttpClient client;
 					synchronized(mManager) {
@@ -463,7 +464,7 @@ public abstract class DownloadManager
 					}
 
 					HttpResponse resp = client.execute(mMethod);
-					
+
 					setState(STATE_CONNECTED);
 
 					StatusLine status = resp.getStatusLine();
@@ -497,14 +498,17 @@ public abstract class DownloadManager
 						if (matcher.matches() == false)
 							throw new IOException("Can't parse Content-Range");
 
-						if (matcher.group(1).equals(String.valueOf(mResumeFrom)) == false)
+						long firstBytePos = Long.parseLong(matcher.group(1));
+						long lastBytePos = Long.parseLong(matcher.group(2));
+						long length = Long.parseLong(matcher.group(3));
+
+						if (lastBytePos + 1 != length)
 							throw new IOException("Range request inconsistently answered");
 
-						String length = matcher.group(3);
-						if (length.equals(matcher.group(2)) == false)
+						if (firstBytePos != mResumeFrom)
 							throw new IOException("Range request inconsistently answered");
 
-						mLength = Long.parseLong(length);
+						mLength = length;
 					}
 				} finally {
 					synchronized(mResponseLock) {
@@ -519,7 +523,6 @@ public abstract class DownloadManager
 				in = ent.getContent();
 
 				byte[] b = new byte[BUFFER_SIZE];
-				mBytes = mResumeFrom;
 				int n;
 
 				while ((n = in.read(b)) >= 0)
@@ -627,7 +630,7 @@ DOWNLOAD_RETRY_LOOP:
 					 * never expire. */
 					Log.i(DownloadManager.TAG,
 						"Waiting indefinitely to retry failed download: " + mUrl);
-					
+
 					synchronized(mPauseLock) {
 						try {
 							while (isPaused() == true)
