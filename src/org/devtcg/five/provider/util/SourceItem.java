@@ -1,5 +1,8 @@
 package org.devtcg.five.provider.util;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import org.devtcg.five.provider.Five;
 
 import android.content.ContentUris;
@@ -69,6 +72,11 @@ public class SourceItem extends AbstractDAOItem
 	public String getFeedUrl(String feedType)
 	{
 		return "http://" + getHost() + ":" + getPort() + "/feeds/" + feedType;
+	}
+
+	public String getSongUrl(long syncId)
+	{
+		return "http://" + getHost() + ":" + getPort() + "/songs/" + syncId;
 	}
 
 	private static final AbstractDAOItem.Creator<SourceItem> CREATOR =

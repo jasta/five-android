@@ -51,7 +51,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 	private final ProgressHandler mHandler = new ProgressHandler();
 
 	private IPlaylistService mService = null;
-	
+
 	private PlaylistAdapter mAdapter;
 
 	private StatefulListView mPlaylist;
@@ -62,17 +62,17 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 	private Button mPrev;
 	private Button mPlay;
 	private Button mNext;
-	
+
 	private final Random mRandom = new Random();
 
 	private int mPlayingPosition = -1;
 	private long mPlaying = -1;
-	
+
 	@Override
 	protected void onInitUI()
 	{
 		setContentView(R.layout.playlist_service_test);
-		
+
 		mClear = (Button)findViewById(R.id.clear);
 		mClear.setOnClickListener(mClearClick);
 
@@ -109,7 +109,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 			mService.registerOnChangeListener(mChangeListener);
 			mService.registerOnBufferingListener(mBufferingListener);
 			mService.registerOnDownloadListener(mDownloadListener);
-			
+
 			mAdapter.setList((List<Long>)mService.getPlaylist());
 
 			if (mService.isPlaying() == true)
@@ -145,7 +145,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 				mPlay.setText("Stop");
 				mPlay.setOnClickListener(mStopClick);
 				mPlayInfo.setEnabled(true);
-				
+
 				mHandler.startPlaybackMonitoring();
 			}
 			else
@@ -179,7 +179,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 	{
 		private final ArrayList<Song> mList = new ArrayList<Song>();
 		private final LayoutInflater mInflater;
-		
+
 		public PlaylistAdapter(Context ctx)
 		{
 			super();
@@ -252,7 +252,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 			notifyDataSetChanged();
 		}
 	}
-	
+
 	private final OnItemClickListener mSongClicked = new OnItemClickListener()
 	{
 		public void onItemClick(AdapterView<?> adapter, View v, int pos,
@@ -294,7 +294,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 		public void onDownloadFinish(final long songId) throws RemoteException
 		{
 			Log.i(TAG, "Download finished for songId=" + songId);
-			
+
 			mHandler.post(new Runnable() {
 				public void run() {
 					if (mPlaying == songId)
@@ -309,7 +309,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 			mHandler.sendDownloadProgress(songId, percent);
 		}
 	};
-	
+
 	private final IPlaylistBufferListener.Stub mBufferingListener =
 	  new IPlaylistBufferListener.Stub()
 	{
@@ -353,7 +353,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 
 			final int pos = mService.getPosition();
 			final long songId = mService.getSongAt(pos);
-			
+
 			mHandler.post(new Runnable() {
 				public void run() {
 					setPlaying(songId, pos);
@@ -409,7 +409,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 
 			mHandler.post(new Runnable() {
 				public void run() {
-					mAdapter.addSong(songId, pos);					
+					mAdapter.addSong(songId, pos);
 				}
 			});
 		}
@@ -428,7 +428,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 		public void onRemove(final int pos) throws RemoteException
 		{
 			Log.i(TAG, "Removed song at pos=" + pos);
-			
+
 			mHandler.post(new Runnable() {
 				public void run() {
 					mAdapter.removeSong(pos);
@@ -464,9 +464,9 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 		public void onClick(View v)
 		{
 			Cursor c = getContentResolver().query(Five.Music.Songs.CONTENT_URI,
-			  new String[] { Five.Content._ID }, null, null, null);
+			  new String[] { Five.Music.Songs._ID }, null, null, null);
 
-			int nrecords = c.getCount();			
+			int nrecords = c.getCount();
 			int record = mRandom.nextInt(nrecords);
 
 			try {
@@ -491,7 +491,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 			} catch (RemoteException e) {}
 		}
 	};
-	
+
 	private final OnClickListener mNextClick = new OnClickListener()
 	{
 		public void onClick(View v)
@@ -502,7 +502,7 @@ public class PlaylistServiceTest extends PlaylistServiceActivity
 			} catch (RemoteException e) {}
 		}
 	};
-	
+
 	private final OnClickListener mPlayClick = new OnClickListener()
 	{
 		public void onClick(View v)

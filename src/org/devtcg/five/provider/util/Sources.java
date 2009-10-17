@@ -35,51 +35,34 @@ public final class Sources
 		return context.getContentResolver().query(Five.Sources.CONTENT_URI,
 			null, null, null, null);
 	}
-	
+
 	/**
 	 * Convenience method to access the HTTP URL to download content from
 	 * this service.  Accesses the database to perform this operation.
-	 * 
+	 *
 	 * @param ctx
 	 *   Activity context (to use {@link android.context#getContentResolver()}).
-	 *   
+	 *
 	 * @param sourceId
 	 * @param contentId
-	 * 
+	 *
 	 * @return
-	 *   URL 
+	 *   URL
 	 */
-	public static URL getContentURL(ContentResolver content,
+	public static String getContentURL(Context context,
 	  long sourceId, long contentId)
 	{
 		Uri sourceUri = ContentUris.withAppendedId(Five.Sources.CONTENT_URI, sourceId);
+		SourceItem source = SourceItem.getInstance(context, sourceUri);
+		if (source == null)
+			throw new IllegalStateException("No source found for id=" + sourceId);
 
-		Cursor c = content.query(sourceUri,
-		  new String[] { Five.Sources.HOST, Five.Sources.PORT },
-		  null, null, null);
+		return source.getSongUrl(contentId);
+	}
 
-		try {
-			if (c.getCount() == 0)
-				throw new IllegalArgumentException("No source record found for id=" + sourceId);
-
-			c.moveToFirst();
-
-			StringBuilder url = new StringBuilder();
-
-			url.append("http://");
-			url.append(c.getString(0));
-			url.append(':');
-			url.append(c.getString(1));
-			url.append("/content/");
-			url.append(contentId);
-
-			try {
-				return new URL(url.toString());
-			} catch (MalformedURLException e) {
-				throw new IllegalStateException("Database in inconsistent state: " + url);
-			}
-		} finally {
-			c.close();
-		}
+	public static void deleteSource(Context context, long sourceId)
+	{
+		/* TODO: Implement this by just gutting the tables and deleting /sdcard/five. */
+		throw new UnsupportedOperationException();
 	}
 }

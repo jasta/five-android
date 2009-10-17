@@ -136,78 +136,88 @@ public final class Five
 		}
 	}
 
-	/**
-	 * Generic columns available for all types of media.
-	 */
-	public interface Content extends BaseColumns
-	{
-		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.media";
-		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.media";
-
-		/** Access URI. */
-		public static final Uri CONTENT_URI =
-		  Uri.parse("content://" + AUTHORITY + "/content");
-
-		/** Access URI for exclusively cached entries. */
-		public static final Uri CONTENT_URI_CACHED =
-		  Uri.parse("content://" + AUTHORITY + "/cache");
-
-		/**
-		 * Server content ID.  This is the item's GUID at the server.  Not
-		 * to be confused by similarly named fields which key into this
-		 * table.
-		 */
-		public static final String CONTENT_ID = "content_id";
-
-		/** Server source. */
-		public static final String SOURCE_ID = "source_id";
-
-		/** Media meta data. */
-		public static final String MIME_TYPE = "mime_type";
-
-		/** Raw media size in bytes. */
-		public static final String SIZE = "size";
-
-		/** Timestamp of the cached entry, if present. */
-		public static final String CACHED_TIMESTAMP = "cached_timestamp";
-
-		/** Reference to cache table if cached; otherwise NULL. */
-		public static final String CACHED_PATH = "cached_path";
-
-		public static final class SQL
-		{
-			public static final String TABLE = "content";
-
-			public static final String CREATE =
-			  "CREATE TABLE " + TABLE + " (" +
-			  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-			  CONTENT_ID + " INTEGER NOT NULL, " +
-			  SOURCE_ID + " INTEGER NOT NULL, " +
-			  MIME_TYPE + " TEXT NOT NULL, " +
-			  SIZE + " INTEGER NOT NULL, " +
-			  CACHED_TIMESTAMP + " INTEGER, " +
-			  CACHED_PATH + " TEXT " +
-			  ");";
-
-			public static final String[] INDEX =
-			{
-				"CREATE UNIQUE INDEX " +
-			  	  TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
-			  	  " ON " + TABLE + " (" +
-			  	  SOURCE_ID + ", " +
-			  	  CONTENT_ID + " " +
-			  	");",
-			  	"CREATE INDEX " +
-			  	  TABLE + "_" + CACHED_TIMESTAMP +
-			  	  " ON " + TABLE + " (" +
-			  	  CACHED_TIMESTAMP +
-			  	");",
-			};
-
-			public static final String DROP =
-			  "DROP TABLE IF EXISTS " + TABLE + ";";
-		}
-	}
+//	/**
+//	 * Generic columns available for all types of media.
+//	 *
+//	 * @deprecated this abstraction away from the Songs table is complicated and
+//	 *             unnecessary, and will therefore be removed in the future.
+//	 */
+//	public interface Content extends SyncableColumns
+//	{
+//		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.media";
+//		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.media";
+//
+//		/** Access URI. */
+//		public static final Uri CONTENT_URI =
+//		  Uri.parse("content://" + AUTHORITY + "/content");
+//
+//		/** Access URI for exclusively cached entries. */
+//		public static final Uri CONTENT_URI_CACHED =
+//		  Uri.parse("content://" + AUTHORITY + "/cache");
+//
+//		/**
+//		 * Server content ID.  This is the item's GUID at the server.  Not
+//		 * to be confused by similarly named fields which key into this
+//		 * table.
+//		 */
+//		public static final String CONTENT_ID = "content_id";
+//
+//		/** Server source. */
+//		public static final String SOURCE_ID = "source_id";
+//
+//		/** Media meta data. */
+//		public static final String MIME_TYPE = "mime_type";
+//
+//		/** Raw media size in bytes. */
+//		public static final String SIZE = "size";
+//
+//		/** Timestamp of the cached entry, if present. */
+//		public static final String CACHED_TIMESTAMP = "cached_timestamp";
+//
+//		/** Reference to cache table if cached; otherwise NULL. */
+//		public static final String CACHED_PATH = "cached_path";
+//
+//		public static final class SQL
+//		{
+//			public static final String TABLE = "content";
+//
+//			public static final String CREATE =
+//			  "CREATE TABLE " + TABLE + " (" +
+//			  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+//			  _SYNC_ID + " INTEGER, " +
+//			  _SYNC_TIME + " BIGINT, " +
+//			  CONTENT_ID + " INTEGER NOT NULL, " +
+//			  SOURCE_ID + " INTEGER NOT NULL, " +
+//			  MIME_TYPE + " TEXT NOT NULL, " +
+//			  SIZE + " INTEGER NOT NULL, " +
+//			  CACHED_TIMESTAMP + " INTEGER, " +
+//			  CACHED_PATH + " TEXT " +
+//			  ");";
+//
+//			public static final String[] INDEX =
+//			{
+//				"CREATE UNIQUE INDEX " +
+//			  	  TABLE + "_" + SOURCE_ID + "_" + CONTENT_ID +
+//			  	  " ON " + TABLE + " (" +
+//			  	  SOURCE_ID + ", " +
+//			  	  CONTENT_ID + " " +
+//			  	");",
+//			  	"CREATE INDEX " +
+//			  	  TABLE + "_" + CACHED_TIMESTAMP +
+//			  	  " ON " + TABLE + " (" +
+//			  	  CACHED_TIMESTAMP +
+//			  	");",
+//			  	"CREATE UNIQUE INDEX " +
+//			  	  TABLE + "_" + _SYNC_ID +
+//			  	  " ON " + TABLE + " (" +
+//			  	  _SYNC_ID +
+//			  	");",
+//			};
+//
+//			public static final String DROP =
+//			  "DROP TABLE IF EXISTS " + TABLE + ";";
+//		}
+//	}
 
 	public interface Images extends BaseColumns
 	{
@@ -248,8 +258,26 @@ public final class Five
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/songs");
 
-			/** Key to access potentially cached or remote data. */
-			public static final String CONTENT_ID = "content_id";
+			/**
+			 * Server source, used to join Content and Songs during sync
+			 * merging.
+			 * <p>
+			 * XXX: This is broken by AbstractTableMerger, which only cares
+			 * about _SYNC_ID and not jointly _SYNC_ID and SOURCE_ID.
+			 */
+			public static final String SOURCE_ID = "source_id";
+
+			/** Media meta data. */
+			public static final String MIME_TYPE = "mime_type";
+
+			/** Raw media size in bytes. */
+			public static final String SIZE = "size";
+
+			/** Timestamp of the cached entry, if present. */
+			public static final String CACHED_TIMESTAMP = "cached_timestamp";
+
+			/** Reference to cache table if cached; otherwise NULL. */
+			public static final String CACHED_PATH = "cached_path";
 
 			/** MusicBrainz identifier. */
 			public static final String MBID = "mbid";
@@ -292,7 +320,11 @@ public final class Five
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  _SYNC_ID + " INTEGER, " +
 				  _SYNC_TIME + " BIGINT, " +
-				  CONTENT_ID + " INTEGER, " +
+				  SOURCE_ID + " INTEGER, " +
+				  MIME_TYPE + " TEXT NOT NULL, " +
+				  SIZE + " INTEGER NOT NULL, " +
+				  CACHED_TIMESTAMP + " INTEGER, " +
+				  CACHED_PATH + " TEXT, " +
 				  MBID + " INTEGER, " +
 				  TITLE + " TEXT COLLATE UNICODE NOT NULL, " +
 				  ARTIST_ID + " INTEGER NOT NULL, " +
@@ -314,6 +346,16 @@ public final class Five
 				  	"CREATE INDEX " +
 				  	  TABLE + "_" + ALBUM_ID +
 				  	  " ON " + TABLE + " (" + ALBUM_ID + ");",
+				  	"CREATE INDEX " +
+				  	  TABLE + "_" + CACHED_TIMESTAMP +
+				  	  " ON " + TABLE + " (" +
+				  	  CACHED_TIMESTAMP +
+				  	");",
+				  	"CREATE UNIQUE INDEX " +
+				  	  TABLE + "_" + _SYNC_ID +
+				  	  " ON " + TABLE + " (" +
+				  	  _SYNC_ID +
+				  	");",
 				};
 
 				public static final String DROP =
@@ -376,6 +418,15 @@ public final class Five
 				  NUM_ALBUMS + " INTEGER, " +
 				  NUM_SONGS + " INTEGER " +
 				  ");";
+
+				public static final String[] INDEX = new String[]
+				{
+			  	  "CREATE UNIQUE INDEX " +
+			  	    TABLE + "_" + _SYNC_ID +
+			  	    " ON " + TABLE + " (" +
+			  	    _SYNC_ID +
+			  	  ");",
+				};
 
 				public static final String DROP =
 				  "DROP TABLE IF EXISTS " + TABLE;
@@ -452,6 +503,11 @@ public final class Five
 					"CREATE INDEX " +
 				  	  TABLE + "_" + ARTIST_ID +
 				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
+				  	"CREATE UNIQUE INDEX " +
+				  	  TABLE + "_" + _SYNC_ID +
+				  	  " ON " + TABLE + " (" +
+				  	  _SYNC_ID +
+				  	");",
 				};
 
 				public static final String DROP =

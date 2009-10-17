@@ -21,6 +21,8 @@ public final class SongMerger extends AbstractTableMerger
 
 	private final HashMap<Long, Long> mArtistSyncIds = new HashMap<Long, Long>();
 	private final HashMap<Long, Long> mAlbumSyncIds = new HashMap<Long, Long>();
+	private final HashMap<ContentIdArgument, Long> mContentSyncIds =
+		new HashMap<ContentIdArgument, Long>();
 
 	public SongMerger()
 	{
@@ -95,6 +97,39 @@ public final class SongMerger extends AbstractTableMerger
 		}
 	}
 
+//	private long getContentId(ContentProvider diffs, long sourceId, long songSyncId)
+//	{
+//		ContentIdArgument key = new ContentIdArgument();
+//		key.sourceId = sourceId;
+//		key.songSyncId = songSyncId;
+//
+//		Long cache = mContentSyncIds.get(key);
+//		if (cache != null)
+//			return cache;
+//		else
+//		{
+//			Cursor contentCursor = diffs.query(Five.Content.CONTENT_URI,
+//				new String[] { Five.Content._ID },
+//				Five.Content.SOURCE_ID + " = " + sourceId + " AND " +
+//				Five.Content.CONTENT_ID + " = " + songSyncId, null, null);
+//			long contentId = -1;
+//			try {
+//				if (contentCursor.moveToFirst() == true)
+//					contentId = contentCursor.getLong(0);
+//			} finally {
+//				contentCursor.close();
+//			}
+//			mContentSyncIds.put(key, contentId);
+//			return contentId;
+//		}
+//	}
+
+	private class ContentIdArgument
+	{
+		public long sourceId;
+		public long songSyncId;
+	}
+
 	private void rowToContentValues(ContentProvider diffs,
 		Cursor cursor, ContentValues values)
 	{
@@ -107,7 +142,9 @@ public final class SongMerger extends AbstractTableMerger
 		DatabaseUtils.cursorStringToContentValues(cursor, Five.Music.Songs.TITLE, values);
 		DatabaseUtils.cursorIntToContentValues(cursor, Five.Music.Songs.TRACK, values);
 		DatabaseUtils.cursorLongToContentValues(cursor, Five.Music.Songs.DISCOVERY_DATE, values);
-		DatabaseUtils.cursorLongToContentValues(cursor, Five.Music.Songs.CONTENT_ID, values);
+		DatabaseUtils.cursorStringToContentValues(cursor, Five.Music.Songs.MIME_TYPE, values);
+		DatabaseUtils.cursorLongToContentValues(cursor, Five.Music.Songs.SOURCE_ID, values);
+		DatabaseUtils.cursorLongToContentValues(cursor, Five.Music.Songs.SIZE, values);
 
 		values.put(Five.Music.Songs.ARTIST_ID, getArtistId(diffs, cursor.getLong(
 			cursor.getColumnIndexOrThrow(Five.Music.Songs.ARTIST_ID))));

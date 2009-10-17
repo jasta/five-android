@@ -232,16 +232,10 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		Protos.Song song)
 	{
 		ContentValues values = mTmpValues;
-//		values.clear();
-//		values.put(Five.Content.SOURCE_ID, mSource.getId());
-//		values.put(Five.Content.CONTENT_ID, song.getId());
-//		values.put(Five.Content.SIZE, song.getFilesize());
-//		values.put(Five.Content.MIME_TYPE, song.getMimeType());
-//		Uri curi = serverDiffs.insert(Five.Content.CONTENT_URI, values);
-
 		values.clear();
 		values.put(Five.Music.Songs._SYNC_ID, song.getId());
 		values.put(Five.Music.Songs._SYNC_TIME, song.getSyncTime());
+		values.put(Five.Music.Songs.SOURCE_ID, mSource.getId());
 		values.put(Five.Music.Songs.MBID, song.getMbid());
 		values.put(Five.Music.Songs.ARTIST_ID, song.getArtistId());
 		values.put(Five.Music.Songs.ALBUM_ID, song.getAlbumId());
@@ -249,8 +243,9 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		values.put(Five.Music.Songs.LENGTH, song.getLength());
 		values.put(Five.Music.Songs.TITLE, song.getTitle());
 		values.put(Five.Music.Songs.TRACK, song.getTrack());
-		values.put(Five.Music.Songs.CONTENT_ID, -1);
-//		values.put(Five.Music.Songs.CONTENT_ID, curi.getLastPathSegment());
+		values.put(Five.Music.Songs.MIME_TYPE, song.getMimeType());
+		values.put(Five.Music.Songs.SIZE, song.getFilesize());
+
 		serverDiffs.insert(Five.Music.Songs.CONTENT_URI, values);
 	}
 }

@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.Sources;
 import org.devtcg.five.service.IMetaObserver;
 import org.devtcg.five.service.IMetaService;
 import org.devtcg.five.service.MetaService;
@@ -307,9 +308,7 @@ public class SourceList extends ServiceActivity<IMetaService>
 				SourceAdd.actionEditSource(SourceList.this, info.id);
 				return true;
 			case MENU_REMOVE:
-				Uri uri = ContentUris.withAppendedId(Five.Sources.CONTENT_URI,
-				  info.id);
-				getContentResolver().delete(uri, null, null);
+				Sources.deleteSource(SourceList.this, info.id);
 
 				mCursor.requery();
 

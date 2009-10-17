@@ -58,7 +58,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 	DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 31;
+	private static final int DATABASE_VERSION = 32;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> sourcesMap;
@@ -79,7 +79,6 @@ public class FiveProvider extends AbstractSyncProvider
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONGS_BY_ARTIST_ON_ALBUM, SONG,
 		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
 		  PLAYLIST_SONGS,
-		CONTENT, CONTENT_ITEM, CONTENT_ITEM_BY_SOURCE,
 		CACHE, CACHE_ITEMS_BY_SOURCE,
 		ADJUST_COUNTS,
 		;
@@ -105,8 +104,6 @@ public class FiveProvider extends AbstractSyncProvider
 			db.execSQL(Five.SourcesLog.SQL.CREATE);
 			execIndex(db, Five.SourcesLog.SQL.INDEX);
 
-			db.execSQL(Five.Content.SQL.CREATE);
-			execIndex(db, Five.Content.SQL.INDEX);
 			db.execSQL(Five.Music.Artists.SQL.CREATE);
 			db.execSQL(Five.Music.Albums.SQL.CREATE);
 			execIndex(db, Five.Music.Albums.SQL.INDEX);
@@ -128,7 +125,6 @@ public class FiveProvider extends AbstractSyncProvider
 			db.execSQL(Five.Sources.SQL.DROP);
 			db.execSQL(Five.SourcesLog.SQL.DROP);
 
-			db.execSQL(Five.Content.SQL.DROP);
 			db.execSQL(Five.Music.Artists.SQL.DROP);
 			db.execSQL(Five.Music.Albums.SQL.DROP);
 			db.execSQL(Five.Music.Songs.SQL.DROP);
@@ -143,7 +139,7 @@ public class FiveProvider extends AbstractSyncProvider
 			{
 				Log.w(TAG, "Attempting to upgrade to " + newVersion);
 				execIndex(db, Five.SourcesLog.SQL.INDEX);
-				execIndex(db, Five.Content.SQL.INDEX);
+				execIndex(db, Five.Music.Artists.SQL.INDEX);
 				execIndex(db, Five.Music.Albums.SQL.INDEX);
 				execIndex(db, Five.Music.Songs.SQL.INDEX);
 			}
@@ -311,47 +307,6 @@ public class FiveProvider extends AbstractSyncProvider
 
 		switch (type)
 		{
-		case CONTENT_ITEM:
-		case CONTENT_ITEM_BY_SOURCE:
-			String where;
-			String[] args;
-
-			if (type == URIPatternIds.CONTENT_ITEM_BY_SOURCE)
-			{
-				List<String> segments = uri.getPathSegments();
-				String sourceId = segments.get(1);
-				String contentId = segments.get(3);
-
-				where = Five.Content.SOURCE_ID + " = ? AND " +
-				  Five.Content.CONTENT_ID + " = ?";
-				args = new String[] { sourceId, contentId };
-			}
-			else /* if (type == URIPatternIds.CONTENT_ITEM) */
-			{
-				where = Five.Content._ID + " = ?";
-				args = new String[] { uri.getLastPathSegment() };
-			}
-
-			Cursor c = db.query(Five.Content.SQL.TABLE,
-			  new String[] { Five.Content.SOURCE_ID, Five.Content.CACHED_PATH },
-			  where, args, null, null, null);
-
-			try {
-				if (c.moveToFirst() == false)
-					return null;
-
-				ensureSdCardPath("cache/" + c.getLong(0) + "/");
-
-				file = new File(c.getString(1));
-				modeint = stringModeToInt(uri, mode);
-
-				Log.i(TAG, "Opening " + file.getAbsolutePath() + " in mode " + mode);
-
-				return ParcelFileDescriptor.open(file, modeint);
-			} finally {
-				c.close();
-			}
-
 		case ALBUM_ARTWORK:
 		case ALBUM_ARTWORK_BIG:
 			String albumId = uri.getPathSegments().get(3);
@@ -396,34 +351,6 @@ public class FiveProvider extends AbstractSyncProvider
 
 		switch (type)
 		{
-		case CACHE_ITEMS_BY_SOURCE:
-			qb.setTables(Five.Content.SQL.TABLE);
-			qb.appendWhere(Five.Content.SOURCE_ID + "=" +
-			  getSecondToLastPathSegment(uri));
-			qb.appendWhere(Five.Content.CACHED_PATH + " IS NOT NULL");
-			break;
-
-		case CACHE:
-			qb.setTables(Five.Content.SQL.TABLE);
-			qb.appendWhere(Five.Content.CACHED_PATH + " IS NOT NULL");
-			break;
-
-		case CONTENT:
-			qb.setTables(Five.Content.SQL.TABLE);
-			break;
-
-		case CONTENT_ITEM:
-			qb.setTables(Five.Content.SQL.TABLE);
-			qb.appendWhere("_id=" + uri.getLastPathSegment());
-			break;
-
-		case CONTENT_ITEM_BY_SOURCE:
-			List<String> segments = uri.getPathSegments();
-			qb.setTables(Five.Content.SQL.TABLE);
-			qb.appendWhere(Five.Content.SOURCE_ID + "=" + segments.get(1) + " AND " +
-			  Five.Content.CONTENT_ID + "=" + segments.get(3));
-			break;
-
 		case SOURCES:
 			qb.setTables(Five.Sources.SQL.TABLE + " s " +
 			  "LEFT JOIN " + Five.SourcesLog.SQL.TABLE + " sl " +
@@ -540,7 +467,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 			qb.appendWhere("s.artist_id=" + getSecondToLastPathSegment(uri));
 
-			Map<String, String> proj = (Map<String, String>)albumsMap.clone();
+			HashMap<String, String> proj = new HashMap<String, String>(albumsMap);
 			proj.put(Five.Music.Albums.NUM_SONGS, "COUNT(*) AS " + Five.Music.Albums.NUM_SONGS);
 			qb.setProjectionMap(proj);
 
@@ -567,7 +494,19 @@ public class FiveProvider extends AbstractSyncProvider
 	{
 		String custom;
 
-		custom = extendWhere(sel, Five.Music.Songs._ID + '=' + uri.getLastPathSegment());
+		switch (type)
+		{
+			case SONG:
+				custom = extendWhere(sel, Five.Music.Songs._ID + '=' + uri.getLastPathSegment());
+				break;
+
+			case SONGS:
+				custom = sel;
+				break;
+
+			default:
+				throw new IllegalArgumentException();
+		}
 
 		int ret = db.update(Five.Music.Songs.SQL.TABLE, v, custom, selArgs);
 //		getContext().getContentResolver().notifyChange(uri, null);
@@ -630,27 +569,6 @@ public class FiveProvider extends AbstractSyncProvider
 		return ret;
 	}
 
-	private int updateContent(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v,
-	  String sel, String[] selArgs)
-	{
-		String custom;
-
-		if (type == URIPatternIds.CONTENT_ITEM)
-			custom = extendWhere(sel, Five.Content._ID + '=' + uri.getLastPathSegment());
-		else
-		{
-			List<String> segments = uri.getPathSegments();
-			custom = extendWhere(sel,
-			  Five.Content.SOURCE_ID + '=' + segments.get(1) + " AND " +
-			  Five.Content.CONTENT_ID + '=' + segments.get(3));
-		}
-
-		int ret = db.update(Five.Content.SQL.TABLE, v, custom, selArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
-
-		return ret;
-	}
-
 	private void updateCount(SQLiteDatabase db, String updateSQL,
 	  String countsSQL)
 	{
@@ -701,10 +619,10 @@ public class FiveProvider extends AbstractSyncProvider
 			updateCount(db, "UPDATE music_playlists SET num_songs = ? WHERE _id = ?",
 			  "SELECT playlist_id, COUNT(*) FROM music_playlist_songs GROUP BY playlist_id");
 
-			/* Now delete all the empty containers that are left. */
-			delete(Five.Music.Playlists.CONTENT_URI, "num_songs=0", null);
-			delete(Five.Music.Albums.CONTENT_URI, "num_songs=0", null);
-			delete(Five.Music.Artists.CONTENT_URI, "num_songs=0", null);
+//			/* Now delete all the empty containers that are left. */
+//			delete(Five.Music.Playlists.CONTENT_URI, "num_songs=0", null);
+//			delete(Five.Music.Albums.CONTENT_URI, "num_songs=0", null);
+//			delete(Five.Music.Artists.CONTENT_URI, "num_songs=0", null);
 
 			db.setTransactionSuccessful();
 		} finally {
@@ -727,6 +645,7 @@ public class FiveProvider extends AbstractSyncProvider
 		switch (type)
 		{
 		case SONG:
+		case SONGS:
 			return updateSong(db, uri, type, values, selection, selectionArgs);
 		case ALBUM:
 			return updateAlbum(db, uri, type, values, selection, selectionArgs);
@@ -736,9 +655,6 @@ public class FiveProvider extends AbstractSyncProvider
 			return updatePlaylist(db, uri, type, values, selection, selectionArgs);
 		case SOURCE:
 			return updateSource(db, uri, type, values, selection, selectionArgs);
-		case CONTENT_ITEM:
-		case CONTENT_ITEM_BY_SOURCE:
-			return updateContent(db, uri, type, values, selection, selectionArgs);
 		case ADJUST_COUNTS:
 			return updateCounts(db, uri, type, values, selection, selectionArgs);
 		default:
@@ -795,69 +711,6 @@ public class FiveProvider extends AbstractSyncProvider
 		  .appendPath(String.valueOf(id))
 		  .build();
 
-//		getContext().getContentResolver().notifyChange(ret, null);
-
-		return ret;
-	}
-
-//	private Uri insertCache(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
-//	{
-//		if (v.containsKey(Five.Cache.SOURCE_ID) == false)
-//			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
-//
-//		if (v.containsKey(Five.Cache.CONTENT_ID) == false)
-//			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
-//
-//		Cursor c = db.query(Five.Cache.SQL.TABLE,
-//		  new String[] { Five.Cache._ID },
-//		  Five.Cache.SOURCE_ID + '=' + v.getAsLong(Five.Cache.SOURCE_ID) + " AND " +
-//		  Five.Cache.CONTENT_ID + '=' + v.getAsLong(Five.Cache.CONTENT_ID),
-//		  null, null, null, null);
-//
-//		int rows;
-//		long id;
-//
-//		if ((rows = c.getCount()) == 0)
-//		{
-//			v.put(Five.Cache.PATH,
-//			  "/sdcard/five/cache/" +
-//			  v.getAsLong(Five.Cache.SOURCE_ID) + "/" +
-//			  v.getAsLong(Five.Cache.CONTENT_ID));
-//
-//			id = db.insert(Five.Cache.SQL.TABLE, Five.Cache.SOURCE_ID, v);
-//		}
-//		else
-//		{
-//			c.moveToFirst();
-//			id = c.getLong(0);
-//			c.close();
-//		}
-//
-//		if (id == -1)
-//			return null;
-//
-//		Uri ret = ContentUris.withAppendedId(Five.Cache.CONTENT_URI, id);
-//
-//		if (rows == 0)
-//			getContext().getContentResolver().notifyChange(ret, null);
-//
-//		return ret;
-//	}
-
-	private Uri insertContent(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
-	{
-		if (v.containsKey(Five.Content.SOURCE_ID) == false)
-			throw new IllegalArgumentException("SOURCE_ID cannot be NULL");
-
-		if (v.containsKey(Five.Content.CONTENT_ID) == false)
-			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
-
-		long id = db.insert(Five.Content.SQL.TABLE, Five.Content.SIZE, v);
-
-		if (id == -1)
-			return null;
-
-		Uri ret = ContentUris.withAppendedId(Five.Content.CONTENT_URI, id);
 //		getContext().getContentResolver().notifyChange(ret, null);
 
 		return ret;
@@ -932,9 +785,6 @@ public class FiveProvider extends AbstractSyncProvider
 	{
 		if (v.containsKey(Five.Music.Albums.ARTIST_ID) == false)
 			throw new IllegalArgumentException("ARTIST_ID cannot be NULL");
-
-		if (v.containsKey(Five.Music.Songs.CONTENT_ID) == false)
-			throw new IllegalArgumentException("CONTENT_ID cannot be NULL");
 
 		long id = mSongInserter.insert(v);
 
@@ -1026,10 +876,6 @@ public class FiveProvider extends AbstractSyncProvider
 			return insertSource(db, uri, type, values);
 		case SOURCE_LOG:
 			return insertSourceLog(db, uri, type, values);
-//		case CACHE:
-//			return insertCache(db, uri, type, values);
-		case CONTENT:
-			return insertContent(db, uri, type, values);
 		case ARTISTS:
 			return insertArtist(db, uri, type, values);
 		case ALBUMS:
@@ -1102,153 +948,10 @@ public class FiveProvider extends AbstractSyncProvider
 			throw new IllegalArgumentException("Cannot delete source URI: " + uri);
 		}
 
-		/* Trigger deletes of all related content. */
-		db.beginTransaction();
-		try {
-			String[] query = { Five.Sources._ID };
-			Cursor c = db.query(Five.Sources.SQL.TABLE, query,
-			  custom, selectionArgs, null, null, null);
-
-			try {
-				while (c.moveToNext() == true)
-				{
-					long id = c.getLong(0);
-
-					db.delete(Five.SourcesLog.SQL.TABLE,
-					  Five.SourcesLog.SOURCE_ID + '=' + id, null);
-
-					delete(Five.Content.CONTENT_URI, "source_id=" + id, null);
-				}
-			} finally {
-				c.close();
-			}
-
-			/* Finally delete the source itself. */
-			count = db.delete(Five.Sources.SQL.TABLE, custom, selectionArgs);
-
-			db.setTransactionSuccessful();
-		} finally {
-			db.endTransaction();
-		}
+		count = db.delete(Five.Sources.SQL.TABLE, custom, selectionArgs);
 
 		if (isTemporary() == false)
 			getContext().getContentResolver().notifyChange(Five.Sources.CONTENT_URI, null);
-
-		return count;
-	}
-
-//	private int deleteCache(Uri uri, URIPatternIds type,
-//	  String selection, String[] selectionArgs)
-//	{
-//		String custom;
-//		int count;
-//
-//		switch (type)
-//		{
-//		case CACHE:
-//			custom = selection;
-//			break;
-//
-//		case CACHE_ITEM:
-//			custom = extendWhere(selection, Five.Cache._ID + '=' + uri.getLastPathSegment());
-//			break;
-//
-//		case CACHE_ITEMS_BY_SOURCE:
-//			custom = extendWhere(selection, Five.Cache.SOURCE_ID + '=' + getSecondToLastPathSegment(uri));
-//			break;
-//
-//		default:
-//			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
-//		}
-//
-//		SQLiteDatabase db = mHelper.getReadableDatabase();
-//		count = db.delete(Five.Cache.SQL.TABLE, custom, selectionArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
-//
-//		return count;
-//	}
-
-	private int deleteContent(SQLiteDatabase db, Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
-	{
-		String custom;
-		int count;
-
-		/* Now it's safe to delete the row. */
-		switch (type)
-		{
-		case CONTENT:
-			custom = selection;
-			break;
-
-		case CONTENT_ITEM:
-			custom = extendWhere(selection, Five.Content._ID + '=' + uri.getLastPathSegment());
-			break;
-
-		case CONTENT_ITEM_BY_SOURCE:
-			List<String> segments = uri.getPathSegments();
-			custom = extendWhere(selection,
-			  Five.Content.SOURCE_ID + '=' + segments.get(1) + " AND " +
-			  Five.Content.CONTENT_ID + '=' + segments.get(3));
-			break;
-
-		default:
-			throw new IllegalArgumentException("Cannot delete content URI: " + uri);
-		}
-
-		/* Tidy up related resources. */
-		db.beginTransaction();
-		try {
-			Cursor c = db.query(Five.Content.SQL.TABLE,
-			  new String[] { Five.Content._ID, Five.Content.CACHED_PATH },
-			  custom, selectionArgs, null, null, null);
-
-			int affected = 0;
-
-			BulkDeleteQuery bulkQuery =
-			  new BulkDeleteQuery(getContext(), Five.Music.Songs.CONTENT_URI,
-			    Five.Music.Songs.CONTENT_ID);
-
-			Log.i(TAG, "Deleting " + c.getCount() + " records...");
-
-			try {
-				affected = c.getCount();
-
-				while (c.moveToNext() == true)
-				{
-					long id = c.getLong(0);
-
-					/* Delete songs first, then do a sweep improving database
-					 * consistency. */
-					bulkQuery.delete(id);
-
-					/* Delete cached files on disk. */
-					String path = c.getString(1);
-					if (path != null)
-						(new File(path)).delete();
-				}
-			} finally {
-				c.close();
-
-				bulkQuery.execute();
-			}
-
-			if (affected > 0)
-			{
-				/* Update cached num_songs, num_albums counts and delete
-				 * any lingering empty containers. */
-				update(Five.Music.AdjustCounts.CONTENT_URI,
-				  null, null, null);
-			}
-
-			count = db.delete(Five.Content.SQL.TABLE, custom, selectionArgs);
-
-			db.setTransactionSuccessful();
-		} finally {
-			db.endTransaction();
-		}
-
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
@@ -1343,38 +1046,7 @@ public class FiveProvider extends AbstractSyncProvider
 			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
 		}
 
-		db.beginTransaction();
-		try {
-			/* Delete related PlaylistSongs entries.  Note that we do not take
-			 * care of deleting potentially now empty artists, albums, or
-			 * playlists yet.  We let the dust settle first in the caller and
-			 * then run ADJUST_COUNTS. */
-			String[] query = { Five.Music.Songs._ID };
-			Cursor c = db.query(Five.Music.Songs.SQL.TABLE, query,
-			  custom, selectionArgs, null, null, null);
-
-			BulkDeleteQuery bulkQuery =
-			  new BulkDeleteQuery(getContext(),
-			    Five.Music.PlaylistSongs.CONTENT_URI,
-			    Five.Music.PlaylistSongs.SONG_ID);
-
-			try {
-				while (c.moveToNext() == true)
-				{
-					long _id = c.getLong(0);
-					bulkQuery.delete(_id);
-				}
-			} finally {
-				c.close();
-				bulkQuery.execute();
-			}
-
-			count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
-			db.setTransactionSuccessful();
-		} finally {
-			db.endTransaction();
-		}
-
+		count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
 //		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
@@ -1384,7 +1056,6 @@ public class FiveProvider extends AbstractSyncProvider
 	  String selection, String[] selectionArgs)
 	{
 		String custom;
-		String[] _ids;
 		int count;
 
 		switch (type)
@@ -1396,31 +1067,15 @@ public class FiveProvider extends AbstractSyncProvider
 			  new String[] { Five.Music.Playlists._ID },
 			  custom, selectionArgs, null, null, null);
 
-			try {
-				_ids = new String[c.getCount()];
-
-				for (int i = 0; c.moveToNext() == true; i++)
-					_ids[i] = c.getString(0);
-			} finally {
-				c.close();
-			}
-
 			break;
 
 		case PLAYLIST:
-			_ids = new String[] { uri.getLastPathSegment() };
 			custom = extendWhere(selection,
-			  Five.Music.Playlists._ID + '=' + _ids[0]);
+			  Five.Music.Playlists._ID + '=' + uri.getLastPathSegment());
 			break;
 
 		default:
 			throw new IllegalArgumentException("Cannot delete playlist URI: " + uri);
-		}
-
-		for (String id: _ids)
-		{
-			db.delete(Five.Music.PlaylistSongs.SQL.TABLE,
-			  Five.Music.PlaylistSongs.PLAYLIST_ID + "=" + id, null);
 		}
 
 		count = db.delete(Five.Music.Playlists.SQL.TABLE, custom, selectionArgs);
@@ -1477,13 +1132,6 @@ public class FiveProvider extends AbstractSyncProvider
 		case SOURCES:
 		case SOURCE:
 			return deleteSource(db, uri, type, selection, selectionArgs);
-//		case CACHE:
-//		case CACHE_ITEMS_BY_SOURCE:
-//			return deleteCache(uri, type, selection, selectionArgs);
-		case CONTENT:
-		case CONTENT_ITEM:
-		case CONTENT_ITEM_BY_SOURCE:
-			return deleteContent(db, uri, type, selection, selectionArgs);
 		case ARTISTS:
 		case ARTIST:
 			return deleteArtist(db, uri, type, selection, selectionArgs);
@@ -1511,8 +1159,6 @@ public class FiveProvider extends AbstractSyncProvider
 	{
 		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
 		{
-		case CACHE:
-			return Five.Content.CONTENT_TYPE;
 		case SOURCES:
 			return Five.Sources.CONTENT_TYPE;
 		case SOURCE:
@@ -1547,13 +1193,6 @@ public class FiveProvider extends AbstractSyncProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/log", URIPatternIds.SOURCE_LOG.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/content/#", URIPatternIds.CONTENT_ITEM_BY_SOURCE.ordinal());
-
-		URI_MATCHER.addURI(Five.AUTHORITY, "content", URIPatternIds.CONTENT.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "content/#", URIPatternIds.CONTENT_ITEM.ordinal());
-
-		URI_MATCHER.addURI(Five.AUTHORITY, "cache", URIPatternIds.CACHE.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/cache", URIPatternIds.CACHE_ITEMS_BY_SOURCE.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());

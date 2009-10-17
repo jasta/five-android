@@ -35,7 +35,7 @@ import android.util.Log;
 
 /**
  * Mechanism for managing cached content.
- * 
+ *
  * TODO: Implement this using configurable CachePolicy's.  For now it is
  * hardcoded with a policy which attempts to leave 100MB free on the storage
  * card for other applications.
@@ -47,8 +47,8 @@ public class CacheManager
 	private static CacheManager INSTANCE;
 
 	private Context mContext;
-	
-	/* XXX: The default policy (which is not configurable, sadly) is to 
+
+	/* XXX: The default policy (which is not configurable, sadly) is to
 	 * attempt to leave 100MB free.  This should be made far more robust
 	 * and flexible in the future. */
 	private static final int POLICY_LEAVE_FREE = 100 * 1024 * 1024;
@@ -66,30 +66,27 @@ public class CacheManager
 		return INSTANCE;
 	}
 
-	private Uri makeContentUri(long sourceId, long contentId)
+	private String getContentWhereClause(long sourceId, long contentId)
 	{
-		return Five.Sources.CONTENT_URI.buildUpon()
-		  .appendPath(String.valueOf(sourceId))
-		  .appendEncodedPath("content")
-		  .appendPath(String.valueOf(contentId))
-		  .build();
+		return Five.Music.Songs.SOURCE_ID + " = " + sourceId + " AND " +
+			Five.Music.Songs._SYNC_ID + " = " + contentId;
 	}
 
 	private Cursor getContentCursor(long sourceId, long contentId)
 	{
-		Uri uri = makeContentUri(sourceId, contentId);
 		String fields[] =
-		  new String[] { Five.Content._ID, Five.Content.SIZE,
-		    Five.Content.CACHED_PATH, Five.Content.MIME_TYPE };
+		  new String[] { Five.Music.Songs._ID, Five.Music.Songs.SIZE,
+		    Five.Music.Songs.CACHED_PATH, Five.Music.Songs.MIME_TYPE };
 		return mContext.getContentResolver()
-		  .query(uri, fields, null, null, null);
+		  .query(Five.Music.Songs.CONTENT_URI, fields,
+			  getContentWhereClause(sourceId, contentId), null, null);
 	}
 
 	private int updateContentRow(long sourceId, long contentId,
 	  ContentValues values)
 	{
-		Uri uri = makeContentUri(sourceId, contentId);
-		return mContext.getContentResolver().update(uri, values, null, null);
+		return mContext.getContentResolver().update(Five.Music.Songs.CONTENT_URI, values,
+			getContentWhereClause(sourceId, contentId), null);
 	}
 
 	private boolean deleteSufficientSpace(File sdcard, long size)
@@ -115,11 +112,11 @@ OUTER:
 			if (cr == null)
 			{
 				cr = mContext.getContentResolver();
-				c = cr.query(Five.Content.CONTENT_URI,
-				  new String[] { Five.Content._ID, 
-				    Five.Content.CACHED_PATH, Five.Content.SIZE },
-				  Five.Content.CACHED_PATH + " IS NOT NULL", null,
-				  Five.Content.CACHED_TIMESTAMP + " ASC");
+				c = cr.query(Five.Music.Songs.CONTENT_URI,
+				  new String[] { Five.Music.Songs._ID,
+				    Five.Music.Songs.CACHED_PATH, Five.Music.Songs.SIZE },
+				  Five.Music.Songs.CACHED_PATH + " IS NOT NULL", null,
+				  Five.Music.Songs.CACHED_TIMESTAMP + " ASC");
 			}
 
 			/* Inner loop here to avoid calling StatFs for each cached
@@ -143,12 +140,12 @@ OUTER:
 				}
 
 				/* Eliminate this entry from the cache. */
-				Uri contentUri = 
-				  ContentUris.withAppendedId(Five.Content.CONTENT_URI,
+				Uri contentUri =
+				  ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI,
 				    c.getLong(0));
 				ContentValues cv = new ContentValues();
-				cv.putNull(Five.Content.CACHED_TIMESTAMP);
-				cv.putNull(Five.Content.CACHED_PATH);
+				cv.putNull(Five.Music.Songs.CACHED_TIMESTAMP);
+				cv.putNull(Five.Music.Songs.CACHED_PATH);
 				cr.update(contentUri, cv, null, null);
 			}
 		}
@@ -158,7 +155,7 @@ OUTER:
 
 		return false;
 	}
-	
+
 	private String getExtensionFromMimeType(String mime)
 	{
 		if (mime.equals("audio/mpeg") == true)
@@ -171,10 +168,10 @@ OUTER:
 
 	/**
 	 * Attempt to carve out sufficient storage from the storage card.
-	 * 
+	 *
 	 * @param size
 	 *   Required amount of available space.
-	 * 
+	 *
 	 * @return
 	 *   Filename for storage.
 	 */
@@ -183,12 +180,12 @@ OUTER:
 	  throws CacheAllocationException
 	{
 		String state = Environment.getExternalStorageState();
-		
+
 		if (state.equals(Environment.MEDIA_MOUNTED) == false)
 			throw new NoStorageCardException();
-		
+
 		File sdcard = Environment.getExternalStorageDirectory();
-		
+
 		if (sdcard.exists() == false)
 			throw new NoStorageCardException();
 
@@ -197,7 +194,7 @@ OUTER:
 
 		String basePath = sdcard.getAbsolutePath() + "/five/cache/" + sourceId;
 		File basePathFile = new File(basePath);
-		
+
 		if (basePathFile.exists() == false)
 		{
 			if (basePathFile.mkdirs() == false)
@@ -207,17 +204,17 @@ OUTER:
 		return basePath + '/' + contentId + '.' +
 		  getExtensionFromMimeType(mime);
 	}
-		
+
 	/**
 	 * Request storage space for a new content item.  If this entry is
 	 * already committed to cache then the cached entry will be
-	 * truncated.  Caller is responsible for calling either 
+	 * truncated.  Caller is responsible for calling either
 	 * {@link #commitStorage} or {@link #releaseStorage} when finished.
-	 * 
+	 *
 	 * @throws IllegalStateException
 	 *   Illegal state exception is thrown if another active CacheEntry
 	 *   object has been provided but not released.
-	 *   
+	 *
 	 * @return
 	 *   The path to the allocated storage.
 	 */
@@ -225,20 +222,20 @@ OUTER:
 	  throws CacheAllocationException
 	{
 		Cursor c = getContentCursor(sourceId, contentId);
-		
+
 		try {
 			if (c.moveToFirst() == false)
 				throw new IllegalArgumentException("Invalid content");
-			
-			long size = c.getLong(c.getColumnIndexOrThrow(Five.Content.SIZE));
-			String mime = c.getString(c.getColumnIndexOrThrow(Five.Content.MIME_TYPE));
+
+			long size = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SIZE));
+			String mime = c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.MIME_TYPE));
 
 			String path = makeStorage(sourceId, contentId, mime, size);
 
 			ContentValues cv = new ContentValues();
-			cv.put(Five.Content.CACHED_TIMESTAMP,
+			cv.put(Five.Music.Songs.CACHED_TIMESTAMP,
 			  System.currentTimeMillis());
-			cv.put(Five.Content.CACHED_PATH, path);
+			cv.put(Five.Music.Songs.CACHED_PATH, path);
 			updateContentRow(sourceId, contentId, cv);
 
 			return path;
@@ -246,7 +243,7 @@ OUTER:
 			c.close();
 		}
 	}
-	
+
 	/**
 	 * Commit cached content to disk.  This indicates that the file is fully
 	 * downloaded and that the cached entry should be tidied.
@@ -255,7 +252,7 @@ OUTER:
 	{
 		/* XXX. */
 	}
-	
+
 	/**
 	 * Inform the cache manager that an entry can be purged.  This may not
 	 * result in an immediate release of resources depending on the current
@@ -269,7 +266,7 @@ OUTER:
 	{
 		throw new RuntimeException("Not implemented");
 	}
-	
+
 	public static class CacheAllocationException extends Exception
 	{
 		public CacheAllocationException() { super(); }

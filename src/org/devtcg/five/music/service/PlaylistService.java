@@ -91,7 +91,7 @@ public class PlaylistService extends Service implements
 	 * changes to the playlist state at any time. */
 	final Object mBinderLock = new Object();
 
-	SongDownloadManager mManager; 
+	SongDownloadManager mManager;
 
 	CacheManager mCacheMgr = null;
 
@@ -106,7 +106,7 @@ public class PlaylistService extends Service implements
 	volatile boolean mPlaying = false;
 	volatile boolean mPaused = false;
 	volatile boolean mPrepared = false;
-	
+
 	/**
 	 * Tracks whether there are activities currently bound to the service so
 	 * that we can determine when it would be safe to call stopSelf().
@@ -117,7 +117,7 @@ public class PlaylistService extends Service implements
 	IPlaylistMoveListenerCallbackList mMoveListeners;
 	IPlaylistDownloadListenerCallbackList mDownloadListeners;
 	IPlaylistBufferListenerCallbackList mBufferListeners;
-	
+
 	PowerManager.WakeLock mWakeLock;
 
 	volatile boolean mResumeAfterCall = false;
@@ -153,7 +153,7 @@ public class PlaylistService extends Service implements
 		mBufferListeners = new IPlaylistBufferListenerCallbackList();
 
 		mManager = new SongDownloadManager(this);
-		
+
 		mCacheMgr = CacheManager.getInstance(this);
 
 		/* When the service dies we attempt to serialize playlist state to
@@ -163,7 +163,7 @@ public class PlaylistService extends Service implements
 		} catch (IOException e) {
 			Log.e(TAG, "Couldn't recover state!", e);
 		}
-		
+
 		/* Detect when the headphone jack is suddenly unplugged. */
 		registerReceiver(mNoisyReceiver,
 		  new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
@@ -200,7 +200,7 @@ public class PlaylistService extends Service implements
 			mBufferListeners.kill();
 
 			mPlayer.reset();
-			mPlayer.release();			
+			mPlayer.release();
 			mPlayer = null;
 		}
 
@@ -306,7 +306,7 @@ public class PlaylistService extends Service implements
 				inf.close();
 		}
 	}
-	
+
 	private final BroadcastReceiver mNoisyReceiver = new BroadcastReceiver()
 	{
 		public void onReceive(Context context, Intent intent)
@@ -317,7 +317,7 @@ public class PlaylistService extends Service implements
 			} catch (RemoteException e) {}
 		}
 	};
-	
+
 	/* Logic taken from packages/apps/Music.  Will pause when an incoming
 	 * call rings (volume > 0), or if a call (incoming or outgoing) is
 	 * connected. */
@@ -330,9 +330,9 @@ public class PlaylistService extends Service implements
 				switch (state)
 				{
 				case TelephonyManager.CALL_STATE_RINGING:
-					AudioManager am = 
+					AudioManager am =
 					  (AudioManager)getSystemService(AUDIO_SERVICE);
-					
+
 					/* Don't pause if the ringer isn't making any noise. */
 					int ringvol = am.getStreamVolume(AudioManager.STREAM_RING);
 					if (ringvol <= 0)
@@ -384,7 +384,7 @@ public class PlaylistService extends Service implements
 		public void deferredStopSelf()
 		{
 			Log.i(TAG, "Service stop scheduled " + (DEFERRAL_DELAY / 1000 / 60) + " minutes from now.");
-			sendMessageDelayed(obtainMessage(DEFERRED_STOP), DEFERRAL_DELAY); 
+			sendMessageDelayed(obtainMessage(DEFERRED_STOP), DEFERRAL_DELAY);
 			saveStateQuietly();
 		}
 
@@ -423,7 +423,7 @@ public class PlaylistService extends Service implements
 
 		if (mPlaying == true && mPaused == false)
 			return true;
-		
+
 		mHandler.deferredStopSelf();
 		return true;
 	}
@@ -445,7 +445,7 @@ public class PlaylistService extends Service implements
 			n.icon = R.drawable.stat_notify_musicplayer;
 			n.when = System.currentTimeMillis();
 
-			RemoteViews view = new RemoteViews("org.devtcg.five", 
+			RemoteViews view = new RemoteViews("org.devtcg.five",
 			  R.layout.notif_playing);
 
 			Song song = new Song(getContentResolver(), songId);
@@ -464,7 +464,7 @@ public class PlaylistService extends Service implements
 			mNM.notify(NOTIF_PLAYING, n);
 		}
 	}
-	
+
 	private long getPlayingSong()
 	{
 		synchronized(mBinderLock) {
@@ -503,25 +503,9 @@ public class PlaylistService extends Service implements
 		  songId);
 
 		Cursor c = getContentResolver().query(songUri,
-		  new String[] { Five.Music.Songs.CONTENT_ID }, null, null, null);
-
-		long _id;
-
-		try {
-			if (c.moveToFirst() == false)
-				return null;
-
-			_id = c.getLong(0);
-		} finally {
-			c.close();
-		}
-
-		Uri contentUri =
-		  ContentUris.withAppendedId(Five.Content.CONTENT_URI, _id);
-
-		c = getContentResolver().query(contentUri,
-		  new String[] { Five.Content.CONTENT_ID, Five.Content.SOURCE_ID,
-		    Five.Content.CACHED_PATH, Five.Content.SIZE }, null, null, null);
+			new String[] { Five.Music.Songs._SYNC_ID, Five.Music.Songs.SOURCE_ID,
+				Five.Music.Songs.CACHED_PATH, Five.Music.Songs.SIZE },
+			null, null, null);
 
 		return c;
 	}
@@ -550,15 +534,15 @@ public class PlaylistService extends Service implements
 			if (c.moveToFirst() == false)
 				return false;
 
-			contentId = c.getLong(c.getColumnIndexOrThrow(Five.Content.CONTENT_ID));
+			contentId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs._SYNC_ID));
 			assert contentId >= 0;
 
-			sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Content.SOURCE_ID));
+			sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SOURCE_ID));
 			assert sourceId >= 0;
 
-			cachePath = c.getString(c.getColumnIndexOrThrow(Five.Content.CACHED_PATH));
+			cachePath = c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.CACHED_PATH));
 
-			size = c.getLong(c.getColumnIndexOrThrow(Five.Content.SIZE));
+			size = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SIZE));
 			assert size > 0;
 		} finally {
 			c.close();
@@ -597,15 +581,13 @@ public class PlaylistService extends Service implements
 					DownloadManager.Download dl =
 					  mManager.lookupDownload(songId);
 
-					/* Must be a partially complete, canceled download. */ 
+					/* Must be a partially complete, canceled download. */
 					if (dl == null)
 					{
 						mManager.stopAllDownloads();
 
-						URL url = Sources.getContentURL(getContentResolver(),
-						  sourceId, contentId);
-						dl = mManager.startDownload(songId, 
-						  url.toString(), cachePath, length);
+						String url = Sources.getContentURL(this, sourceId, contentId);
+						dl = mManager.startDownload(songId, url, cachePath, length);
 					}
 
 					mPlayer.setDataSource(new TailStream(cachePath, size));
@@ -617,16 +599,15 @@ public class PlaylistService extends Service implements
 
 				cachePath = mCacheMgr.requestStorage(sourceId, contentId);
 
-				URL url = Sources.getContentURL(getContentResolver(),
-				  sourceId, contentId);
+				String url = Sources.getContentURL(this, sourceId, contentId);
 				assert url != null;
 
 				/* We only allow 1 download active at a time, and it's gonna
 				 * be the one that is currently streaming. */
 				mManager.stopAllDownloads();
 
-				DownloadManager.Download dl = 
-				  mManager.startDownload(songId, url.toString(), cachePath);
+				DownloadManager.Download dl =
+				  mManager.startDownload(songId, url, cachePath);
 
 				mPlayer.setDataSource(new TailStream(cachePath, size));
 			}
@@ -637,7 +618,7 @@ public class PlaylistService extends Service implements
 		}
 
 		notifySong(songId);
-				
+
 		mBufferListeners.broadcastOnBufferingUpdate(songId, 0);
 		mPlayer.prepareAsync();
 
@@ -660,15 +641,15 @@ public class PlaylistService extends Service implements
 			if (c.moveToFirst() == false)
 				return null;
 
-			contentId = c.getLong(c.getColumnIndexOrThrow(Five.Content.CONTENT_ID));
+			contentId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs._SYNC_ID));
 			assert contentId >= 0;
 
-			sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Content.SOURCE_ID));
+			sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SOURCE_ID));
 			assert sourceId >= 0;
 
-			cachePath = c.getString(c.getColumnIndexOrThrow(Five.Content.CACHED_PATH));
+			cachePath = c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.CACHED_PATH));
 
-			size = c.getLong(c.getColumnIndexOrThrow(Five.Content.SIZE));
+			size = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SIZE));
 			assert size > 0;
 		} finally {
 			c.close();
@@ -700,15 +681,13 @@ public class PlaylistService extends Service implements
 					DownloadManager.Download dl =
 					  mManager.lookupDownload(songId);
 
-					/* Must be a partially complete, canceled download. */ 
+					/* Must be a partially complete, canceled download. */
 					if (dl == null)
 					{
 						mManager.stopAllDownloads();
 
-						URL url = Sources.getContentURL(getContentResolver(),
-						  sourceId, contentId);
-						dl = mManager.startDownload(songId, 
-						  url.toString(), cachePath, length);
+						String url = Sources.getContentURL(this, sourceId, contentId);
+						dl = mManager.startDownload(songId, url, cachePath, length);
 					}
 
 					return dl;
@@ -720,16 +699,15 @@ public class PlaylistService extends Service implements
 
 				cachePath = mCacheMgr.requestStorage(sourceId, contentId);
 
-				URL url = Sources.getContentURL(getContentResolver(),
-				  sourceId, contentId);
+				String url = Sources.getContentURL(this, sourceId, contentId);
 				assert url != null;
 
 				Log.i(TAG, "Preemptively downloading to " + cachePath);
 
 				mManager.stopAllDownloads();
 
-				DownloadManager.Download dl = 
-				  mManager.startDownload(songId, url.toString(), cachePath);
+				DownloadManager.Download dl =
+				  mManager.startDownload(songId, url, cachePath);
 			}
 		} catch (Exception e) {
 			Log.e(TAG, "Preemption failed!", e);
@@ -739,7 +717,7 @@ public class PlaylistService extends Service implements
 
 		return null;
 	}
-	
+
 	/**
 	 * Check at key stages to make sure that the song to be played next
 	 * is preemptively downloading.
@@ -784,7 +762,7 @@ public class PlaylistService extends Service implements
 	{
 		private final Map<String, Long> mUrlToSongMap =
 		  Collections.synchronizedMap(new HashMap<String, Long>());
-		
+
 		public SongDownloadManager(Context ctx)
 		{
 			super(ctx);
@@ -813,8 +791,8 @@ public class PlaylistService extends Service implements
 				if (c.moveToFirst() == false)
 					return false;
 
-				sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Content.SOURCE_ID));
-				contentId = c.getLong(c.getColumnIndexOrThrow(Five.Content.CONTENT_ID));
+				sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SOURCE_ID));
+				contentId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs._SYNC_ID));
 			} finally {
 				c.close();
 			}
@@ -946,7 +924,7 @@ public class PlaylistService extends Service implements
 
 		if (songId >= 0)
 		{
-			/* If we have an error condition on this song's download, 
+			/* If we have an error condition on this song's download,
 			 * trigger it as a download error.  Normally, we hide network
 			 * errors and passively retry but if the MediaPlayer catches
 			 * up, we should report the last error we encountered.
@@ -961,7 +939,7 @@ public class PlaylistService extends Service implements
 				case DownloadManager.STATE_FILE_ERROR:
 				case DownloadManager.STATE_PAUSED_LOCAL_FAILURE:
 				case DownloadManager.STATE_PAUSED_REMOTE_FAILURE:
-					mDownloadListeners.broadcastOnDownloadError(songId, 
+					mDownloadListeners.broadcastOnDownloadError(songId,
 					  dl.getStateMessage());
 					break;
 				}
@@ -969,7 +947,7 @@ public class PlaylistService extends Service implements
 				mManager.stopDownload(songId);
 			}
 		}
-		
+
 		boolean playing;
 		boolean paused;
 
@@ -998,17 +976,17 @@ public class PlaylistService extends Service implements
 	public void onCompletion(MediaPlayer mp)
 	{
 		Log.i(TAG, "Should be finished.");
-		
+
 		assert mp == mPlayer;
 
 		assert mPlaying == true;
 		assert mPaused == false;
-		
+
 		synchronized(mBinderLock) {
 			mPlayer.stop();
 			mPlayer.reset();
 
-			mPrepared = false;		
+			mPrepared = false;
 		}
 
 		try {
@@ -1144,7 +1122,7 @@ public class PlaylistService extends Service implements
 		public void play()
 		  throws RemoteException
 		{
-			long songId; 
+			long songId;
 
 			synchronized(mBinderLock) {
 				if (mPlaylist.isEmpty() == true)
@@ -1167,7 +1145,7 @@ public class PlaylistService extends Service implements
 				boolean ret = playInternal(songId);
 				assert ret == true;
 			}
-			
+
 			mMoveListeners.broadcastOnPlay();
 		}
 
@@ -1186,7 +1164,7 @@ public class PlaylistService extends Service implements
 
 				mPaused = true;
 			}
-			
+
 			mMoveListeners.broadcastOnPause();
 		}
 
@@ -1215,7 +1193,7 @@ public class PlaylistService extends Service implements
 
 				mPaused = false;
 			}
-			
+
 			mMoveListeners.broadcastOnUnpause();
 		}
 
@@ -1238,7 +1216,7 @@ public class PlaylistService extends Service implements
 				mPaused = false;
 				mPlaying = false;
 			}
-			
+
 			mMoveListeners.broadcastOnStop();
 		}
 
@@ -1283,7 +1261,7 @@ public class PlaylistService extends Service implements
 			synchronized(mBinderLock) {
 				dur = mPlayer.getDuration();
 			}
-			
+
 			return (long)dur;
 		}
 
@@ -1320,11 +1298,11 @@ public class PlaylistService extends Service implements
 		  throws RemoteException
 		{
 			boolean playing;
-			
+
 			synchronized(mBinderLock) {
 				playing = mPlayer.isPlaying();
 			}
-			
+
 			return playing;
 		}
 
@@ -1356,7 +1334,7 @@ public class PlaylistService extends Service implements
 					to = n;
 
 				/* XXX: We assume that Android's serialization will
-				 * copy our list so as not to leak references. */ 
+				 * copy our list so as not to leak references. */
 				return mPlaylist.subList(from, to);
 			}
 		}
@@ -1565,7 +1543,7 @@ public class PlaylistService extends Service implements
 				l.onDownloadBegin(songId);
 				l.onDownloadProgressUpdate(songId, dl.getProgress());
 			}
-			
+
 			mDownloadListeners.register(l);
 		}
 
