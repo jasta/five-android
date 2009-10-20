@@ -18,39 +18,24 @@ package org.devtcg.five.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.devtcg.five.provider.AbstractSyncAdapter;
-import org.devtcg.five.provider.AbstractSyncProvider;
 import org.devtcg.five.provider.Five;
-import org.devtcg.five.provider.FiveProvider;
 import org.devtcg.five.provider.FiveSyncAdapter;
 import org.devtcg.five.provider.util.SourceItem;
-import org.devtcg.five.provider.util.SourceLog;
 import org.devtcg.five.provider.util.Sources;
-import org.devtcg.syncml.transport.SyncHttpTransport;
-import org.devtcg.syncml.protocol.SyncAuthInfo;
-import org.devtcg.syncml.protocol.SyncSession;
 import org.devtcg.util.CancelableThread;
 
-import dalvik.system.TemporaryDirectory;
-
 import android.app.Service;
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
-import android.os.RemoteCallbackList;
 import android.os.RemoteException;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 public class MetaService extends Service
@@ -275,137 +260,6 @@ public class MetaService extends Service
 			interrupt();
 		}
 	}
-
-//	private class SyncThread extends CancelableThread
-//	{
-//		private final String[] QUERY_FIELDS = new String[] {
-//		  Five.Sources._ID, Five.Sources.NAME,
-//		  Five.Sources.HOST, Five.Sources.PORT, Five.Sources.REVISION };
-//
-//		private SyncSession mActive = null;
-//
-//		public void syncSource(long sourceId, String name,
-//		  String host, int port, long revision)
-//		{
-//			String base = "http://" + host + ":" + port;
-//			String url = base + "/sync";
-//
-//			Log.i(TAG, "Synchronizing with " + name + " (" + url + "), " +
-//			  "currently at revision " + revision + "...");
-//
-//			SyncHttpTransport server = new SyncHttpTransport(url);
-//
-//			SyncAuthInfo info =
-//			  SyncAuthInfo.getInstance(SyncAuthInfo.Auth.NONE);
-//
-//			server.setAuthentication(info);
-//
-//			TelephonyManager tm = (TelephonyManager)MetaService.this
-//			  .getSystemService(TELEPHONY_SERVICE);
-//
-//			server.setSourceURI("IMEI:" + tm.getDeviceId());
-//
-//			SyncSession sess = new SyncSession(server);
-//
-//			synchronized(this)
-//			{
-//				mActive = sess;
-//				sess.open();
-//			}
-//
-//			if (mSyncing == true)
-//			{
-//				try {
-//					MusicMapping db;
-//					int code;
-//
-//					if (revision == 0)
-//						code = SyncSession.ALERT_CODE_REFRESH_FROM_SERVER;
-//					else
-//						code = SyncSession.ALERT_CODE_ONE_WAY_FROM_SERVER;
-//
-//					db = new MusicMapping(server, base, getContentResolver(),
-//					  mHandler, sourceId, revision);
-//
-//					sess.sync(db, code);
-//				} catch (Exception e) {
-//					/* Check if canceled before we decide to log as an
-//					 * error. */
-//					if (mSyncing == true)
-//					{
-//						Log.e(TAG, "Sync failed!", e);
-//
-//						String log;
-//
-//						if ((log = e.getMessage()) != null)
-//							log = e.toString();
-//
-//						SourceLog.insertLog(getContentResolver(), sourceId,
-//						  Five.SourcesLog.TYPE_ERROR, log);
-//					}
-//				}
-//			}
-//
-//			synchronized(this)
-//			{
-//				mActive = null;
-//				sess.close();
-//			}
-//		}
-//
-//		public void run()
-//		{
-//			mWakeLock.acquire();
-//
-//			mHandler.sendBeginSync();
-//
-//			ContentResolver cr = getContentResolver();
-//
-//			Cursor c = cr.query(Five.Sources.CONTENT_URI, QUERY_FIELDS,
-//			  null, null, null);
-//
-//			int n;
-//
-//			if ((n = c.getCount()) == 0)
-//				Log.w(TAG, "No sync sources.");
-//			else
-//			{
-//				Log.i(TAG, "Starting sync with " + n + " sources");
-//
-//				cr.insert(Five.Pragma.SYNCHRONOUS_OFF, null);
-//
-//				while (mSyncing == true && c.moveToNext() == true)
-//				{
-//					mHandler.sendBeginSource(c.getLong(0));
-//
-//					syncSource(c.getLong(0), c.getString(1),
-//					  c.getString(2), c.getInt(3), c.getLong(4));
-//
-//					mHandler.sendEndSource(c.getLong(0));
-//				}
-//
-//				cr.insert(Five.Pragma.SYNCHRONOUS_FULL, null);
-//			}
-//
-//			mHandler.sendEndSync();
-//
-//			c.close();
-//
-//			mWakeLock.release();
-//		}
-//
-//		@Override
-//		protected void onRequestCancel()
-//		{
-//			synchronized(this)
-//			{
-//				if (mActive != null)
-//					mActive.close();
-//
-//				mActive = null;
-//			}
-//		}
-//	}
 
 	public class SyncHandler extends Handler
 	{
