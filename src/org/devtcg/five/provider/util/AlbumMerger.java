@@ -1,15 +1,20 @@
 package org.devtcg.five.provider.util;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
 
 import org.devtcg.five.provider.AbstractTableMerger;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.FiveProvider;
 
 import android.content.ContentProvider;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.net.Uri;
 
 public final class AlbumMerger extends AbstractTableMerger
 {
@@ -71,11 +76,38 @@ public final class AlbumMerger extends AbstractTableMerger
 			cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTIST_ID))));
 	}
 
+	private void mergeImageColumn(Context context, Cursor cursor, long id)
+	{
+		String imageUri = cursor.getString(cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK));
+		if (imageUri != null)
+		{
+			try {
+				File imageFile = FiveProvider.getAlbumArtwork(id, true);
+				if (imageFile.renameTo(FiveProvider.getAlbumArtwork(id, false)) == false)
+					return;
+			} catch (FileNotFoundException e) {
+				return;
+			}
+
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(Five.Music.Albums.ARTWORK,
+				Five.Music.Albums.CONTENT_URI.buildUpon()
+					.appendPath(String.valueOf(id))
+					.appendPath("artwork")
+					.build().toString());
+			context.getContentResolver().update(ContentUris.withAppendedId(mTableUri, id),
+				values, null, null);
+		}
+	}
+
 	@Override
 	public void insertRow(Context context, ContentProvider diffs, Cursor diffsCursor)
 	{
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
-		context.getContentResolver().insert(mTableUri, mTmpValues);
+		Uri uri = context.getContentResolver().insert(mTableUri, mTmpValues);
+		if (uri != null)
+			mergeImageColumn(context, diffsCursor, ContentUris.parseId(uri));
 	}
 
 	@Override
@@ -84,5 +116,6 @@ public final class AlbumMerger extends AbstractTableMerger
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
 		context.getContentResolver().update(mTableUri, mTmpValues, Five.Music.Albums._ID + " = ?",
 			new String[] { String.valueOf(id) });
+		mergeImageColumn(context, diffsCursor, id);
 	}
 }

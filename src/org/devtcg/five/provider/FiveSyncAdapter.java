@@ -2,6 +2,7 @@ package org.devtcg.five.provider;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -16,10 +17,12 @@ import org.devtcg.five.service.SyncContext;
 import org.devtcg.five.service.SyncContext.CancelTrigger;
 import org.devtcg.util.IOUtilities;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.google.protobuf.CodedInputStream;
@@ -69,8 +72,16 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		if (mSource.moveToFirst() == false)
 			return;
 
-		getServerDiffsImpl(context, serverDiffs, FEED_ARTISTS);
-		getServerDiffsImpl(context, serverDiffs, FEED_ALBUMS);
+		long modifiedSince;
+
+		modifiedSince = getServerDiffsImpl(context, serverDiffs, FEED_ARTISTS);
+		if (modifiedSince >= 0)
+			getImageData(context, serverDiffs, FEED_ARTISTS, modifiedSince);
+
+		modifiedSince = getServerDiffsImpl(context, serverDiffs, FEED_ALBUMS);
+		if (modifiedSince >= 0)
+			getImageData(context, serverDiffs, FEED_ALBUMS, modifiedSince);
+
 		getServerDiffsImpl(context, serverDiffs, FEED_SONGS);
 
 		/* This is a very naive implementation... */
@@ -78,9 +89,12 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			context.moreRecordsToGet = false;
 	}
 
-	private void getServerDiffsImpl(SyncContext context, AbstractSyncProvider serverDiffs,
+	private long getServerDiffsImpl(SyncContext context, AbstractSyncProvider serverDiffs,
 		String feedType)
 	{
+		if (context.hasError() == true || context.hasCanceled() == true)
+			return -1;
+
 		final HttpGet feeds = new HttpGet(mSource.getFeedUrl(feedType));
 		final Thread currentThread = Thread.currentThread();
 
@@ -117,7 +131,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			try {
 				CodedInputStream stream = CodedInputStream.newInstance(in);
 				int count = stream.readRawLittleEndian32();
-				while (count-- > 0)
+				while (count-- > 0 && context.hasCanceled() == false)
 				{
 					int size = stream.readRawLittleEndian32();
 					byte[] recordData = stream.readRawBytes(size);
@@ -144,6 +158,115 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		} catch (IOException e) {
 			context.networkError = true;
 		}
+
+		return modifiedSince;
+	}
+
+	private void getImageData(SyncContext context, AbstractSyncProvider serverDiffs,
+		String feedType, long modifiedSince)
+	{
+		if (context.hasError() == true || context.hasCanceled() == true)
+			return;
+
+		Uri localFeedUri = getLocalFeedUri(feedType);
+		String tablePrefix = (feedType.equals(FEED_ALBUMS) ? "a." : "");
+		Cursor newRecords = serverDiffs.query(localFeedUri,
+			new String[] { AbstractTableMerger.SyncableColumns._ID,
+				AbstractTableMerger.SyncableColumns._SYNC_ID },
+			tablePrefix + AbstractTableMerger.SyncableColumns._SYNC_TIME + " > " +
+				modifiedSince, null, null);
+
+		try {
+			while (newRecords.moveToNext())
+			{
+				long id = newRecords.getLong(0);
+				long syncId = newRecords.getLong(1);
+
+				String imageUrl = mSource.getImageThumbUrl(feedType, syncId);
+
+				try {
+					HttpResponse response = downloadFile(context, imageUrl);
+					if (response == null)
+						continue;
+
+					if (context.hasCanceled() == true)
+						break;
+
+					Uri thumbUri = getLocalThumbUri(feedType, id);
+
+					/*
+					 * Access a temp file path (FiveProvider treats this as a
+					 * special case when isTemporary is true and uses a temporary
+					 * path to be moved manually during merging).
+					 */
+					ParcelFileDescriptor pfd = serverDiffs.openFile(thumbUri, "w");
+					if (pfd == null)
+						continue;
+
+					InputStream in = response.getEntity().getContent();
+					OutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
+
+					try {
+						IOUtilities.copyStream(in, out);
+
+						if (context.hasCanceled() == true)
+							break;
+
+						/*
+						 * Update the record to reflect the newly downloaded uri.
+						 * During table merging we'll need to move the file and
+						 * update the photo uri.
+						 */
+						ContentValues values = new ContentValues();
+
+						if (feedType.equals(FEED_ARTISTS))
+							values.put(Five.Music.Artists.PHOTO, thumbUri.toString());
+						else if (feedType.equals(FEED_ALBUMS))
+							values.put(Five.Music.Albums.ARTWORK, thumbUri.toString());
+
+						serverDiffs.update(ContentUris.withAppendedId(localFeedUri, id),
+							values, null, null);
+					} finally {
+						if (in != null)
+							IOUtilities.close(in);
+
+						if (out != null)
+							IOUtilities.close(out);
+					}
+				} catch (IOException e) {
+					context.networkError = true;
+				} finally {
+					context.trigger = null;
+				}
+			}
+		} finally {
+			newRecords.close();
+		}
+	}
+
+	private HttpResponse downloadFile(SyncContext context, String url) throws IOException
+	{
+		final HttpGet request = new HttpGet(url);
+
+		final Thread currentThread = Thread.currentThread();
+
+		context.trigger = new CancelTrigger() {
+			public void onCancel()
+			{
+				request.abort();
+				currentThread.interrupt();
+			}
+		};
+
+		HttpResponse response = mClient.execute(request);
+
+		if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
+		{
+			response.getEntity().consumeContent();
+			return null;
+		}
+
+		return response;
 	}
 
 	private void adjustNewestSyncTime(SyncContext context, HttpResponse response)
@@ -160,18 +283,41 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		}
 	}
 
+	private static Uri getLocalFeedUri(String feedType)
+	{
+		if (feedType.equals(FEED_ARTISTS))
+			return Five.Music.Artists.CONTENT_URI;
+		else if (feedType.equals(FEED_ALBUMS))
+			return Five.Music.Albums.CONTENT_URI;
+		else if (feedType.equals(FEED_SONGS))
+			return Five.Music.Songs.CONTENT_URI;
+
+		throw new IllegalArgumentException();
+	}
+
+	private static Uri getLocalThumbUri(String feedType, long id)
+	{
+		if (feedType.equals(FEED_ARTISTS))
+		{
+			return Five.Music.Artists.CONTENT_URI.buildUpon()
+				.appendPath(String.valueOf(id))
+				.appendPath("photo")
+				.build();
+		}
+		else if (feedType.equals(FEED_ALBUMS))
+		{
+			return Five.Music.Albums.CONTENT_URI.buildUpon()
+				.appendPath(String.valueOf(id))
+				.appendPath("artwork")
+				.build();
+		}
+
+		throw new IllegalArgumentException();
+	}
+
 	private long getModifiedSinceArgument(AbstractSyncProvider serverDiffs, String feedType)
 	{
-		Uri localFeedUri;
-
-		if (feedType.equals(FEED_ARTISTS))
-			localFeedUri = Five.Music.Artists.CONTENT_URI;
-		else if (feedType.equals(FEED_ALBUMS))
-			localFeedUri = Five.Music.Albums.CONTENT_URI;
-		else if (feedType.equals(FEED_SONGS))
-			localFeedUri = Five.Music.Songs.CONTENT_URI;
-		else
-			throw new IllegalArgumentException();
+		Uri localFeedUri = getLocalFeedUri(feedType);
 
 		/*
 		 * First check if the sync provider instance already has some entries

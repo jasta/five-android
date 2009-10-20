@@ -16,17 +16,12 @@
 
 package org.devtcg.five.provider.util;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import org.devtcg.five.provider.Five;
 
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
 
 public final class Sources
 {

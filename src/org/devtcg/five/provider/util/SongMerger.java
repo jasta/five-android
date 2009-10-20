@@ -21,8 +21,6 @@ public final class SongMerger extends AbstractTableMerger
 
 	private final HashMap<Long, Long> mArtistSyncIds = new HashMap<Long, Long>();
 	private final HashMap<Long, Long> mAlbumSyncIds = new HashMap<Long, Long>();
-	private final HashMap<ContentIdArgument, Long> mContentSyncIds =
-		new HashMap<ContentIdArgument, Long>();
 
 	public SongMerger()
 	{
@@ -95,39 +93,6 @@ public final class SongMerger extends AbstractTableMerger
 			mAlbumSyncIds.put(albumSyncId, albumId);
 			return albumId;
 		}
-	}
-
-//	private long getContentId(ContentProvider diffs, long sourceId, long songSyncId)
-//	{
-//		ContentIdArgument key = new ContentIdArgument();
-//		key.sourceId = sourceId;
-//		key.songSyncId = songSyncId;
-//
-//		Long cache = mContentSyncIds.get(key);
-//		if (cache != null)
-//			return cache;
-//		else
-//		{
-//			Cursor contentCursor = diffs.query(Five.Content.CONTENT_URI,
-//				new String[] { Five.Content._ID },
-//				Five.Content.SOURCE_ID + " = " + sourceId + " AND " +
-//				Five.Content.CONTENT_ID + " = " + songSyncId, null, null);
-//			long contentId = -1;
-//			try {
-//				if (contentCursor.moveToFirst() == true)
-//					contentId = contentCursor.getLong(0);
-//			} finally {
-//				contentCursor.close();
-//			}
-//			mContentSyncIds.put(key, contentId);
-//			return contentId;
-//		}
-//	}
-
-	private class ContentIdArgument
-	{
-		public long sourceId;
-		public long songSyncId;
 	}
 
 	private void rowToContentValues(ContentProvider diffs,

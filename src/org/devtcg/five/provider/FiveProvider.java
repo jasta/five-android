@@ -21,10 +21,9 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.devtcg.five.provider.util.ArtistMerger;
 import org.devtcg.five.provider.util.AlbumMerger;
+import org.devtcg.five.provider.util.ArtistMerger;
 import org.devtcg.five.provider.util.SongMerger;
 import org.devtcg.five.provider.util.SourceItem;
 
@@ -33,7 +32,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.database.DatabaseUtils.InsertHelper;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -237,21 +235,22 @@ public class FiveProvider extends AbstractSyncProvider
 
 	/*-***********************************************************************/
 
-	private static StringBuilder ensureSdCardPath(String path)
+	private static File getSdCardPath(String path)
+	{
+		return new File("/sdcard/five/" + path);
+	}
+
+	private static void ensureSdCardPath(File file)
 	  throws FileNotFoundException
 	{
-		StringBuilder b = new StringBuilder("/sdcard/five/");
-
-		b.append(path);
-		File file = new File(b.toString());
-
 		if (file.exists() == true)
-			return b;
+			return;
 
 		if (file.mkdirs() == false)
-			throw new FileNotFoundException("Could not create cache directory: " + b.toString());
-
-		return b;
+		{
+			throw new FileNotFoundException("Could not create cache directory: " +
+				file.getAbsolutePath());
+		}
 	}
 
     private static int stringModeToInt(Uri uri, String mode)
@@ -293,15 +292,55 @@ public class FiveProvider extends AbstractSyncProvider
 		return modeBits;
 	}
 
+	public static File getArtistPhoto(long id, boolean temporary) throws FileNotFoundException
+	{
+		File path = getSdCardPath("music/artist/");
+
+		if (path.exists() == false)
+			ensureSdCardPath(path);
+
+		if (temporary == true)
+			return new File(path, id + ".tmp");
+		else
+			return new File(path, String.valueOf(id));
+	}
+
+	public static File getAlbumArtwork(long id, boolean temporary) throws FileNotFoundException
+	{
+		return getAlbumArtwork(id, URIPatternIds.ALBUM_ARTWORK, temporary);
+	}
+
+	public static File getLargeAlbumArtwork(long id, boolean temporary) throws FileNotFoundException
+	{
+		return getAlbumArtwork(id, URIPatternIds.ALBUM_ARTWORK_BIG, temporary);
+	}
+
+	private static File getAlbumArtwork(long id, URIPatternIds type, boolean temporary)
+		throws FileNotFoundException
+	{
+		File path = getSdCardPath("music/album/");
+
+		if (path.exists() == false)
+			ensureSdCardPath(path);
+
+		String filename;
+
+		if (type == URIPatternIds.ALBUM_ARTWORK)
+			filename = String.valueOf(id);
+		else
+			filename = id + "-big";
+
+		if (temporary == true)
+			return new File(path, filename + ".tmp");
+		else
+			return new File(path, filename);
+	}
+
 	@Override
 	public ParcelFileDescriptor openFile(Uri uri, String mode)
 	  throws FileNotFoundException
 	{
 		File file;
-		StringBuilder path;
-		int modeint;
-
-		SQLiteDatabase db = mHelper.getReadableDatabase();
 
 		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
 
@@ -310,30 +349,13 @@ public class FiveProvider extends AbstractSyncProvider
 		case ALBUM_ARTWORK:
 		case ALBUM_ARTWORK_BIG:
 			String albumId = uri.getPathSegments().get(3);
-
-			path = ensureSdCardPath("music/album/");
-
-			String filename;
-
-			if (type == URIPatternIds.ALBUM_ARTWORK)
-				filename = path.append(albumId).toString();
-			else
-				filename = path.append(albumId).append("-big").toString();
-
-			file = new File(filename);
-			modeint = stringModeToInt(uri, mode);
-
-			return ParcelFileDescriptor.open(file, modeint);
+			file = getAlbumArtwork(Long.parseLong(albumId), type, isTemporary());
+			return ParcelFileDescriptor.open(file, stringModeToInt(uri, mode));
 
 		case ARTIST_PHOTO:
 			String artistId = getSecondToLastPathSegment(uri);
-
-			path = ensureSdCardPath("music/artist/");
-
-			file = new File(path.append(artistId).toString());
-			modeint = stringModeToInt(uri, mode);
-
-			return ParcelFileDescriptor.open(file, modeint);
+			file = getArtistPhoto(Long.parseLong(artistId), isTemporary());
+			return ParcelFileDescriptor.open(file, stringModeToInt(uri, mode));
 
 		default:
 			throw new IllegalArgumentException("Unknown URL " + uri);
