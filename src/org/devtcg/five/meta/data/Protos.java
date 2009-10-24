@@ -982,6 +982,553 @@ public final class Protos {
     }
   }
   
+  public static final class Playlist extends
+      com.google.protobuf.GeneratedMessage {
+    // Use Playlist.newBuilder() to construct.
+    private Playlist() {}
+    
+    private static final Playlist defaultInstance = new Playlist();
+    public static Playlist getDefaultInstance() {
+      return defaultInstance;
+    }
+    
+    public Playlist getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+    
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.devtcg.five.meta.data.Protos.internal_static_Playlist_descriptor;
+    }
+    
+    @Override
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.devtcg.five.meta.data.Protos.internal_static_Playlist_fieldAccessorTable;
+    }
+    
+    // required int64 id = 1;
+    private boolean hasId;
+    private long id_ = 0L;
+    public boolean hasId() { return hasId; }
+    public long getId() { return id_; }
+    
+    // required int64 syncTime = 2;
+    private boolean hasSyncTime;
+    private long syncTime_ = 0L;
+    public boolean hasSyncTime() { return hasSyncTime; }
+    public long getSyncTime() { return syncTime_; }
+    
+    // optional int64 createdDate = 3;
+    private boolean hasCreatedDate;
+    private long createdDate_ = 0L;
+    public boolean hasCreatedDate() { return hasCreatedDate; }
+    public long getCreatedDate() { return createdDate_; }
+    
+    // optional string name = 4;
+    private boolean hasName;
+    private java.lang.String name_ = "";
+    public boolean hasName() { return hasName; }
+    public java.lang.String getName() { return name_; }
+    
+    // repeated int64 songId = 5;
+    private java.util.List<java.lang.Long> songId_ =
+      java.util.Collections.emptyList();
+    public java.util.List<java.lang.Long> getSongIdList() {
+      return songId_;
+    }
+    public int getSongIdCount() { return songId_.size(); }
+    public long getSongId(int index) {
+      return songId_.get(index);
+    }
+    
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.Playlist parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    
+    public static Builder newBuilder() { return new Builder(); }
+    public Builder newBuilderForType() { return new Builder(); }
+    public static Builder newBuilder(org.devtcg.five.meta.data.Protos.Playlist prototype) {
+      return new Builder().mergeFrom(prototype);
+    }
+    
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> {
+      // Construct using org.devtcg.five.meta.data.Protos.Playlist.newBuilder()
+      private Builder() {}
+      
+      org.devtcg.five.meta.data.Protos.Playlist result = new org.devtcg.five.meta.data.Protos.Playlist();
+      
+      @Override
+      protected org.devtcg.five.meta.data.Protos.Playlist internalGetResult() {
+        return result;
+      }
+      
+      @Override
+      public Builder clear() {
+        result = new org.devtcg.five.meta.data.Protos.Playlist();
+        return this;
+      }
+      
+      @Override
+      public Builder clone() {
+        return new Builder().mergeFrom(result);
+      }
+      
+      @Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.devtcg.five.meta.data.Protos.Playlist.getDescriptor();
+      }
+      
+      public org.devtcg.five.meta.data.Protos.Playlist getDefaultInstanceForType() {
+        return org.devtcg.five.meta.data.Protos.Playlist.getDefaultInstance();
+      }
+      
+      public org.devtcg.five.meta.data.Protos.Playlist build() {
+        if (!isInitialized()) {
+          throw new com.google.protobuf.UninitializedMessageException(
+            result);
+        }
+        return buildPartial();
+      }
+      
+      private org.devtcg.five.meta.data.Protos.Playlist buildParsed()
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        if (!isInitialized()) {
+          throw new com.google.protobuf.UninitializedMessageException(
+            result).asInvalidProtocolBufferException();
+        }
+        return buildPartial();
+      }
+      
+      public org.devtcg.five.meta.data.Protos.Playlist buildPartial() {
+        if (result.songId_ != java.util.Collections.EMPTY_LIST) {
+          result.songId_ =
+            java.util.Collections.unmodifiableList(result.songId_);
+        }
+        org.devtcg.five.meta.data.Protos.Playlist returnMe = result;
+        result = null;
+        return returnMe;
+      }
+      
+      
+      // required int64 id = 1;
+      public boolean hasId() {
+        return result.hasId();
+      }
+      public long getId() {
+        return result.getId();
+      }
+      public Builder setId(long value) {
+        result.hasId = true;
+        result.id_ = value;
+        return this;
+      }
+      public Builder clearId() {
+        result.hasId = false;
+        result.id_ = 0L;
+        return this;
+      }
+      
+      // required int64 syncTime = 2;
+      public boolean hasSyncTime() {
+        return result.hasSyncTime();
+      }
+      public long getSyncTime() {
+        return result.getSyncTime();
+      }
+      public Builder setSyncTime(long value) {
+        result.hasSyncTime = true;
+        result.syncTime_ = value;
+        return this;
+      }
+      public Builder clearSyncTime() {
+        result.hasSyncTime = false;
+        result.syncTime_ = 0L;
+        return this;
+      }
+      
+      // optional int64 createdDate = 3;
+      public boolean hasCreatedDate() {
+        return result.hasCreatedDate();
+      }
+      public long getCreatedDate() {
+        return result.getCreatedDate();
+      }
+      public Builder setCreatedDate(long value) {
+        result.hasCreatedDate = true;
+        result.createdDate_ = value;
+        return this;
+      }
+      public Builder clearCreatedDate() {
+        result.hasCreatedDate = false;
+        result.createdDate_ = 0L;
+        return this;
+      }
+      
+      // optional string name = 4;
+      public boolean hasName() {
+        return result.hasName();
+      }
+      public java.lang.String getName() {
+        return result.getName();
+      }
+      public Builder setName(java.lang.String value) {
+        result.hasName = true;
+        result.name_ = value;
+        return this;
+      }
+      public Builder clearName() {
+        result.hasName = false;
+        result.name_ = "";
+        return this;
+      }
+      
+      // repeated int64 songId = 5;
+      public java.util.List<java.lang.Long> getSongIdList() {
+        return java.util.Collections.unmodifiableList(result.songId_);
+      }
+      public int getSongIdCount() {
+        return result.getSongIdCount();
+      }
+      public long getSongId(int index) {
+        return result.getSongId(index);
+      }
+      public Builder setSongId(int index, long value) {
+        result.songId_.set(index, value);
+        return this;
+      }
+      public Builder addSongId(long value) {
+        if (result.songId_.isEmpty()) {
+          result.songId_ = new java.util.ArrayList<java.lang.Long>();
+        }
+        result.songId_.add(value);
+        return this;
+      }
+      public Builder addAllSongId(
+          java.lang.Iterable<? extends java.lang.Long> values) {
+        if (result.songId_.isEmpty()) {
+          result.songId_ = new java.util.ArrayList<java.lang.Long>();
+        }
+        super.addAll(values, result.songId_);
+        return this;
+      }
+      public Builder clearSongId() {
+        result.songId_ = java.util.Collections.emptyList();
+        return this;
+      }
+    }
+    
+    static {
+      org.devtcg.five.meta.data.Protos.getDescriptor();
+    }
+  }
+  
+  public static final class PlaylistSong extends
+      com.google.protobuf.GeneratedMessage {
+    // Use PlaylistSong.newBuilder() to construct.
+    private PlaylistSong() {}
+    
+    private static final PlaylistSong defaultInstance = new PlaylistSong();
+    public static PlaylistSong getDefaultInstance() {
+      return defaultInstance;
+    }
+    
+    public PlaylistSong getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+    
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.devtcg.five.meta.data.Protos.internal_static_PlaylistSong_descriptor;
+    }
+    
+    @Override
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.devtcg.five.meta.data.Protos.internal_static_PlaylistSong_fieldAccessorTable;
+    }
+    
+    // required int64 id = 1;
+    private boolean hasId;
+    private long id_ = 0L;
+    public boolean hasId() { return hasId; }
+    public long getId() { return id_; }
+    
+    // required int64 syncTime = 2;
+    private boolean hasSyncTime;
+    private long syncTime_ = 0L;
+    public boolean hasSyncTime() { return hasSyncTime; }
+    public long getSyncTime() { return syncTime_; }
+    
+    // required int64 playlistId = 3;
+    private boolean hasPlaylistId;
+    private long playlistId_ = 0L;
+    public boolean hasPlaylistId() { return hasPlaylistId; }
+    public long getPlaylistId() { return playlistId_; }
+    
+    // required int32 position = 4;
+    private boolean hasPosition;
+    private int position_ = 0;
+    public boolean hasPosition() { return hasPosition; }
+    public int getPosition() { return position_; }
+    
+    // required int64 songId = 5;
+    private boolean hasSongId;
+    private long songId_ = 0L;
+    public boolean hasSongId() { return hasSongId; }
+    public long getSongId() { return songId_; }
+    
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.devtcg.five.meta.data.Protos.PlaylistSong parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistry extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    
+    public static Builder newBuilder() { return new Builder(); }
+    public Builder newBuilderForType() { return new Builder(); }
+    public static Builder newBuilder(org.devtcg.five.meta.data.Protos.PlaylistSong prototype) {
+      return new Builder().mergeFrom(prototype);
+    }
+    
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder> {
+      // Construct using org.devtcg.five.meta.data.Protos.PlaylistSong.newBuilder()
+      private Builder() {}
+      
+      org.devtcg.five.meta.data.Protos.PlaylistSong result = new org.devtcg.five.meta.data.Protos.PlaylistSong();
+      
+      @Override
+      protected org.devtcg.five.meta.data.Protos.PlaylistSong internalGetResult() {
+        return result;
+      }
+      
+      @Override
+      public Builder clear() {
+        result = new org.devtcg.five.meta.data.Protos.PlaylistSong();
+        return this;
+      }
+      
+      @Override
+      public Builder clone() {
+        return new Builder().mergeFrom(result);
+      }
+      
+      @Override
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.devtcg.five.meta.data.Protos.PlaylistSong.getDescriptor();
+      }
+      
+      public org.devtcg.five.meta.data.Protos.PlaylistSong getDefaultInstanceForType() {
+        return org.devtcg.five.meta.data.Protos.PlaylistSong.getDefaultInstance();
+      }
+      
+      public org.devtcg.five.meta.data.Protos.PlaylistSong build() {
+        if (!isInitialized()) {
+          throw new com.google.protobuf.UninitializedMessageException(
+            result);
+        }
+        return buildPartial();
+      }
+      
+      private org.devtcg.five.meta.data.Protos.PlaylistSong buildParsed()
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        if (!isInitialized()) {
+          throw new com.google.protobuf.UninitializedMessageException(
+            result).asInvalidProtocolBufferException();
+        }
+        return buildPartial();
+      }
+      
+      public org.devtcg.five.meta.data.Protos.PlaylistSong buildPartial() {
+        org.devtcg.five.meta.data.Protos.PlaylistSong returnMe = result;
+        result = null;
+        return returnMe;
+      }
+      
+      
+      // required int64 id = 1;
+      public boolean hasId() {
+        return result.hasId();
+      }
+      public long getId() {
+        return result.getId();
+      }
+      public Builder setId(long value) {
+        result.hasId = true;
+        result.id_ = value;
+        return this;
+      }
+      public Builder clearId() {
+        result.hasId = false;
+        result.id_ = 0L;
+        return this;
+      }
+      
+      // required int64 syncTime = 2;
+      public boolean hasSyncTime() {
+        return result.hasSyncTime();
+      }
+      public long getSyncTime() {
+        return result.getSyncTime();
+      }
+      public Builder setSyncTime(long value) {
+        result.hasSyncTime = true;
+        result.syncTime_ = value;
+        return this;
+      }
+      public Builder clearSyncTime() {
+        result.hasSyncTime = false;
+        result.syncTime_ = 0L;
+        return this;
+      }
+      
+      // required int64 playlistId = 3;
+      public boolean hasPlaylistId() {
+        return result.hasPlaylistId();
+      }
+      public long getPlaylistId() {
+        return result.getPlaylistId();
+      }
+      public Builder setPlaylistId(long value) {
+        result.hasPlaylistId = true;
+        result.playlistId_ = value;
+        return this;
+      }
+      public Builder clearPlaylistId() {
+        result.hasPlaylistId = false;
+        result.playlistId_ = 0L;
+        return this;
+      }
+      
+      // required int32 position = 4;
+      public boolean hasPosition() {
+        return result.hasPosition();
+      }
+      public int getPosition() {
+        return result.getPosition();
+      }
+      public Builder setPosition(int value) {
+        result.hasPosition = true;
+        result.position_ = value;
+        return this;
+      }
+      public Builder clearPosition() {
+        result.hasPosition = false;
+        result.position_ = 0;
+        return this;
+      }
+      
+      // required int64 songId = 5;
+      public boolean hasSongId() {
+        return result.hasSongId();
+      }
+      public long getSongId() {
+        return result.getSongId();
+      }
+      public Builder setSongId(long value) {
+        result.hasSongId = true;
+        result.songId_ = value;
+        return this;
+      }
+      public Builder clearSongId() {
+        result.hasSongId = false;
+        result.songId_ = 0L;
+        return this;
+      }
+    }
+    
+    static {
+      org.devtcg.five.meta.data.Protos.getDescriptor();
+    }
+  }
+  
   public static final class Record extends
       com.google.protobuf.GeneratedMessage {
     // Use Record.newBuilder() to construct.
@@ -1011,6 +1558,8 @@ public final class Protos {
       ARTIST(0, 1),
       ALBUM(1, 2),
       SONG(2, 3),
+      PLAYLIST(3, 4),
+      PLAYLIST_SONG(4, 5),
       ;
       
       
@@ -1021,6 +1570,8 @@ public final class Protos {
           case 1: return ARTIST;
           case 2: return ALBUM;
           case 3: return SONG;
+          case 4: return PLAYLIST;
+          case 5: return PLAYLIST_SONG;
           default: return null;
         }
       }
@@ -1039,7 +1590,7 @@ public final class Protos {
       }
       
       private static final Type[] VALUES = {
-        ARTIST, ALBUM, SONG, 
+        ARTIST, ALBUM, SONG, PLAYLIST, PLAYLIST_SONG, 
       };
       public static Type valueOf(
           com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
@@ -1084,6 +1635,18 @@ public final class Protos {
     private org.devtcg.five.meta.data.Protos.Song song_ = org.devtcg.five.meta.data.Protos.Song.getDefaultInstance();
     public boolean hasSong() { return hasSong; }
     public org.devtcg.five.meta.data.Protos.Song getSong() { return song_; }
+    
+    // optional .Playlist playlist = 5;
+    private boolean hasPlaylist;
+    private org.devtcg.five.meta.data.Protos.Playlist playlist_ = org.devtcg.five.meta.data.Protos.Playlist.getDefaultInstance();
+    public boolean hasPlaylist() { return hasPlaylist; }
+    public org.devtcg.five.meta.data.Protos.Playlist getPlaylist() { return playlist_; }
+    
+    // optional .PlaylistSong playlistSong = 6;
+    private boolean hasPlaylistSong;
+    private org.devtcg.five.meta.data.Protos.PlaylistSong playlistSong_ = org.devtcg.five.meta.data.Protos.PlaylistSong.getDefaultInstance();
+    public boolean hasPlaylistSong() { return hasPlaylistSong; }
+    public org.devtcg.five.meta.data.Protos.PlaylistSong getPlaylistSong() { return playlistSong_; }
     
     public static org.devtcg.five.meta.data.Protos.Record parseFrom(
         com.google.protobuf.ByteString data)
@@ -1314,6 +1877,74 @@ public final class Protos {
         result.song_ = org.devtcg.five.meta.data.Protos.Song.getDefaultInstance();
         return this;
       }
+      
+      // optional .Playlist playlist = 5;
+      public boolean hasPlaylist() {
+        return result.hasPlaylist();
+      }
+      public org.devtcg.five.meta.data.Protos.Playlist getPlaylist() {
+        return result.getPlaylist();
+      }
+      public Builder setPlaylist(org.devtcg.five.meta.data.Protos.Playlist value) {
+        result.hasPlaylist = true;
+        result.playlist_ = value;
+        return this;
+      }
+      public Builder setPlaylist(org.devtcg.five.meta.data.Protos.Playlist.Builder builderForValue) {
+        result.hasPlaylist = true;
+        result.playlist_ = builderForValue.build();
+        return this;
+      }
+      public Builder mergePlaylist(org.devtcg.five.meta.data.Protos.Playlist value) {
+        if (result.hasPlaylist() &&
+            result.playlist_ != org.devtcg.five.meta.data.Protos.Playlist.getDefaultInstance()) {
+          result.playlist_ =
+            org.devtcg.five.meta.data.Protos.Playlist.newBuilder(result.playlist_).mergeFrom(value).buildPartial();
+        } else {
+          result.playlist_ = value;
+        }
+        result.hasPlaylist = true;
+        return this;
+      }
+      public Builder clearPlaylist() {
+        result.hasPlaylist = false;
+        result.playlist_ = org.devtcg.five.meta.data.Protos.Playlist.getDefaultInstance();
+        return this;
+      }
+      
+      // optional .PlaylistSong playlistSong = 6;
+      public boolean hasPlaylistSong() {
+        return result.hasPlaylistSong();
+      }
+      public org.devtcg.five.meta.data.Protos.PlaylistSong getPlaylistSong() {
+        return result.getPlaylistSong();
+      }
+      public Builder setPlaylistSong(org.devtcg.five.meta.data.Protos.PlaylistSong value) {
+        result.hasPlaylistSong = true;
+        result.playlistSong_ = value;
+        return this;
+      }
+      public Builder setPlaylistSong(org.devtcg.five.meta.data.Protos.PlaylistSong.Builder builderForValue) {
+        result.hasPlaylistSong = true;
+        result.playlistSong_ = builderForValue.build();
+        return this;
+      }
+      public Builder mergePlaylistSong(org.devtcg.five.meta.data.Protos.PlaylistSong value) {
+        if (result.hasPlaylistSong() &&
+            result.playlistSong_ != org.devtcg.five.meta.data.Protos.PlaylistSong.getDefaultInstance()) {
+          result.playlistSong_ =
+            org.devtcg.five.meta.data.Protos.PlaylistSong.newBuilder(result.playlistSong_).mergeFrom(value).buildPartial();
+        } else {
+          result.playlistSong_ = value;
+        }
+        result.hasPlaylistSong = true;
+        return this;
+      }
+      public Builder clearPlaylistSong() {
+        result.hasPlaylistSong = false;
+        result.playlistSong_ = org.devtcg.five.meta.data.Protos.PlaylistSong.getDefaultInstance();
+        return this;
+      }
     }
     
     static {
@@ -1337,6 +1968,16 @@ public final class Protos {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_Song_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_Playlist_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_Playlist_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_PlaylistSong_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_PlaylistSong_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_Record_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -1350,22 +1991,29 @@ public final class Protos {
       descriptor;
   static {
     java.lang.String descriptorData =
-      "\n\nfive.proto\"Y\n\006Artist\022\n\n\002id\030\001 \002(\003\022\020\n\010sy" +
-      "ncTime\030\002 \002(\003\022\014\n\004mbid\030\003 \001(\t\022\014\n\004name\030\004 \002(\t" +
-      "\022\025\n\rdiscoveryDate\030\005 \001(\003\"\177\n\005Album\022\n\n\002id\030\001" +
-      " \002(\003\022\020\n\010syncTime\030\002 \002(\003\022\020\n\010artistId\030\003 \002(\003" +
-      "\022\014\n\004mbid\030\004 \001(\t\022\014\n\004name\030\005 \002(\t\022\025\n\rdiscover" +
-      "yDate\030\006 \001(\003\022\023\n\013releaseDate\030\007 \001(\003\"\270\001\n\004Son" +
-      "g\022\n\n\002id\030\001 \002(\003\022\020\n\010syncTime\030\002 \002(\003\022\020\n\010artis" +
-      "tId\030\003 \002(\003\022\017\n\007albumId\030\004 \002(\003\022\014\n\004mbid\030\005 \001(\t" +
-      "\022\020\n\010mimeType\030\006 \001(\t\022\017\n\007bitrate\030\007 \001(\005\022\020\n\010f" +
-      "ilesize\030\010 \001(\003\022\016\n\006length\030\t \001(\005\022\r\n\005title\030\n" +
-      " \002(\t\022\r\n\005track\030\013 \001(\005\"\222\001\n\006Record\022\032\n\004type\030\001" +
-      " \002(\0162\014.Record.Type\022\027\n\006artist\030\002 \001(\0132\007.Art" +
-      "ist\022\025\n\005album\030\003 \001(\0132\006.Album\022\023\n\004song\030\004 \001(\013" +
-      "2\005.Song\"\'\n\004Type\022\n\n\006ARTIST\020\001\022\t\n\005ALBUM\020\002\022\010" +
-      "\n\004SONG\020\003B#\n\031org.devtcg.five.meta.dataB\006P" +
-      "rotos";
+      "\n\017data/five.proto\"Y\n\006Artist\022\n\n\002id\030\001 \002(\003\022" +
+      "\020\n\010syncTime\030\002 \002(\003\022\014\n\004mbid\030\003 \001(\t\022\014\n\004name\030" +
+      "\004 \002(\t\022\025\n\rdiscoveryDate\030\005 \001(\003\"\177\n\005Album\022\n\n" +
+      "\002id\030\001 \002(\003\022\020\n\010syncTime\030\002 \002(\003\022\020\n\010artistId\030" +
+      "\003 \002(\003\022\014\n\004mbid\030\004 \001(\t\022\014\n\004name\030\005 \002(\t\022\025\n\rdis" +
+      "coveryDate\030\006 \001(\003\022\023\n\013releaseDate\030\007 \001(\003\"\270\001" +
+      "\n\004Song\022\n\n\002id\030\001 \002(\003\022\020\n\010syncTime\030\002 \002(\003\022\020\n\010" +
+      "artistId\030\003 \002(\003\022\017\n\007albumId\030\004 \002(\003\022\014\n\004mbid\030" +
+      "\005 \001(\t\022\020\n\010mimeType\030\006 \001(\t\022\017\n\007bitrate\030\007 \001(\005" +
+      "\022\020\n\010filesize\030\010 \001(\003\022\016\n\006length\030\t \001(\005\022\r\n\005ti" +
+      "tle\030\n \002(\t\022\r\n\005track\030\013 \001(\005\"[\n\010Playlist\022\n\n\002" +
+      "id\030\001 \002(\003\022\020\n\010syncTime\030\002 \002(\003\022\023\n\013createdDat" +
+      "e\030\003 \001(\003\022\014\n\004name\030\004 \001(\t\022\016\n\006songId\030\005 \003(\003\"b\n" +
+      "\014PlaylistSong\022\n\n\002id\030\001 \002(\003\022\020\n\010syncTime\030\002 " +
+      "\002(\003\022\022\n\nplaylistId\030\003 \002(\003\022\020\n\010position\030\004 \002(" +
+      "\005\022\016\n\006songId\030\005 \002(\003\"\365\001\n\006Record\022\032\n\004type\030\001 \002" +
+      "(\0162\014.Record.Type\022\027\n\006artist\030\002 \001(\0132\007.Artis" +
+      "t\022\025\n\005album\030\003 \001(\0132\006.Album\022\023\n\004song\030\004 \001(\0132\005" +
+      ".Song\022\033\n\010playlist\030\005 \001(\0132\t.Playlist\022#\n\014pl" +
+      "aylistSong\030\006 \001(\0132\r.PlaylistSong\"H\n\004Type\022" +
+      "\n\n\006ARTIST\020\001\022\t\n\005ALBUM\020\002\022\010\n\004SONG\020\003\022\014\n\010PLAY" +
+      "LIST\020\004\022\021\n\rPLAYLIST_SONG\020\005B#\n\031org.devtcg." +
+      "five.meta.dataB\006Protos";
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
         public com.google.protobuf.ExtensionRegistry assignDescriptors(
@@ -1395,12 +2043,28 @@ public final class Protos {
               new java.lang.String[] { "Id", "SyncTime", "ArtistId", "AlbumId", "Mbid", "MimeType", "Bitrate", "Filesize", "Length", "Title", "Track", },
               org.devtcg.five.meta.data.Protos.Song.class,
               org.devtcg.five.meta.data.Protos.Song.Builder.class);
-          internal_static_Record_descriptor =
+          internal_static_Playlist_descriptor =
             getDescriptor().getMessageTypes().get(3);
+          internal_static_Playlist_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_Playlist_descriptor,
+              new java.lang.String[] { "Id", "SyncTime", "CreatedDate", "Name", "SongId", },
+              org.devtcg.five.meta.data.Protos.Playlist.class,
+              org.devtcg.five.meta.data.Protos.Playlist.Builder.class);
+          internal_static_PlaylistSong_descriptor =
+            getDescriptor().getMessageTypes().get(4);
+          internal_static_PlaylistSong_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_PlaylistSong_descriptor,
+              new java.lang.String[] { "Id", "SyncTime", "PlaylistId", "Position", "SongId", },
+              org.devtcg.five.meta.data.Protos.PlaylistSong.class,
+              org.devtcg.five.meta.data.Protos.PlaylistSong.Builder.class);
+          internal_static_Record_descriptor =
+            getDescriptor().getMessageTypes().get(5);
           internal_static_Record_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_Record_descriptor,
-              new java.lang.String[] { "Type", "Artist", "Album", "Song", },
+              new java.lang.String[] { "Type", "Artist", "Album", "Song", "Playlist", "PlaylistSong", },
               org.devtcg.five.meta.data.Protos.Record.class,
               org.devtcg.five.meta.data.Protos.Record.Builder.class);
           return null;

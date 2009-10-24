@@ -515,7 +515,7 @@ public final class Five
 			}
 		}
 
-		public interface Playlists extends BaseColumns
+		public interface Playlists extends SyncableColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists";
@@ -540,6 +540,8 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  _SYNC_ID + " INTEGER, " +
+				  _SYNC_TIME + " BIGINT, " +
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  CREATED_DATE + " DATETIME, " +
 				  NUM_SONGS + " INTEGER " +
@@ -551,7 +553,7 @@ public final class Five
 		}
 
 		/** _ID is the same as {@link Songs}. */
-		public interface PlaylistSongs extends BaseColumns
+		public interface PlaylistSongs extends SyncableColumns
 		{
 			public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.music.playlists.songs";
 			public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.music.playlists.songs";
@@ -576,6 +578,8 @@ public final class Five
 				public static final String CREATE =
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				  _SYNC_ID + " INTEGER, " +
+				  _SYNC_TIME + " BIGINT, " +
 				  PLAYLIST_ID + " INTEGER NOT NULL, " +
 				  SONG_ID + " INTEGER NOT NULL, " +
 				  POSITION + " INTEGER NOT NULL " +

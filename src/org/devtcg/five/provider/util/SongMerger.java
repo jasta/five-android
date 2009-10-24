@@ -6,17 +6,13 @@ import org.devtcg.five.provider.AbstractTableMerger;
 import org.devtcg.five.provider.Five;
 
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
-import android.util.Log;
 
 public final class SongMerger extends AbstractTableMerger
 {
-	private static final String TAG = "SongMerger";
-
 	private final ContentValues mTmpValues = new ContentValues();
 
 	private final HashMap<Long, Long> mArtistSyncIds = new HashMap<Long, Long>();
@@ -30,18 +26,7 @@ public final class SongMerger extends AbstractTableMerger
 	@Override
 	public void notifyChanges(Context context)
 	{
-		ContentResolver cr = context.getContentResolver();
-
-		Log.i(TAG, "Updating counts...");
-
-		cr.update(Five.Music.AdjustCounts.CONTENT_URI,
-		  null, null, null);
-
-		Log.i(TAG, "Done!");
-
-		cr.notifyChange(Five.Music.Artists.CONTENT_URI, null);
-		cr.notifyChange(Five.Music.Albums.CONTENT_URI, null);
-		cr.notifyChange(Five.Music.Songs.CONTENT_URI, null);
+		/* PlaylistSongs merger will do this for everyone after counts are updated. */
 	}
 
 	@Override

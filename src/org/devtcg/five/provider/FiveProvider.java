@@ -24,6 +24,8 @@ import java.util.List;
 
 import org.devtcg.five.provider.util.AlbumMerger;
 import org.devtcg.five.provider.util.ArtistMerger;
+import org.devtcg.five.provider.util.PlaylistMerger;
+import org.devtcg.five.provider.util.PlaylistSongMerger;
 import org.devtcg.five.provider.util.SongMerger;
 import org.devtcg.five.provider.util.SourceItem;
 
@@ -198,6 +200,8 @@ public class FiveProvider extends AbstractSyncProvider
 		list.add(new ArtistMerger());
 		list.add(new AlbumMerger());
 		list.add(new SongMerger());
+		list.add(new PlaylistMerger());
+		list.add(new PlaylistSongMerger());
 		return list;
 	}
 
@@ -391,6 +395,10 @@ public class FiveProvider extends AbstractSyncProvider
 		case SOURCE_LOG:
 			qb.setTables(Five.SourcesLog.SQL.TABLE);
 			qb.appendWhere("source_id=" + uri.getPathSegments().get(1));
+			break;
+
+		case PLAYLIST_SONGS:
+			qb.setTables(Five.Music.PlaylistSongs.SQL.TABLE);
 			break;
 
 		case PLAYLISTS:
@@ -865,11 +873,14 @@ public class FiveProvider extends AbstractSyncProvider
 		if (v.containsKey(Five.Music.PlaylistSongs.SONG_ID) == false)
 			throw new IllegalArgumentException("SONG_ID cannot be NULL");
 
-		if (v.containsKey(Five.Music.PlaylistSongs.PLAYLIST_ID) == true)
-			throw new IllegalArgumentException("PLAYLIST_ID must be NULL (use the proper URI for this insertion)");
+		if (type == URIPatternIds.SONGS_IN_PLAYLIST)
+		{
+			v.put(Five.Music.PlaylistSongs.PLAYLIST_ID,
+				getSecondToLastPathSegment(uri));
+		}
 
-		v.put(Five.Music.PlaylistSongs.PLAYLIST_ID,
-		  getSecondToLastPathSegment(uri));
+		if (v.containsKey(Five.Music.PlaylistSongs.PLAYLIST_ID) == false)
+			throw new IllegalArgumentException("PLAYLIST_ID cannot be NULL");
 
 		/* TODO: Check that the inserted POSITION doesn't require that we
 		 * reposition other songs. */
@@ -907,6 +918,7 @@ public class FiveProvider extends AbstractSyncProvider
 		case PLAYLISTS:
 			return insertPlaylist(db, uri, type, values);
 		case SONGS_IN_PLAYLIST:
+		case PLAYLIST_SONGS:
 			return insertPlaylistSongs(db, uri, type, values);
 		default:
 			throw new IllegalArgumentException("Cannot insert URI: " + uri);

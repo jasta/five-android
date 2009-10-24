@@ -27,7 +27,7 @@ public final class ArtistMerger extends AbstractTableMerger
 	@Override
 	public void notifyChanges(Context context)
 	{
-		/* SongMerger will do this for everyone after counts are updated. */
+		/* PlaylistSongs merger will do this for everyone after counts are updated. */
 	}
 
 	@Override

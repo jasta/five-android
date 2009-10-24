@@ -41,6 +41,8 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 	private static final String FEED_ARTISTS = "artists";
 	private static final String FEED_ALBUMS = "albums";
 	private static final String FEED_SONGS = "songs";
+	private static final String FEED_PLAYLISTS = "playlists";
+	private static final String FEED_PLAYLIST_SONGS = "playlistSongs";
 
 	private static final String TAG = "FiveSyncAdapter";
 
@@ -83,6 +85,8 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			getImageData(context, serverDiffs, FEED_ALBUMS, modifiedSince);
 
 		getServerDiffsImpl(context, serverDiffs, FEED_SONGS);
+		getServerDiffsImpl(context, serverDiffs, FEED_PLAYLISTS);
+		getServerDiffsImpl(context, serverDiffs, FEED_PLAYLIST_SONGS);
 
 		/* This is a very naive implementation... */
 		if (context.hasCanceled() == false && context.hasError() == false)
@@ -148,6 +152,14 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 
 						case SONG:
 							insertSong(context, serverDiffs, record.getSong());
+							break;
+
+						case PLAYLIST:
+							insertPlaylist(context, serverDiffs, record.getPlaylist());
+							break;
+
+						case PLAYLIST_SONG:
+							insertPlaylistSong(context, serverDiffs, record.getPlaylistSong());
 							break;
 					}
 				}
@@ -291,6 +303,10 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			return Five.Music.Albums.CONTENT_URI;
 		else if (feedType.equals(FEED_SONGS))
 			return Five.Music.Songs.CONTENT_URI;
+		else if (feedType.equals(FEED_PLAYLISTS))
+			return Five.Music.Playlists.CONTENT_URI;
+		else if (feedType.equals(FEED_PLAYLIST_SONGS))
+			return Five.Music.PlaylistSongs.CONTENT_URI;
 
 		throw new IllegalArgumentException();
 	}
@@ -393,5 +409,30 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		values.put(Five.Music.Songs.SIZE, song.getFilesize());
 
 		serverDiffs.insert(Five.Music.Songs.CONTENT_URI, values);
+	}
+
+	private void insertPlaylist(SyncContext context, AbstractSyncProvider serverDiffs,
+		Protos.Playlist playlist)
+	{
+		ContentValues values = mTmpValues;
+		values.clear();
+		values.put(Five.Music.Playlists._SYNC_ID, playlist.getId());
+		values.put(Five.Music.Playlists._SYNC_TIME, playlist.getSyncTime());
+		values.put(Five.Music.Playlists.NAME, playlist.getName());
+		values.put(Five.Music.Playlists.CREATED_DATE, playlist.getCreatedDate());
+		serverDiffs.insert(Five.Music.Playlists.CONTENT_URI, values);
+	}
+
+	private void insertPlaylistSong(SyncContext context, AbstractSyncProvider serverDiffs,
+		Protos.PlaylistSong playlistSong)
+	{
+		ContentValues values = mTmpValues;
+		values.clear();
+		values.put(Five.Music.PlaylistSongs._SYNC_ID, playlistSong.getId());
+		values.put(Five.Music.PlaylistSongs._SYNC_TIME, playlistSong.getSyncTime());
+		values.put(Five.Music.PlaylistSongs.PLAYLIST_ID, playlistSong.getPlaylistId());
+		values.put(Five.Music.PlaylistSongs.POSITION, playlistSong.getPosition());
+		values.put(Five.Music.PlaylistSongs.SONG_ID, playlistSong.getSongId());
+		serverDiffs.insert(Five.Music.PlaylistSongs.CONTENT_URI, values);
 	}
 }
