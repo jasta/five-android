@@ -13,15 +13,16 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 
 public final class ArtistMerger extends AbstractTableMerger
 {
 	private final ContentValues mTmpValues = new ContentValues();
 
-	public ArtistMerger()
+	public ArtistMerger(SQLiteDatabase db)
 	{
-		super(Five.Music.Artists.SQL.TABLE, Five.Music.Artists.CONTENT_URI);
+		super(db, Five.Music.Artists.SQL.TABLE, Five.Music.Artists.CONTENT_URI);
 	}
 
 	@Override

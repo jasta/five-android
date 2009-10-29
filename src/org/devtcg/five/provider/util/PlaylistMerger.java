@@ -8,14 +8,15 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 
 public final class PlaylistMerger extends AbstractTableMerger
 {
 	private final ContentValues mTmpValues = new ContentValues();
 
-	public PlaylistMerger()
+	public PlaylistMerger(SQLiteDatabase db)
 	{
-		super(Five.Music.Playlists.SQL.TABLE, Five.Music.Playlists.CONTENT_URI);
+		super(db, Five.Music.Playlists.SQL.TABLE, Five.Music.Playlists.CONTENT_URI);
 	}
 
 	@Override

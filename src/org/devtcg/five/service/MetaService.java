@@ -21,12 +21,17 @@ import java.util.List;
 
 import org.devtcg.five.provider.AbstractSyncAdapter;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.FiveProvider;
 import org.devtcg.five.provider.FiveSyncAdapter;
+import org.devtcg.five.provider.util.AcquireProvider;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.provider.util.Sources;
+import org.devtcg.five.util.Stopwatch;
 import org.devtcg.util.CancelableThread;
 
 import android.app.Service;
+import android.content.ContentProvider;
+import android.content.ContentProviderClient;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -220,13 +225,23 @@ public class MetaService extends Service
 
 		private void runSyncLoop(SourceItem source)
 		{
-			long start = System.currentTimeMillis();
+			AcquireProvider ap = AcquireProvider.getInstance();
+			AcquireProvider.ProviderInterface client =
+				ap.acquireProvider(getContentResolver(), Five.AUTHORITY);
 
-			AbstractSyncAdapter adapter = new FiveSyncAdapter(MetaService.this, source);
+			try {
+				FiveProvider provider = (FiveProvider)client.getLocalContentProvider();
+				provider.mSource = source;
 
-			adapter.runSyncLoop(mContext);
-			long elapsed = System.currentTimeMillis() - start;
-			Log.d(TAG, "runSyncLoop: " + elapsed + " ms elapsed");
+				AbstractSyncAdapter adapter = provider.getSyncAdapter();
+
+				Stopwatch watch = Stopwatch.getInstance();
+				watch.start();
+				adapter.runSyncLoop(mContext);
+				watch.stopAndDebugElapsed(TAG, "runSyncLoop");
+			} finally {
+				ap.releaseProvider(getContentResolver(), client);
+			}
 		}
 
 		private void recordSuccess(SourceItem source)

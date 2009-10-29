@@ -54,7 +54,7 @@ public class FiveProvider extends AbstractSyncProvider
 	 * Used by the sync provider instance to determine which source we are
 	 * synchronizing.
 	 */
-	SourceItem mSource;
+	public SourceItem mSource;
 
 	DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
@@ -101,17 +101,25 @@ public class FiveProvider extends AbstractSyncProvider
 		{
 			db.execSQL(Five.Sources.SQL.CREATE);
 //			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
-			db.execSQL(Five.SourcesLog.SQL.CREATE);
-			execIndex(db, Five.SourcesLog.SQL.INDEX);
+
+			if (isTemporary() == false)
+			{
+				db.execSQL(Five.SourcesLog.SQL.CREATE);
+				execIndex(db, Five.SourcesLog.SQL.INDEX);
+			}
 
 			db.execSQL(Five.Music.Artists.SQL.CREATE);
 			db.execSQL(Five.Music.Albums.SQL.CREATE);
-			execIndex(db, Five.Music.Albums.SQL.INDEX);
 			db.execSQL(Five.Music.Songs.SQL.CREATE);
-			execIndex(db, Five.Music.Songs.SQL.INDEX);
 			db.execSQL(Five.Music.Playlists.SQL.CREATE);
 			db.execSQL(Five.Music.PlaylistSongs.SQL.CREATE);
-			execIndex(db, Five.Music.PlaylistSongs.SQL.INDEX);
+
+			if (isTemporary() == false)
+			{
+				execIndex(db, Five.Music.Albums.SQL.INDEX);
+				execIndex(db, Five.Music.Songs.SQL.INDEX);
+				execIndex(db, Five.Music.PlaylistSongs.SQL.INDEX);
+			}
 		}
 
 		private void execIndex(SQLiteDatabase db, String[] idx)
@@ -123,7 +131,9 @@ public class FiveProvider extends AbstractSyncProvider
 		private void onDrop(SQLiteDatabase db)
 		{
 			db.execSQL(Five.Sources.SQL.DROP);
-			db.execSQL(Five.SourcesLog.SQL.DROP);
+
+			if (isTemporary() == false)
+				db.execSQL(Five.SourcesLog.SQL.DROP);
 
 			db.execSQL(Five.Music.Artists.SQL.DROP);
 			db.execSQL(Five.Music.Albums.SQL.DROP);
@@ -170,19 +180,29 @@ public class FiveProvider extends AbstractSyncProvider
 		}
 	};
 
-	public static FiveProvider getSyncInstance(Context context, SourceItem source)
+	@Override
+	public AbstractSyncAdapter getSyncAdapter()
 	{
-		String dbName = "_sync-" + source.getId();
-		File path = context.getDatabasePath(dbName);
+		return new FiveSyncAdapter(getContext(), this);
+	}
+
+	@Override
+	public AbstractSyncProvider getSyncInstance()
+	{
+		String dbName = "_sync-" + mSource.getId();
+		File path = getContext().getDatabasePath(dbName);
 		FiveProvider provider = CREATOR.getSyncInstance(path);
-		provider.mSource = source;
-		provider.mHelper = provider.new DatabaseHelper(context, dbName);
+		provider.mSource = mSource;
+		provider.mHelper = provider.new DatabaseHelper(getContext(), dbName);
 		return provider;
 	}
 
 	@Override
 	public boolean onCreate()
 	{
+		if (isTemporary())
+			throw new IllegalStateException("onCreate should not be called on temp providers");
+
 		mHelper = new DatabaseHelper(getContext(), DATABASE_NAME);
 		return true;
 	}
@@ -194,14 +214,22 @@ public class FiveProvider extends AbstractSyncProvider
 	}
 
 	@Override
+	public SQLiteDatabase getDatabase()
+	{
+		return mHelper.getWritableDatabase();
+	}
+
+	@Override
 	protected Iterable<? extends AbstractTableMerger> getMergers()
 	{
+		SQLiteDatabase db = mHelper.getWritableDatabase();
+
 		ArrayList<AbstractTableMerger> list = new ArrayList<AbstractTableMerger>(3);
-		list.add(new ArtistMerger());
-		list.add(new AlbumMerger());
-		list.add(new SongMerger());
-		list.add(new PlaylistMerger());
-		list.add(new PlaylistSongMerger());
+		list.add(new ArtistMerger(db));
+		list.add(new AlbumMerger(db));
+		list.add(new SongMerger(db));
+		list.add(new PlaylistMerger(db));
+		list.add(new PlaylistSongMerger(db));
 		return list;
 	}
 
@@ -367,7 +395,7 @@ public class FiveProvider extends AbstractSyncProvider
 	}
 
 	@Override
-	public Cursor query(Uri uri, String[] projection, String selection,
+	public Cursor queryInternal(Uri uri, String[] projection, String selection,
 			String[] selectionArgs, String sortOrder)
 	{
 		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
@@ -663,7 +691,7 @@ public class FiveProvider extends AbstractSyncProvider
 	}
 
 	@Override
-	public int update(Uri uri, ContentValues values, String selection,
+	public int updateInternal(Uri uri, ContentValues values, String selection,
 	  String[] selectionArgs)
 	{
 		checkWritePermission();
@@ -895,7 +923,7 @@ public class FiveProvider extends AbstractSyncProvider
 	}
 
 	@Override
-	public Uri insert(Uri uri, ContentValues values)
+	public Uri insertInternal(Uri uri, ContentValues values)
 	{
 		checkWritePermission();
 
@@ -1153,7 +1181,7 @@ public class FiveProvider extends AbstractSyncProvider
 	}
 
 	@Override
-	public int delete(Uri uri, String selection, String[] selectionArgs)
+	public int deleteInternal(Uri uri, String selection, String[] selectionArgs)
 	{
 		checkWritePermission();
 

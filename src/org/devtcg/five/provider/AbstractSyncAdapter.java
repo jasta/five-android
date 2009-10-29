@@ -1,6 +1,7 @@
 package org.devtcg.five.provider;
 
 import org.devtcg.five.service.SyncContext;
+import org.devtcg.five.util.Stopwatch;
 
 import android.content.Context;
 import android.util.Log;
@@ -23,13 +24,14 @@ public abstract class AbstractSyncAdapter
 		5000, 30000, 50000
 	};
 
-	private final Context mContext;
-	private final TemporarySyncProviderFactory<? extends AbstractSyncProvider> mFactory;
+	private final AbstractSyncProvider mProvider;
 
-	public AbstractSyncAdapter(Context context, TemporarySyncProviderFactory<? extends AbstractSyncProvider> factory)
+	private final Context mContext;
+
+	public AbstractSyncAdapter(Context context, AbstractSyncProvider provider)
 	{
 		mContext = context;
-		mFactory = factory;
+		mProvider = provider;
 	}
 
 	public Context getContext()
@@ -48,18 +50,24 @@ public abstract class AbstractSyncAdapter
 	 */
 	public void runSyncLoop(SyncContext context)
 	{
-		AbstractSyncProvider serverDiffs = mFactory.getSyncInstance(mContext);
+		AbstractSyncProvider serverDiffs = mProvider.getSyncInstance();
 
 		int maxTries = context.numberOfTries + MAXIMUM_NETWORK_RETRIES + 1;
+
+		Stopwatch watch = new Stopwatch();
 
 		while (context.hasCanceled() == false && context.numberOfTries++ < maxTries)
 		{
 			Log.d(TAG, "Downloading server diffs...");
 
+			watch.start();
+
 			/*
 			 * Download all changes since our last sync from the server.
 			 */
 			getServerDiffs(context, serverDiffs);
+
+			watch.stopAndDebugElapsed(TAG, "getServerDiffs");
 
 			if (context.hasCanceled() == true)
 				break;
@@ -92,7 +100,9 @@ public abstract class AbstractSyncAdapter
 			if (!context.moreRecordsToGet)
 			{
 				Log.d(TAG, "Downloaded records, merging...");
-				serverDiffs.merge(mContext, context);
+				watch.start();
+				mProvider.merge(context, serverDiffs);
+				watch.stopAndDebugElapsed(TAG, "serverDiffs.merge");
 				Log.d(TAG, "Successfully merged " + context.getTotalRecordsProcessed() + " records!");
 				break;
 			}
@@ -110,10 +120,5 @@ public abstract class AbstractSyncAdapter
 				context.getTotalRecordsProcessed());
 			serverDiffs.onDestroySyncInstance();
 		}
-	}
-
-	public interface TemporarySyncProviderFactory<T extends AbstractSyncProvider>
-	{
-		public T getSyncInstance(Context context);
 	}
 }

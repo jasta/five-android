@@ -15,6 +15,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.util.Log;
 
@@ -27,9 +28,9 @@ public final class PlaylistSongMerger extends AbstractTableMerger
 	private final HashMap<Long, Long> mPlaylistSyncIds = new HashMap<Long, Long>();
 	private final HashMap<Long, Long> mSongSyncIds = new HashMap<Long, Long>();
 
-	public PlaylistSongMerger()
+	public PlaylistSongMerger(SQLiteDatabase db)
 	{
-		super(Five.Music.PlaylistSongs.SQL.TABLE, Five.Music.PlaylistSongs.CONTENT_URI);
+		super(db, Five.Music.PlaylistSongs.SQL.TABLE, Five.Music.PlaylistSongs.CONTENT_URI);
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import org.devtcg.five.service.SyncContext;
 import android.content.ContentProvider;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.util.Log;
@@ -23,6 +24,7 @@ public abstract class AbstractTableMerger
 	 */
 	private static final boolean DEBUG_ENTRIES = false;
 
+	protected final SQLiteDatabase mDb;
 	protected final String mTable;
 	protected final Uri mTableUri;
 
@@ -39,8 +41,9 @@ public abstract class AbstractTableMerger
 		public static final String _SYNC_ID = "_sync_id";
 	}
 
-	public AbstractTableMerger(String table, Uri tableUri)
+	public AbstractTableMerger(SQLiteDatabase db, String table, Uri tableUri)
 	{
+		mDb = db;
 		mTable = table;
 		mTableUri = tableUri;
 	}
@@ -55,6 +58,9 @@ public abstract class AbstractTableMerger
 	{
 		if (serverDiffs != null)
 		{
+            if (!mDb.isDbLockedByCurrentThread()) {
+                throw new IllegalStateException("this must be called from within a DB transaction");
+            }
 			mergeServerDiffs(context, syncContext, serverDiffs);
 			notifyChanges(context);
 		}
@@ -100,6 +106,8 @@ public abstract class AbstractTableMerger
 			 */
 			while (diffsCursor.moveToNext() == true)
 			{
+				mDb.yieldIfContendedSafely();
+
 				String id = diffsCursor.getString(diffsIdColumn);
 				long syncTime = diffsCursor.getLong(diffsSyncTimeColumn);
 				long syncId = diffsCursor.getLong(diffsSyncIdColumn);

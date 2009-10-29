@@ -10,6 +10,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 
 public final class SongMerger extends AbstractTableMerger
 {
@@ -18,9 +19,9 @@ public final class SongMerger extends AbstractTableMerger
 	private final HashMap<Long, Long> mArtistSyncIds = new HashMap<Long, Long>();
 	private final HashMap<Long, Long> mAlbumSyncIds = new HashMap<Long, Long>();
 
-	public SongMerger()
+	public SongMerger(SQLiteDatabase db)
 	{
-		super(Five.Music.Songs.SQL.TABLE, Five.Music.Songs.CONTENT_URI);
+		super(db, Five.Music.Songs.SQL.TABLE, Five.Music.Songs.CONTENT_URI);
 	}
 
 	@Override

@@ -15,12 +15,14 @@ import org.devtcg.five.music.util.streaming.FailfastHttpClient;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
 import org.devtcg.five.service.SyncContext.CancelTrigger;
+import org.devtcg.five.util.Stopwatch;
 import org.devtcg.util.IOUtilities;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -50,16 +52,10 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 
 	private final ContentValues mTmpValues = new ContentValues();
 
-	public FiveSyncAdapter(Context context, final SourceItem source)
+	public FiveSyncAdapter(Context context, FiveProvider provider)
 	{
-		super(context, new TemporarySyncProviderFactory<FiveProvider>() {
-			public FiveProvider getSyncInstance(Context context)
-			{
-				return FiveProvider.getSyncInstance(context, source);
-			}
-		});
-
-		mSource = source;
+		super(context, provider);
+		mSource = provider.mSource;
 	}
 
 	@Override
@@ -76,17 +72,25 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 
 		long modifiedSince;
 
-		modifiedSince = getServerDiffsImpl(context, serverDiffs, FEED_ARTISTS);
-		if (modifiedSince >= 0)
-			getImageData(context, serverDiffs, FEED_ARTISTS, modifiedSince);
+		SQLiteDatabase db = serverDiffs.getDatabase();
+		db.beginTransaction();
+		try {
+			modifiedSince = getServerDiffsImpl(context, serverDiffs, FEED_ARTISTS);
+			if (modifiedSince >= 0)
+				getImageData(context, serverDiffs, FEED_ARTISTS, modifiedSince);
 
-		modifiedSince = getServerDiffsImpl(context, serverDiffs, FEED_ALBUMS);
-		if (modifiedSince >= 0)
-			getImageData(context, serverDiffs, FEED_ALBUMS, modifiedSince);
+			modifiedSince = getServerDiffsImpl(context, serverDiffs, FEED_ALBUMS);
+			if (modifiedSince >= 0)
+				getImageData(context, serverDiffs, FEED_ALBUMS, modifiedSince);
 
-		getServerDiffsImpl(context, serverDiffs, FEED_SONGS);
-		getServerDiffsImpl(context, serverDiffs, FEED_PLAYLISTS);
-		getServerDiffsImpl(context, serverDiffs, FEED_PLAYLIST_SONGS);
+			getServerDiffsImpl(context, serverDiffs, FEED_SONGS);
+			getServerDiffsImpl(context, serverDiffs, FEED_PLAYLISTS);
+			getServerDiffsImpl(context, serverDiffs, FEED_PLAYLIST_SONGS);
+
+			db.setTransactionSuccessful();
+		} finally {
+			db.endTransaction();
+		}
 
 		/* This is a very naive implementation... */
 		if (context.hasCanceled() == false && context.hasError() == false)
