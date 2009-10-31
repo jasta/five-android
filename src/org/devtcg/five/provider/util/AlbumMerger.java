@@ -47,16 +47,9 @@ public final class AlbumMerger extends AbstractTableMerger
 			return cache;
 		else
 		{
-			Cursor artistCursor = diffs.query(Five.Music.Artists.CONTENT_URI,
-				new String[] { Five.Music.Artists._ID },
-				Five.Music.Artists._SYNC_ID + " = " + artistSyncId, null, null);
-			long artistId = -1;
-			try {
-				if (artistCursor.moveToFirst() == true)
-					artistId = artistCursor.getLong(0);
-			} finally {
-				artistCursor.close();
-			}
+			long artistId = DatabaseUtils.longForQuery(getDatabase(),
+				"SELECT _id FROM " + Five.Music.Artists.SQL.TABLE +
+				" WHERE _sync_id=" + artistSyncId, null);
 			mArtistSyncIds.put(artistSyncId, artistId);
 			return artistId;
 		}

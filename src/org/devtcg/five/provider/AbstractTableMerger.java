@@ -48,6 +48,11 @@ public abstract class AbstractTableMerger
 		mTableUri = tableUri;
 	}
 
+	protected SQLiteDatabase getDatabase()
+	{
+		return mDb;
+	}
+
 	public String getTableName()
 	{
 		return mTable;
@@ -120,9 +125,8 @@ public abstract class AbstractTableMerger
 				/* TODO: conflict is not handled yet. */
 				MergeOp mergeOp = MergeOp.NONE;
 
-				long localRowId = 0;
+				long localRowId = -1;
 				long localSyncTime = -1;
-				long localSyncId = -1;
 
 				/*
 				 * Position the local cursor to align with the diff cursor. The
@@ -147,7 +151,14 @@ public abstract class AbstractTableMerger
 						continue;
 					}
 
-					localSyncId = localCursor.getLong(2);
+					long localSyncId = localCursor.getLong(2);
+
+					/* The partial diffs set is ignoring this record, move along. */
+					if (syncId > localSyncId)
+					{
+						localCursor.moveToNext();
+						continue;
+					}
 
 //					/*
 //					 * The local side is authoritative and the the diff side
@@ -166,7 +177,7 @@ public abstract class AbstractTableMerger
 						if (DEBUG_ENTRIES)
 							Log.d(TAG, "local record " + localId + " has _sync_id > server _sync_id " + syncId);
 
-						localSyncId = -1;
+						localRowId = -1;
 					}
 					/* The server and the local database both have this record. */
 					else /* if (syncId == localSyncId) */
@@ -188,7 +199,7 @@ public abstract class AbstractTableMerger
 				 * server diff as an update locally regardless of what the
 				 * values were before!
 				 */
-				if (localSyncId >= 0)
+				if (localRowId >= 0)
 					/* An existing item has changed... */
 					mergeOp = MergeOp.UPDATE;
 				else
@@ -222,9 +233,9 @@ public abstract class AbstractTableMerger
 				}
 			}
 
-			Log.d(TAG, "Sync complete: processed " + diffsCount + " server entries");
+			Log.d(TAG, "merge complete: processed " + diffsCount + " server entries");
 		} catch (Exception e) {
-			Log.e(TAG, "Sync failed.", e);
+			Log.e(TAG, "merge failed.", e);
 		} finally {
 			diffsCursor.close();
 			localCursor.close();

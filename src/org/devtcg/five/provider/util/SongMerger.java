@@ -43,16 +43,9 @@ public final class SongMerger extends AbstractTableMerger
 			return cache;
 		else
 		{
-			Cursor artistCursor = diffs.query(Five.Music.Artists.CONTENT_URI,
-				new String[] { Five.Music.Artists._ID },
-				Five.Music.Artists._SYNC_ID + " = " + artistSyncId, null, null);
-			long artistId = -1;
-			try {
-				if (artistCursor.moveToFirst() == true)
-					artistId = artistCursor.getLong(0);
-			} finally {
-				artistCursor.close();
-			}
+			long artistId = DatabaseUtils.longForQuery(getDatabase(),
+				"SELECT _id FROM " + Five.Music.Artists.SQL.TABLE +
+				" WHERE _sync_id=" + artistSyncId, null);
 			mArtistSyncIds.put(artistSyncId, artistId);
 			return artistId;
 		}
@@ -65,17 +58,9 @@ public final class SongMerger extends AbstractTableMerger
 			return cache;
 		else
 		{
-			Cursor albumCursor = diffs.query(Five.Music.Albums.CONTENT_URI,
-				new String[] { Five.Music.Albums._ID },
-				"a." + Five.Music.Albums._SYNC_ID + " = " + albumSyncId,
-				null, null);
-			long albumId = -1;
-			try {
-				if (albumCursor.moveToFirst() == true)
-					albumId = albumCursor.getLong(0);
-			} finally {
-				albumCursor.close();
-			}
+			long albumId = DatabaseUtils.longForQuery(getDatabase(),
+				"SELECT _id FROM " + Five.Music.Albums.SQL.TABLE +
+				" WHERE _sync_id=" + albumSyncId, null);
 			mAlbumSyncIds.put(albumSyncId, albumId);
 			return albumId;
 		}
