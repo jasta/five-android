@@ -80,9 +80,9 @@ public abstract class AbstractTableMerger
 		AbstractSyncProvider serverDiffs)
 	{
 		/* Set containing all local entries so we can merge (insert/update/resolve). */
-		Cursor localCursor = context.getContentResolver().query(mTableUri,
+		Cursor localCursor = mDb.query(mTable,
 			new String[] { SyncableColumns._ID, SyncableColumns._SYNC_TIME,
-				SyncableColumns._SYNC_ID }, null, null,
+				SyncableColumns._SYNC_ID }, null, null, null, null,
 			SyncableColumns._SYNC_ID);
 
 		/* Set containing all diffed entries (to be merged into main provider). */
@@ -160,17 +160,6 @@ public abstract class AbstractTableMerger
 						continue;
 					}
 
-//					/*
-//					 * The local side is authoritative and the the diff side
-//					 * contains a record we don't have yet. Insert it out of
-//					 * this loop.
-//					 */
-//					if (TextUtils.isEmpty(syncId))
-//					{
-//						localSyncId = null;
-//						break;
-//					}
-
 					/* The server has a record that the local database doesn't have. */
 					if (syncId < localSyncId)
 					{
@@ -216,13 +205,6 @@ public abstract class AbstractTableMerger
 					case INSERT:
 						insertRow(context, serverDiffs, diffsCursor);
 						syncContext.numberOfInserts++;
-
-//						/*
-//						 * If the local side is authoritative, assign the newly
-//						 * created row sync id to the local id.
-//						 */
-//						if (syncId == null)
-//							setSyncId(mDb, newId, newId);
 						break;
 					case UPDATE:
 						updateRow(context, serverDiffs, localRowId, diffsCursor);
@@ -242,56 +224,11 @@ public abstract class AbstractTableMerger
 		}
 	}
 
-//	private void setSyncId(Provider main, long id, long syncId) throws SQLException
-//	{
-//		DatabaseUtils.execute(main.getConnection(),
-//			"UPDATE " + mTable + " SET " + SyncableColumns._SYNC_ID + " = ? " +
-//			"WHERE " + SyncableColumns._ID + " = ?",
-//			String.valueOf(syncId), String.valueOf(id));
-//	}
-
 	private void findLocalChanges(Context context, SyncContext syncContext,
 		AbstractSyncProvider clientDiffs)
 	{
 		throw new UnsupportedOperationException("Client sync is not supported yet");
 	}
-
-//	public void findLocalChanges(SyncableProvider clientDiffs, long lastModified)
-//		throws SQLException
-//	{
-//		/* Find all local changes the other side hasn't seen before. */
-//		ResultSet set = DatabaseUtils.executeForResult(mDb.getConnection(),
-//			"SELECT * FROM " + mTable + " WHERE " + SyncableColumns._SYNC_TIME + " > " +
-//				lastModified, (String[])null);
-//
-//		InsertHelper inserter = new InsertHelper(clientDiffs.getConnection(), mTable,
-//			SyncableColumns._ID);
-//
-//		try {
-//			int columnCount = set.getMetaData().getColumnCount();
-//
-//			/* Copy all local changes into the temporary client diffs provider. */
-//			while (set.next())
-//			{
-//				inserter.prepareForInsert();
-//
-//				/*
-//				 * The _ID column got moved to the end of the inserter, so we
-//				 * start our index at 1 here and just avoid copying it in the loop.
-//				 */
-//				for (int i = 1; i < columnCount; i++)
-//					inserter.bind(i, set.getObject(i + 1));
-//
-//				/* Now copy the _ID. */
-//				inserter.bind(columnCount, set.getObject(1));
-//
-//				inserter.execute();
-//			}
-//		} finally {
-//			set.close();
-//			inserter.close();
-//		}
-//	}
 
 	/**
 	 * Called after merge has completed.

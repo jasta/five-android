@@ -2,21 +2,24 @@ package org.devtcg.five.provider.util;
 
 import org.devtcg.five.provider.AbstractTableMerger;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.FiveProvider;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
-import android.database.sqlite.SQLiteDatabase;
 
 public final class PlaylistMerger extends AbstractTableMerger
 {
 	private final ContentValues mTmpValues = new ContentValues();
 
-	public PlaylistMerger(SQLiteDatabase db)
+	private final FiveProvider mProvider;
+
+	public PlaylistMerger(FiveProvider provider)
 	{
-		super(db, Five.Music.Playlists.SQL.TABLE, Five.Music.Playlists.CONTENT_URI);
+		super(provider.getDatabase(), Five.Music.Playlists.SQL.TABLE, Five.Music.Playlists.CONTENT_URI);
+		mProvider = provider;
 	}
 
 	@Override
@@ -44,14 +47,14 @@ public final class PlaylistMerger extends AbstractTableMerger
 	public void insertRow(Context context, ContentProvider diffs, Cursor diffsCursor)
 	{
 		rowToContentValues(diffsCursor, mTmpValues);
-		context.getContentResolver().insert(mTableUri, mTmpValues);
+		mProvider.insertInternal(mTableUri, mTmpValues);
 	}
 
 	@Override
 	public void updateRow(Context context, ContentProvider diffs, long id, Cursor diffsCursor)
 	{
 		rowToContentValues(diffsCursor, mTmpValues);
-		context.getContentResolver().update(mTableUri, mTmpValues, Five.Music.Playlists._ID + " = ?",
+		mProvider.updateInternal(mTableUri, mTmpValues, Five.Music.Playlists._ID + " = ?",
 			new String[] { String.valueOf(id) });
 	}
 }

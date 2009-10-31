@@ -4,13 +4,13 @@ import java.util.HashMap;
 
 import org.devtcg.five.provider.AbstractTableMerger;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.FiveProvider;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
-import android.database.sqlite.SQLiteDatabase;
 
 public final class SongMerger extends AbstractTableMerger
 {
@@ -19,9 +19,12 @@ public final class SongMerger extends AbstractTableMerger
 	private final HashMap<Long, Long> mArtistSyncIds = new HashMap<Long, Long>();
 	private final HashMap<Long, Long> mAlbumSyncIds = new HashMap<Long, Long>();
 
-	public SongMerger(SQLiteDatabase db)
+	private final FiveProvider mProvider;
+
+	public SongMerger(FiveProvider provider)
 	{
-		super(db, Five.Music.Songs.SQL.TABLE, Five.Music.Songs.CONTENT_URI);
+		super(provider.getDatabase(), Five.Music.Songs.SQL.TABLE, Five.Music.Songs.CONTENT_URI);
+		mProvider = provider;
 	}
 
 	@Override
@@ -92,14 +95,14 @@ public final class SongMerger extends AbstractTableMerger
 	public void insertRow(Context context, ContentProvider diffs, Cursor diffsCursor)
 	{
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
-		context.getContentResolver().insert(mTableUri, mTmpValues);
+		mProvider.insertInternal(mTableUri, mTmpValues);
 	}
 
 	@Override
 	public void updateRow(Context context, ContentProvider diffs, long id, Cursor diffsCursor)
 	{
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
-		context.getContentResolver().update(mTableUri, mTmpValues, Five.Music.Songs._ID + " = ?",
+		mProvider.updateInternal(mTableUri, mTmpValues, Five.Music.Songs._ID + " = ?",
 			new String[] { String.valueOf(id) });
 	}
 }

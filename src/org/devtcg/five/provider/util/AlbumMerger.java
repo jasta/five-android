@@ -14,7 +14,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 
 public final class AlbumMerger extends AbstractTableMerger
@@ -23,9 +22,12 @@ public final class AlbumMerger extends AbstractTableMerger
 
 	private final HashMap<Long, Long> mArtistSyncIds = new HashMap<Long, Long>();
 
-	public AlbumMerger(SQLiteDatabase db)
+	private final FiveProvider mProvider;
+
+	public AlbumMerger(FiveProvider provider)
 	{
-		super(db, Five.Music.Albums.SQL.TABLE, Five.Music.Albums.CONTENT_URI);
+		super(provider.getDatabase(), Five.Music.Albums.SQL.TABLE, Five.Music.Albums.CONTENT_URI);
+		mProvider = provider;
 	}
 
 	@Override
@@ -70,14 +72,15 @@ public final class AlbumMerger extends AbstractTableMerger
 			cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTIST_ID))));
 	}
 
-	private void mergeImageColumn(Context context, Cursor cursor, long id)
+	private void mergeImageColumn(Context context, Cursor cursor, long actualId)
 	{
 		String imageUri = cursor.getString(cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK));
 		if (imageUri != null)
 		{
 			try {
-				File imageFile = FiveProvider.getAlbumArtwork(id, true);
-				if (imageFile.renameTo(FiveProvider.getAlbumArtwork(id, false)) == false)
+				long tmpId = cursor.getLong(cursor.getColumnIndexOrThrow(Five.Music.Albums._ID));
+				File imageFile = FiveProvider.getAlbumArtwork(tmpId, true);
+				if (imageFile.renameTo(FiveProvider.getAlbumArtwork(actualId, false)) == false)
 					return;
 			} catch (FileNotFoundException e) {
 				return;
@@ -87,10 +90,10 @@ public final class AlbumMerger extends AbstractTableMerger
 			values.clear();
 			values.put(Five.Music.Albums.ARTWORK,
 				Five.Music.Albums.CONTENT_URI.buildUpon()
-					.appendPath(String.valueOf(id))
+					.appendPath(String.valueOf(actualId))
 					.appendPath("artwork")
 					.build().toString());
-			context.getContentResolver().update(ContentUris.withAppendedId(mTableUri, id),
+			mProvider.updateInternal(ContentUris.withAppendedId(mTableUri, actualId),
 				values, null, null);
 		}
 	}
@@ -99,7 +102,7 @@ public final class AlbumMerger extends AbstractTableMerger
 	public void insertRow(Context context, ContentProvider diffs, Cursor diffsCursor)
 	{
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
-		Uri uri = context.getContentResolver().insert(mTableUri, mTmpValues);
+		Uri uri = mProvider.insertInternal(mTableUri, mTmpValues);
 		if (uri != null)
 			mergeImageColumn(context, diffsCursor, ContentUris.parseId(uri));
 	}
@@ -108,7 +111,7 @@ public final class AlbumMerger extends AbstractTableMerger
 	public void updateRow(Context context, ContentProvider diffs, long id, Cursor diffsCursor)
 	{
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
-		context.getContentResolver().update(mTableUri, mTmpValues, Five.Music.Albums._ID + " = ?",
+		mProvider.updateInternal(mTableUri, mTmpValues, Five.Music.Albums._ID + " = ?",
 			new String[] { String.valueOf(id) });
 		mergeImageColumn(context, diffsCursor, id);
 	}

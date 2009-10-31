@@ -225,11 +225,11 @@ public class FiveProvider extends AbstractSyncProvider
 		SQLiteDatabase db = mHelper.getWritableDatabase();
 
 		ArrayList<AbstractTableMerger> list = new ArrayList<AbstractTableMerger>(3);
-		list.add(new ArtistMerger(db));
-		list.add(new AlbumMerger(db));
-		list.add(new SongMerger(db));
-		list.add(new PlaylistMerger(db));
-		list.add(new PlaylistSongMerger(db));
+		list.add(new ArtistMerger(this));
+		list.add(new AlbumMerger(this));
+		list.add(new SongMerger(this));
+		list.add(new PlaylistMerger(this));
+		list.add(new PlaylistSongMerger(this));
 		return list;
 	}
 
