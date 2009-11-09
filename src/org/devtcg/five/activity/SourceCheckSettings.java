@@ -3,6 +3,8 @@ package org.devtcg.five.activity;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.util.SourceItem;
@@ -25,6 +27,7 @@ public class SourceCheckSettings extends Activity
 {
 	private TextView mMessage;
 	private VerifyThread mThread;
+	private boolean mThreadSent;
 
 	public static void actionCheckSettings(Activity context, Uri uri)
 	{
@@ -53,14 +56,32 @@ public class SourceCheckSettings extends Activity
 		mMessage = (TextView)findViewById(R.id.message);
 		mMessage.setText("Verifying Five server settings...");
 
-		mThread = new VerifyThread(source);
-		mThread.start();
+		mThread = (VerifyThread)getLastNonConfigurationInstance();
+		if (mThread != null)
+			mThread.setActivity(this);
+		else
+		{
+			mThread = new VerifyThread(this, source);
+			mThread.start();
+		}
+	}
+
+	@Override
+	public Object onRetainNonConfigurationInstance()
+	{
+		mThreadSent = true;
+		mThread.setActivity(null);
+		return mThread;
 	}
 
 	@Override
 	protected void onDestroy()
 	{
-		mThread.requestCancelAndWait();
+		if (!mThreadSent)
+			mThread.requestCancelAndWait();
+
+		mThread = null;
+
 		super.onDestroy();
 	}
 
@@ -93,15 +114,48 @@ public class SourceCheckSettings extends Activity
 	 * test, including authentication and proof that there is a database
 	 * on the other side ready to be synced.  For now we just do a simple
 	 * connection test. */
-	private class VerifyThread extends CancelableThread
+	private static class VerifyThread extends CancelableThread
 	{
-		private SourceItem mSource;
-		private Socket mSocket;
+		private final SourceItem mSource;
+		private final Socket mSocket;
+		private SourceCheckSettings mActivity;
+		private final ReentrantLock mActivityLock = new ReentrantLock();
+		private final Condition mActivityNonNull = mActivityLock.newCondition();
 
-		public VerifyThread(SourceItem source)
+		public VerifyThread(SourceCheckSettings activity, SourceItem source)
 		{
 			mSource = source;
 			mSocket = new Socket();
+			mActivity = activity;
+		}
+
+		public void setActivity(SourceCheckSettings activity)
+		{
+			mActivityLock.lock();
+			try {
+				mActivity = activity;
+				if (activity != null)
+					mActivityNonNull.signal();
+			} finally {
+				mActivityLock.unlock();
+			}
+		}
+
+		private SourceCheckSettings getActivity()
+		{
+			mActivityLock.lock();
+			try {
+				if (mActivity == null)
+				{
+					try {
+						mActivityNonNull.await();
+					} catch (InterruptedException e) {}
+				}
+
+				return mActivity;
+			} finally {
+				mActivityLock.unlock();
+			}
 		}
 
 		@Override
@@ -120,16 +174,23 @@ public class SourceCheckSettings extends Activity
 				if (hasCanceled())
 						return;
 
-				runOnUiThread(new Runnable() {
-					public void run() {
-						setResult(RESULT_OK);
-						finish();
-					}
-				});
+				final SourceCheckSettings activity = getActivity();
+				if (activity != null)
+				{
+					activity.runOnUiThread(new Runnable() {
+						public void run() {
+							activity.setResult(RESULT_OK);
+							activity.finish();
+						}
+					});
+				}
 			} catch (IOException e) {
-				if (!hasCanceled())
-					showErrorDialog("Error connecting to server: " + e.getMessage());
+				SourceCheckSettings activity = getActivity();
+				if (!hasCanceled() && activity != null)
+					activity.showErrorDialog("Error connecting to server: " + e.getMessage());
 			} finally {
+				mSource.close();
+
 				if (!hasCanceled())
 					IOUtilities.closeSocketQuietly(mSocket);
 			}
