@@ -49,7 +49,6 @@
 	<string name="no_server">No server</string>
 	<string name="click_to_add">Click to add.</string>
 	<string name="never_synchronized">Never synchronized.</string>
-	<string name="last_synchronized">Last synchronized: <xliff:g id="timeAgo">%s</xliff:g>.</string>
 	<string name="synchronizing">Synchronizing...</string>
 	<string name="autosync">Auto-sync</string>
 

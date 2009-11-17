@@ -1,5 +1,8 @@
 package org.devtcg.five.widget;
 
+import java.text.DateFormat;
+import java.util.Date;
+
 import org.devtcg.five.R;
 import org.devtcg.five.activity.SourceAdd;
 import org.devtcg.five.provider.util.SourceItem;
@@ -17,6 +20,8 @@ import android.util.AttributeSet;
 public class ServerPreference extends Preference
 {
 	private SourceItem mServer;
+	private static DateFormat mFormatter =
+		DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
 
 	public ServerPreference(Context context)
 	{
@@ -87,15 +92,12 @@ public class ServerPreference extends Preference
 				setSummary(status);
 			else
 			{
-				int rev = (int)(server.getRevision() / 1000);
+				long rev = server.getRevision();
 
 				if (rev == 0)
 					setSummary(R.string.never_synchronized);
 				else
-				{
-					setSummary(getContext().getString(R.string.last_synchronized,
-							DateUtils.formatTimeAgo(rev)));
-				}
+					setSummary(mFormatter.format(new Date(server.getRevision())));
 			}
 		}
 	}
