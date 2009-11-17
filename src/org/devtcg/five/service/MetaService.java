@@ -17,6 +17,8 @@
 package org.devtcg.five.service;
 
 import org.devtcg.five.Constants;
+import org.devtcg.five.R;
+import org.devtcg.five.activity.Settings;
 import org.devtcg.five.provider.AbstractSyncAdapter;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.FiveProvider;
@@ -26,6 +28,9 @@ import org.devtcg.five.provider.util.Sources;
 import org.devtcg.five.util.Stopwatch;
 import org.devtcg.util.CancelableThread;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
@@ -41,10 +46,14 @@ public class MetaService extends Service
 {
 	public static final String TAG = "MetaService";
 
+	private static final int NOTIF_SYNCING = 0;
+
 	static volatile boolean sSyncing;
 	SyncThread mSyncThread;
 
 	PowerManager.WakeLock mWakeLock;
+
+	NotificationManager mNM;
 
 	final Handler mHandler = new Handler();
 
@@ -53,6 +62,8 @@ public class MetaService extends Service
 	{
 		PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
 		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+
+		mNM = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 	}
 
 	@Override
@@ -116,6 +127,7 @@ public class MetaService extends Service
 
 			mWakeLock.acquire();
 			try {
+				showNotification();
 				sendBeginSync();
 
 				SourceItem item = new SourceItem(Sources.getSources(MetaService.this));
@@ -157,6 +169,7 @@ public class MetaService extends Service
 				}
 			} finally {
 				sendEndSync();
+				cancelNotification();
 				cleanupAndStopService();
 			}
 		}
@@ -254,6 +267,25 @@ public class MetaService extends Service
 				getContentResolver().update(mSourceUri, values, null, null);
 			}
 		}
+	}
+
+	public void showNotification()
+	{
+		Notification n = new Notification(R.drawable.stat_notify_sync, null,
+				System.currentTimeMillis());
+
+		n.setLatestEventInfo(this, getString(R.string.syncing_notif_title),
+				getString(R.string.syncing_notif_content), PendingIntent.getActivity(this,
+						0, new Intent(this, Settings.class), 0));
+
+		n.flags = Notification.FLAG_NO_CLEAR | Notification.FLAG_ONGOING_EVENT;
+
+		mNM.notify(NOTIF_SYNCING, n);
+	}
+
+	public void cancelNotification()
+	{
+		mNM.cancel(NOTIF_SYNCING);
 	}
 
 	public void sendBeginSync()
