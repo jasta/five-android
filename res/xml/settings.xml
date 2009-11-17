@@ -13,7 +13,8 @@
  # General Public License for more details.
  -->
 
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings">
 
 	<PreferenceCategory
 		android:title="@string/server_preference_category">
@@ -30,8 +31,11 @@
 
 		<ListPreference
 			android:key="autosync"
-			android:persistent="false"
+			android:defaultValue="86400000"
 			android:title="@string/autosync"
+			android:entries="@array/pref_autosync_choices"
+			android:entryValues="@array/pref_autosync_values"
+			android:dialogTitle="@string/pref_autosync_dialogtitle"
 			/>
 
 	</PreferenceCategory>

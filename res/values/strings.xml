@@ -58,4 +58,6 @@
 
 	<string name="syncing_notif_title">Five syncing</string>
 	<string name="syncing_notif_content">Music data is downloading</string>
+
+	<string name="pref_autosync_dialogtitle">Auto-sync</string>
 </resources>

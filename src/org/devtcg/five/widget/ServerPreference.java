@@ -1,6 +1,5 @@
 package org.devtcg.five.widget;
 
-import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.activity.SourceAdd;
 import org.devtcg.five.provider.util.SourceItem;
@@ -26,7 +25,13 @@ public class ServerPreference extends Preference
 
 	public ServerPreference(Context context, AttributeSet attrs)
 	{
-		this(context, attrs, 0);
+		/*
+		 * We inherit from dialogPreferenceStyle in order to get the down arrow
+		 * circle button to the right of the preference. This could be done
+		 * manually, but this seems like the easiest way without added
+		 * fragility.
+		 */
+		this(context, attrs, android.R.attr.dialogPreferenceStyle);
 	}
 
 	public ServerPreference(Context context, AttributeSet attrs, int defStyle)

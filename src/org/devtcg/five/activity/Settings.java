@@ -7,19 +7,21 @@ import org.devtcg.five.widget.ServerPreference;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
-import android.preference.Preference;
+import android.preference.ListPreference;
 import android.preference.PreferenceActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class Settings extends PreferenceActivity
+public class Settings extends PreferenceActivity implements OnSharedPreferenceChangeListener
 {
 	private static final String KEY_SERVER = "server";
 	private static final String KEY_AUTOSYNC = "autosync";
 
 	private ServerPreference mServerPref;
-	private Preference mAutosyncPref;
+	private ListPreference mAutosyncPref;
 
 	public static void show(Context context)
 	{
@@ -32,17 +34,36 @@ public class Settings extends PreferenceActivity
 		super.onCreate(savedInstanceState);
 		addPreferencesFromResource(R.xml.settings);
 
+		getPreferenceScreen().getSharedPreferences()
+				.registerOnSharedPreferenceChangeListener(this);
+
 		mServerPref = (ServerPreference)findPreference(KEY_SERVER);
-		mAutosyncPref = findPreference(KEY_AUTOSYNC);
+		mAutosyncPref = (ListPreference)findPreference(KEY_AUTOSYNC);
 
 		mServerPref.init();
 	}
 
+
+
 	@Override
 	protected void onResume()
 	{
-		mAutosyncPref.setEnabled(mServerPref.isEmpty() == false);
 		super.onResume();
+
+		getPreferenceScreen().getSharedPreferences()
+				.registerOnSharedPreferenceChangeListener(this);
+
+		mAutosyncPref.setEnabled(mServerPref.isEmpty() == false);
+		updateSummaries();
+	}
+
+	@Override
+	protected void onPause()
+	{
+		super.onPause();
+
+		getPreferenceScreen().getSharedPreferences()
+				.unregisterOnSharedPreferenceChangeListener(this);
 	}
 
 	@Override
@@ -50,6 +71,20 @@ public class Settings extends PreferenceActivity
 	{
 		mServerPref.cleanup();
 		super.onDestroy();
+	}
+
+	public void updateSummaries()
+	{
+		mAutosyncPref.setSummary(mAutosyncPref.getEntry());
+	}
+
+	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
+	{
+		if (key.equals(KEY_AUTOSYNC))
+		{
+			MetaService.rescheduleAutoSync(this, Long.parseLong(mAutosyncPref.getValue()));
+			updateSummaries();
+		}
 	}
 
 	@Override

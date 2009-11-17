@@ -28,6 +28,7 @@ import org.devtcg.five.provider.util.Sources;
 import org.devtcg.five.util.Stopwatch;
 import org.devtcg.util.CancelableThread;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -40,6 +41,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.Process;
+import android.os.SystemClock;
 import android.util.Log;
 
 public class MetaService extends Service
@@ -91,13 +93,33 @@ public class MetaService extends Service
 			{
 				if (Constants.DEBUG)
 					Log.e(Constants.TAG, "ACTION_STOP_SYNC, but not syncing...");
-				stopSelf();
+				stopSelf(startId);
 			}
 			else
 			{
 				sSyncing = false;
 				mSyncThread.requestCancelAndWait();
 			}
+		}
+	}
+
+	public static void rescheduleAutoSync(Context context, long interval)
+	{
+		if (Constants.DEBUG)
+			Log.d(Constants.TAG, "Rescheduling with auto sync interval of " + interval + " ms");
+
+		AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+
+		PendingIntent syncIntent = PendingIntent.getService(context, 0,
+				new Intent(Constants.ACTION_START_SYNC, null, context, MetaService.class), 0);
+
+		/* Cancel any previously scheduled auto-syncs. */
+		am.cancel(syncIntent);
+
+		if (interval > 0)
+		{
+			am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+					SystemClock.elapsedRealtime() + interval, interval, syncIntent);
 		}
 	}
 
@@ -225,19 +247,13 @@ public class MetaService extends Service
 
 		public void cleanupAndStopService()
 		{
-			mHandler.post(new Runnable() {
-				public void run() {
-					mSyncThread.joinUninterruptibly();
+			sSyncing = false;
+			mSyncThread = null;
 
-					sSyncing = false;
-					mSyncThread = null;
+			Log.i(Constants.TAG, "Done syncing, stopping service...");
+			stopSelf();
 
-					Log.i(Constants.TAG, "Done syncing, stopping service...");
-					stopSelf();
-
-					mWakeLock.release();
-				}
-			});
+			mWakeLock.release();
 		}
 
 		@Override
