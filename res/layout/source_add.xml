@@ -22,20 +22,6 @@
 			<TextView
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
-				android:text="Repository Label"
-				/>
-
-			<EditText
-				android:id="@+id/source_label"
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:text="Home"
-				android:singleLine="true"
-				/>
-
-			<TextView
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
 				android:text="Address (e.g. foobar.dyndns.org)"
 				/>
 
@@ -45,24 +31,6 @@
 				android:layout_height="wrap_content"
 				android:singleLine="true"
 				/>
-
-		<!--
-			<TextView
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="Username"
-				android:enabled="false"
-				/>
-
-			<EditText
-				android:id="@+id/source_username"
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:singleLine="true"
-				android:enabled="false"
-				android:focusable="false"
-				/>
-		  -->
 
 			<TextView
 				android:layout_width="wrap_content"

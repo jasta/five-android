@@ -3,20 +3,17 @@ package org.devtcg.five.activity;
 import java.text.ParseException;
 import java.util.regex.Pattern;
 
+import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.SourceItem;
 
 import android.app.Activity;
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -25,13 +22,10 @@ import android.widget.Toast;
 
 public class SourceAdd extends Activity
 {
-	private static final int DEFAULT_PORT = 5545;
-	
 	private Button mNext;
-	private EditText mLabel;
 	private EditText mHostname;
 	private EditText mPassword;
-	
+
 	/* The source we're editing if called that way. */
 	private Uri mExisting;
 
@@ -40,13 +34,9 @@ public class SourceAdd extends Activity
 		context.startActivity(new Intent(context, SourceAdd.class));
 	}
 
-	public static void actionEditSource(Context context, long sourceId)
+	public static void actionEditSource(Context context, Uri sourceUri)
 	{
-		Intent i = new Intent(context, SourceAdd.class);
-		i.setAction(Intent.ACTION_EDIT);
-		i.setData(ContentUris.withAppendedId(Five.Sources.CONTENT_URI,
-		  sourceId));
-		context.startActivity(i);
+		context.startActivity(new Intent(Intent.ACTION_EDIT, sourceUri, context, SourceAdd.class));
 	}
 
 	@Override
@@ -55,7 +45,6 @@ public class SourceAdd extends Activity
 		super.onCreate(icicle);
 		setContentView(R.layout.source_add);
 
-		mLabel = (EditText)findViewById(R.id.source_label);
 		mHostname = (EditText)findViewById(R.id.source_host);
 		mPassword = (EditText)findViewById(R.id.source_password);
 
@@ -67,44 +56,24 @@ public class SourceAdd extends Activity
 		/* Differentiates the add versus edit cases. */
 		handleIntent(getIntent());
 	}
-	
-	private void handleIntent(Intent i)
+
+	private void handleIntent(Intent intent)
 	{
-		String action = i.getAction();
-		Uri data = i.getData();
-		
-		if (action == null || data == null)
-			return;
-		
-		if (action.equals(Intent.ACTION_EDIT) == true)
+		if (Intent.ACTION_EDIT.equals(intent.getAction()))
 		{
-			String[] fields = { Five.Sources._ID,
-			  Five.Sources.NAME, Five.Sources.HOST, Five.Sources.PORT };
-			Cursor c = getContentResolver().query(data, fields,
-			  null, null, null);
-
-			try {
-				if (c.moveToFirst() == false)
-					return;
-
-				mExisting = data;
-				mLabel.setText(c.getString(1));
-				
-				StringBuilder host = new StringBuilder(c.getString(2));
-				if (c.isNull(3) == false)
-				{
-					int port = c.getInt(3);
-					if (port != DEFAULT_PORT)
-						host.append(':').append(port);
+			SourceItem source = SourceItem.getInstance(this, intent.getData());
+			if (source != null)
+			{
+				try {
+					mExisting = intent.getData();
+					mHostname.setText(source.getHostLabel());
+				} finally {
+					source.close();
 				}
-				
-				mHostname.setText(host.toString());
-			} finally {
-				c.close();
 			}
 		}
 	}
-	
+
 	@Override
     protected void onActivityResult(int requestCode, int resultCode,
       Intent data)
@@ -115,12 +84,9 @@ public class SourceAdd extends Activity
 
 	private OnClickListener mNextClick = new OnClickListener()
 	{
-		private void insertValues(ContentValues values, String name,
-		  String host)
+		private void insertValues(ContentValues values, String host)
 		  throws ParseException
 		{
-			values.put(Five.Sources.NAME, name);
-
 			int colon;
 			if ((colon = host.indexOf(':')) >= 0)
 			{
@@ -135,22 +101,18 @@ public class SourceAdd extends Activity
 			else
 			{
 				values.put(Five.Sources.HOST, host);
-				values.put(Five.Sources.PORT, DEFAULT_PORT);
+				values.put(Five.Sources.PORT, Constants.DEFAULT_SERVER_PORT);
 			}
 		}
-		
+
 		public void onClick(View v)
 		{
 			ContentValues values = new ContentValues();
 
-			String name = mLabel.getText().toString();
 			String host = mHostname.getText().toString();
 
-			if (TextUtils.isEmpty(name) == true)
-				name = "<Default>";
-			
 			try {
-				insertValues(values, name, host);
+				insertValues(values, host);
 			} catch (ParseException e) {
 				Toast.makeText(SourceAdd.this, e.getMessage(),
 				  Toast.LENGTH_LONG).show();

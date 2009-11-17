@@ -41,20 +41,23 @@ public final class Five
 		public static final Uri CONTENT_URI =
 		  Uri.parse("content://" + AUTHORITY + "/sources");
 
-		/** Server name, for identification purposes. */
-		public static final String NAME = "name";
-
 		/** Hostname or IP address. */
 		public static final String HOST = "host";
 
 		/** Listening port. */
 		public static final String PORT = "port";
 
-		/** Current sync revision (last time in seconds). */
+		/**
+		 * Last successful sync time in milliseconds. This field should be used
+		 * for display purposes only.
+		 */
 		public static final String REVISION = "revision";
 
-		/** Last log of type SourceLog.TYPE_ERROR with a SourceLog.TIMESTAMP > REVISION. */
-		public static final String LAST_ERROR = "last_error";
+		/**
+		 * Current status as updated by the sync process. This is used a way to
+		 * watch the sync progress.
+		 */
+		public static final String STATUS = "status";
 
 		public static final class SQL
 		{
@@ -63,10 +66,10 @@ public final class Five
 			public static final String CREATE =
 			  "CREATE TABLE " + TABLE + " (" +
 			  "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-			  NAME + " TEXT NOT NULL, " +
 			  HOST + " TEXT UNIQUE NOT NULL, " +
 			  PORT + " INTEGER NOT NULL, " +
-			  REVISION + " INTEGER " +
+			  REVISION + " INTEGER, " +
+			  STATUS + " TEXT " +
 			  ");";
 
 //			public static final String INSERT_DUMMY =
@@ -84,55 +87,6 @@ public final class Five
 
 			public static final String DROP =
 			  "DROP TABLE IF EXISTS " + TABLE;
-		}
-	}
-
-	public interface SourcesLog extends BaseColumns
-	{
-		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.five.sourcelog";
-		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.five.sourcelog";
-
-		/** Corresponding source for this log entry. */
-		public static final String SOURCE_ID = "source_id";
-
-		/** Time the log entry was generated. */
-		public static final String TIMESTAMP = "timestamp";
-
-		/** Severity of message. */
-		public static final String TYPE = "type";
-
-		public static final int TYPE_ERROR = 1;
-		public static final int TYPE_WARNING = 2;
-		public static final int TYPE_INFO = 3;
-
-		/** Log text, may contain LF characters which should be handled on display. */
-		public static final String MESSAGE = "message";
-
-		public static final class SQL
-		{
-			public static final String TABLE = "sources_log";
-
-			public static final String CREATE =
-			  "CREATE TABLE " + TABLE + " (" +
-			  	_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-			  	SOURCE_ID + " INTEGER NOT NULL, " +
-			  	TIMESTAMP + " DATETIME NOT NULL, " +
-			  	TYPE + " INTEGER NOT NULL, " +
-			  	MESSAGE + " TEXT " +
-			  ");";
-
-			public static final String[] INDEX =
-			{
-				"CREATE INDEX " +
-			  	  TABLE + "_" + SOURCE_ID + "_" + TIMESTAMP +
-			  	  " ON " + TABLE + " (" +
-			  	  SOURCE_ID + ", " +
-			  	  TIMESTAMP + " " +
-			  	");",
-			};
-
-			public static final String DROP =
-			  "DROP TABLE IF EXISTS " + TABLE + ";";
 		}
 	}
 

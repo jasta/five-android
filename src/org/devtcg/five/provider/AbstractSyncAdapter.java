@@ -58,6 +58,9 @@ public abstract class AbstractSyncAdapter
 
 		while (context.hasCanceled() == false && context.numberOfTries++ < maxTries)
 		{
+			if (context.observer != null)
+				context.observer.onStatusChanged("Downloading changes...");
+
 			Log.d(TAG, "Downloading server diffs...");
 
 			watch.start();
@@ -99,6 +102,9 @@ public abstract class AbstractSyncAdapter
 			 */
 			if (!context.moreRecordsToGet)
 			{
+				if (context.observer != null)
+					context.observer.onStatusChanged("Merging changes...");
+
 				Log.d(TAG, "Downloaded records, merging...");
 				watch.start();
 				mProvider.merge(context, serverDiffs);

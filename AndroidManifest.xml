@@ -17,44 +17,31 @@
 
 	<application
 		android:icon="@drawable/music_icon"
-		android:label="@string/app_name"
-		android:taskAffinity="org.devtcg.five.task.music">
+		android:label="@string/app_name">
 
 		<provider android:name=".provider.FiveProvider"
+			android:exported="false"
 			android:authorities="org.devtcg.five" />
 
-		<service android:name=".service.MetaService" />
+		<service android:name=".service.MetaService"
+			android:exported="false" />
 
-		<service android:name=".music.service.PlaylistService" />
+		<service android:name=".music.service.PlaylistService"
+			android:exported="false" />
 
 		<activity
-			android:name=".activity.SourceList"
-			android:icon="@drawable/icon"
-			android:label="@string/sync_title"
-			android:taskAffinity="org.devtcg.five.task.sync">
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.DEFAULT" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-		</activity>
+			android:name=".activity.Settings"
+			android:label="@string/settings_title"
+			/>
 
 		<activity
 			android:name=".activity.SourceAdd"
 			android:label="@string/source_add_title"
-			android:taskAffinity="org.devtcg.five.task.sync"
 			/>
 
 		<activity
 			android:name=".activity.SourceCheckSettings"
 			android:label="@string/source_check_settings_title"
-			android:taskAffinity="org.devtcg.five.task.sync"
-			/>
-
-		<activity
-			android:name=".activity.SourceInfo"
-			android:label="@string/source_info_title"
-			android:taskAffinity="org.devtcg.five.task.sync"
 			/>
 
 		<activity

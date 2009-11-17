@@ -173,6 +173,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			}
 		} catch (IOException e) {
 			context.networkError = true;
+			context.errorMessage = e.getMessage();
 		}
 
 		return modifiedSince;
@@ -251,6 +252,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 					}
 				} catch (IOException e) {
 					context.networkError = true;
+					context.errorMessage = e.getMessage();
 				} finally {
 					context.trigger = null;
 				}

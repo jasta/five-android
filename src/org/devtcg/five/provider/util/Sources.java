@@ -25,6 +25,11 @@ import android.net.Uri;
 
 public final class Sources
 {
+	public static Uri makeUri(long sourceId)
+	{
+		return ContentUris.withAppendedId(Five.Sources.CONTENT_URI, sourceId);
+	}
+
 	public static Cursor getSources(Context context)
 	{
 		return context.getContentResolver().query(Five.Sources.CONTENT_URI,

@@ -20,12 +20,18 @@ public class SyncContext
 
 	private volatile boolean hasCanceled;
 	public boolean networkError;
+	public String errorMessage;
 
 	/**
 	 * Attached to from within getServerDiffs() to provide a way to immediately
 	 * release blocking I/O operations.
 	 */
 	public volatile CancelTrigger trigger;
+
+	/**
+	 * Optional observer to track progress during synchronization.
+	 */
+	public SyncObserver observer;
 
 	public int getTotalRecordsProcessed()
 	{

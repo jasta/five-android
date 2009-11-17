@@ -58,10 +58,9 @@ public class FiveProvider extends AbstractSyncProvider
 
 	DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 32;
+	private static final int DATABASE_VERSION = 34;
 
 	private static final UriMatcher URI_MATCHER;
-	private static final HashMap<String, String> sourcesMap;
 	private static final HashMap<String, String> artistsMap;
 	private static final HashMap<String, String> albumsMap;
 	private static final HashMap<String, String> songsMap;
@@ -72,7 +71,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 	private static enum URIPatternIds
 	{
-		SOURCES, SOURCE, SOURCE_LOG,
+		SOURCES, SOURCE,
 		ARTISTS, ARTIST, ARTIST_PHOTO,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_WITH_ARTIST, ALBUMS_COMPLETE, ALBUM,
 		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
@@ -102,12 +101,6 @@ public class FiveProvider extends AbstractSyncProvider
 			db.execSQL(Five.Sources.SQL.CREATE);
 //			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 
-			if (isTemporary() == false)
-			{
-				db.execSQL(Five.SourcesLog.SQL.CREATE);
-				execIndex(db, Five.SourcesLog.SQL.INDEX);
-			}
-
 			db.execSQL(Five.Music.Artists.SQL.CREATE);
 			db.execSQL(Five.Music.Albums.SQL.CREATE);
 			db.execSQL(Five.Music.Songs.SQL.CREATE);
@@ -132,9 +125,6 @@ public class FiveProvider extends AbstractSyncProvider
 		{
 			db.execSQL(Five.Sources.SQL.DROP);
 
-			if (isTemporary() == false)
-				db.execSQL(Five.SourcesLog.SQL.DROP);
-
 			db.execSQL(Five.Music.Artists.SQL.DROP);
 			db.execSQL(Five.Music.Albums.SQL.DROP);
 			db.execSQL(Five.Music.Songs.SQL.DROP);
@@ -148,7 +138,6 @@ public class FiveProvider extends AbstractSyncProvider
 			if (oldVersion == 17 && newVersion == 18)
 			{
 				Log.w(TAG, "Attempting to upgrade to " + newVersion);
-				execIndex(db, Five.SourcesLog.SQL.INDEX);
 				execIndex(db, Five.Music.Artists.SQL.INDEX);
 				execIndex(db, Five.Music.Albums.SQL.INDEX);
 				execIndex(db, Five.Music.Songs.SQL.INDEX);
@@ -222,8 +211,6 @@ public class FiveProvider extends AbstractSyncProvider
 	@Override
 	protected Iterable<? extends AbstractTableMerger> getMergers()
 	{
-		SQLiteDatabase db = mHelper.getWritableDatabase();
-
 		ArrayList<AbstractTableMerger> list = new ArrayList<AbstractTableMerger>(3);
 		list.add(new ArtistMerger(this));
 		list.add(new AlbumMerger(this));
@@ -406,23 +393,12 @@ public class FiveProvider extends AbstractSyncProvider
 		switch (type)
 		{
 		case SOURCES:
-			qb.setTables(Five.Sources.SQL.TABLE + " s " +
-			  "LEFT JOIN " + Five.SourcesLog.SQL.TABLE + " sl " +
-			  "ON sl.source_id = s._id " +
-			  "AND sl.type = " + Five.SourcesLog.TYPE_ERROR + " " +
-			  "AND sl.timestamp > s.revision");
-			qb.setProjectionMap(sourcesMap);
-			groupBy = "s._id";
+			qb.setTables(Five.Sources.SQL.TABLE);
 			break;
 
 		case SOURCE:
 			qb.setTables(Five.Sources.SQL.TABLE);
 			qb.appendWhere("_id=" + uri.getLastPathSegment());
-			break;
-
-		case SOURCE_LOG:
-			qb.setTables(Five.SourcesLog.SQL.TABLE);
-			qb.appendWhere("source_id=" + uri.getPathSegments().get(1));
 			break;
 
 		case PLAYLIST_SONGS:
@@ -746,34 +722,6 @@ public class FiveProvider extends AbstractSyncProvider
 		return ret;
 	}
 
-	private Uri insertSourceLog(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
-	{
-		String sourceId = uri.getPathSegments().get(1);
-
-		if (v.containsKey(Five.SourcesLog.SOURCE_ID) == true)
-			throw new IllegalArgumentException("SOURCE_ID must be provided through the URI, not the columns");
-
-		v.put(Five.SourcesLog.SOURCE_ID, sourceId);
-
-		if (v.containsKey(Five.SourcesLog.TIMESTAMP) == false)
-			v.put(Five.SourcesLog.TIMESTAMP, System.currentTimeMillis() / 1000);
-
-		long id = db.insert(Five.SourcesLog.SQL.TABLE, Five.SourcesLog.SOURCE_ID, v);
-
-		if (id == -1)
-			return null;
-
-		Uri ret = Five.Sources.CONTENT_URI.buildUpon()
-		  .appendPath(sourceId)
-		  .appendPath("log")
-		  .appendPath(String.valueOf(id))
-		  .build();
-
-//		getContext().getContentResolver().notifyChange(ret, null);
-
-		return ret;
-	}
-
 	private boolean adjustNameWithPrefix(ContentValues v)
 	{
 		String name = v.getAsString(Five.Music.Artists.NAME);
@@ -935,8 +883,6 @@ public class FiveProvider extends AbstractSyncProvider
 		{
 		case SOURCES:
 			return insertSource(db, uri, type, values);
-		case SOURCE_LOG:
-			return insertSourceLog(db, uri, type, values);
 		case ARTISTS:
 			return insertArtist(db, uri, type, values);
 		case ALBUMS:
@@ -1254,8 +1200,6 @@ public class FiveProvider extends AbstractSyncProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources", URIPatternIds.SOURCES.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#/log", URIPatternIds.SOURCE_LOG.ordinal());
-
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_WITH_ARTIST.ordinal());
@@ -1280,14 +1224,6 @@ public class FiveProvider extends AbstractSyncProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs", URIPatternIds.PLAYLIST_SONGS.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/adjust_counts", URIPatternIds.ADJUST_COUNTS.ordinal());
-
-		sourcesMap = new HashMap<String, String>();
-		sourcesMap.put(Five.Sources._ID, "s." + Five.Sources._ID + " AS " + Five.Sources._ID);
-		sourcesMap.put(Five.Sources.HOST, "s." + Five.Sources.HOST + " AS " + Five.Sources.HOST);
-		sourcesMap.put(Five.Sources.NAME, "s." + Five.Sources.NAME + " AS " + Five.Sources.NAME);
-		sourcesMap.put(Five.Sources.PORT, "s." + Five.Sources.PORT + " AS " + Five.Sources.PORT);
-		sourcesMap.put(Five.Sources.REVISION, "s." + Five.Sources.REVISION + " AS " + Five.Sources.REVISION);
-		sourcesMap.put(Five.Sources.LAST_ERROR, "sl." + Five.SourcesLog.MESSAGE + " AS " + Five.Sources.LAST_ERROR);
 
 		artistsMap = new HashMap<String, String>();
 		artistsMap.put(Five.Music.Artists.MBID, Five.Music.Artists.MBID);

@@ -1,5 +1,6 @@
 package org.devtcg.five.provider.util;
 
+import org.devtcg.five.Constants;
 import org.devtcg.five.provider.Five;
 
 import android.content.ContentUris;
@@ -13,7 +14,7 @@ public class SourceItem extends AbstractDAOItem
 	private int mColumnHost;
 	private int mColumnPort;
 	private int mColumnRevision;
-	private int mColumnLastError;
+	private int mColumnStatus;
 
 	public static SourceItem getInstance(Context context, Uri uri)
 	{
@@ -33,7 +34,7 @@ public class SourceItem extends AbstractDAOItem
 		mColumnHost = cursor.getColumnIndex(Five.Sources.HOST);
 		mColumnPort = cursor.getColumnIndex(Five.Sources.PORT);
 		mColumnRevision = cursor.getColumnIndex(Five.Sources.REVISION);
-		mColumnLastError = cursor.getColumnIndex(Five.Sources.LAST_ERROR);
+		mColumnStatus = cursor.getColumnIndex(Five.Sources.STATUS);
 	}
 
 	public Uri getUri()
@@ -61,9 +62,21 @@ public class SourceItem extends AbstractDAOItem
 		return mCursor.getLong(mColumnRevision);
 	}
 
-	public String getLastError()
+	public String getStatus()
 	{
-		return mCursor.getString(mColumnLastError);
+		return mCursor.getString(mColumnStatus);
+	}
+
+	/**
+	 * Get a canonized label for the host and port of this server source.
+	 */
+	public String getHostLabel()
+	{
+		int port = getPort();
+		if (port != Constants.DEFAULT_SERVER_PORT)
+			return getHost() + ":" + port;
+		else
+			return getHost();
 	}
 
 	public String getFeedUrl(String feedType)

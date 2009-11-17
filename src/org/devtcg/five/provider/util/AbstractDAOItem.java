@@ -20,7 +20,7 @@ public class AbstractDAOItem
 	{
 		mCursor.close();
 	}
-	
+
 	public boolean moveToFirst()
 	{
 		return mCursor.moveToFirst();
@@ -34,6 +34,11 @@ public class AbstractDAOItem
 	public int getCount()
 	{
 		return mCursor.getCount();
+	}
+
+	public boolean isEmpty()
+	{
+		return mCursor.getCount() == 0;
 	}
 
 	public Cursor getCursor()

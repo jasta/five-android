@@ -17,6 +17,7 @@
 package org.devtcg.five.music.activity;
 
 import org.devtcg.five.R;
+import org.devtcg.five.activity.Settings;
 import org.devtcg.five.music.util.PlaylistServiceActivity;
 import org.devtcg.five.music.util.Song;
 import org.devtcg.five.music.util.PlaylistServiceActivity.TrackChangeListener;
@@ -40,11 +41,11 @@ public class Main extends PlaylistServiceActivity
   implements OnClickListener, TrackChangeListener
 {
 	private static final String TAG = "Main";
-	
+
 	private View mNowPlaying;
 	private TextView mTitle;
 	private TextView mArtist;
-	
+
 	public static void show(Context context)
 	{
 		context.startActivity(new Intent(context, Main.class));
@@ -55,7 +56,7 @@ public class Main extends PlaylistServiceActivity
 	{
 		super.onCreate(icicle);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		
+
 		setTrackChangeListener(this);
 	}
 
@@ -63,18 +64,18 @@ public class Main extends PlaylistServiceActivity
 	protected void onInitUI()
 	{
 		setContentView(R.layout.music_library);
-		
+
 		mNowPlaying = findViewById(R.id.nowplaying);
 		mTitle = (TextView)findViewById(R.id.title);
 		mArtist = (TextView)findViewById(R.id.artist);
 
 		findViewById(R.id.artists_button).setOnClickListener(this);
 		findViewById(R.id.albums_button).setOnClickListener(this);
-		findViewById(R.id.tracks_button).setOnClickListener(this);
+		findViewById(R.id.settings_button).setOnClickListener(this);
 		findViewById(R.id.playlists_button).setOnClickListener(this);
 		findViewById(R.id.nowplaying).setOnClickListener(this);
 	}
-	
+
 	public void onTrackChange(long songId)
 	{
 		Log.d(TAG, "songId=" + songId);
@@ -102,7 +103,8 @@ public class Main extends PlaylistServiceActivity
 		case R.id.albums_button:
 			AlbumList.show(this);
 			break;
-		case R.id.tracks_button:
+		case R.id.settings_button:
+			Settings.show(this);
 			break;
 		case R.id.playlists_button:
 			PlaylistList.show(this);

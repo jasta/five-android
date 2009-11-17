@@ -15,7 +15,7 @@
  # General Public License for more details.
  -->
 
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 	<string name="app_name">Five</string>
 	<string name="sync_title">Five Sync</string>
 	<string name="music_title">Five Music</string>
@@ -23,6 +23,7 @@
 	<string name="artists_title">Artists</string>
 	<string name="albums_title">Albums</string>
 	<string name="tracks_title">Songs</string>
+	<string name="settings_title">Settings</string>
 	<string name="playlists_title">Playlists</string>
 	<string name="playlists_shortcut_title">Five playlist</string>
 
@@ -42,4 +43,16 @@
 		The application has encountered an illegal condition and must be closed.
 		Please report this bug to the author.
 	</string>
+
+	<string name="server_preference_category">Server settings</string>
+	<string name="sync_preference_category">Sync settings</string>
+	<string name="no_server">No server</string>
+	<string name="click_to_add">Click to add.</string>
+	<string name="never_synchronized">Never synchronized.</string>
+	<string name="last_synchronized">Last synchronized: <xliff:g id="timeAgo">%s</xliff:g>.</string>
+	<string name="synchronizing">Synchronizing...</string>
+	<string name="autosync">Auto-sync</string>
+
+	<string name="sync_now">Sync now</string>
+	<string name="cancel_sync">Cancel sync</string>
 </resources>

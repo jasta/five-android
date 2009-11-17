@@ -52,12 +52,12 @@
             />
 
             <Button
-                android:id="@+id/tracks_button"
+                android:id="@+id/settings_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/main_menu_button"
-                android:drawableTop="@drawable/ic_mp_screen_tracks"
-                android:text="@string/tracks_title"
+                android:drawableTop="@drawable/ic_mp_screen_settings"
+                android:text="@string/settings_title"
                 android:ellipsize="marquee"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="?android:attr/textColorPrimaryDisableOnly"
