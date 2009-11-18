@@ -11,11 +11,11 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.meta.data.Protos;
-import org.devtcg.five.music.util.streaming.FailfastHttpClient;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
 import org.devtcg.five.service.SyncContext.CancelTrigger;
 import org.devtcg.five.util.Stopwatch;
+import org.devtcg.five.util.streaming.FailfastHttpClient;
 import org.devtcg.util.IOUtilities;
 
 import android.content.ContentUris;

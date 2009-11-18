@@ -60,7 +60,7 @@
 
 	</LinearLayout>
 
-	<org.devtcg.five.music.widget.BetterReflectionLayout
+	<org.devtcg.five.widget.BetterReflectionLayout
 		android:id="@+id/album_cover"
 		android:layout_width="fill_parent"
 		android:layout_height="0px"
@@ -106,7 +106,7 @@
 						android:layout_gravity="center_vertical"
 						/>
 
-					<org.devtcg.five.music.widget.PlaybackBar
+					<org.devtcg.five.widget.PlaybackBar
 						android:id="@+id/playback_info"
 						android:layout_gravity="center_vertical"
 						/>
@@ -158,6 +158,6 @@
 
 		</LinearLayout>
 
-	</org.devtcg.five.music.widget.BetterReflectionLayout>
+	</org.devtcg.five.widget.BetterReflectionLayout>
 
 </LinearLayout>

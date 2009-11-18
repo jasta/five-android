@@ -26,7 +26,7 @@
 		<service android:name=".service.MetaService"
 			android:exported="false" />
 
-		<service android:name=".music.service.PlaylistService"
+		<service android:name=".service.PlaylistService"
 			android:exported="false" />
 
 		<activity
@@ -45,7 +45,7 @@
 			/>
 
 		<activity
-			android:name=".music.activity.Main"
+			android:name=".activity.Main"
 			android:icon="@drawable/music_icon"
 			android:theme="@android:style/Theme.NoTitleBar"
 			android:label="@string/music_title">
@@ -56,13 +56,13 @@
 			</intent-filter>
 		</activity>
 
-		<activity android:name=".music.activity.ArtistList" android:label="@string/artists_title" />
+		<activity android:name=".activity.ArtistList" android:label="@string/artists_title" />
 
-		<activity android:name=".music.activity.AlbumList" android:label="@string/albums_title" />
+		<activity android:name=".activity.AlbumList" android:label="@string/albums_title" />
 
-		<activity android:name=".music.activity.ArtistAlbumList" />
+		<activity android:name=".activity.ArtistAlbumList" />
 
-		<activity android:name=".music.activity.SongList" android:label="@string/tracks_title">
+		<activity android:name=".activity.SongList" android:label="@string/tracks_title">
 			<intent-filter>
 				<action android:name="android.intent.action.VIEW" />
 				<category android:name="android.intent.category.DEFAULT" />
@@ -70,10 +70,10 @@
 			</intent-filter>
 		</activity>
 
-		<activity android:name=".music.activity.PlaylistList" android:label="@string/playlists_title" />
+		<activity android:name=".activity.PlaylistList" android:label="@string/playlists_title" />
 
-		<activity-alias android:name=".music.activity.PlaylistListShortcut"
-			android:targetActivity=".music.activity.PlaylistList"
+		<activity-alias android:name=".activity.PlaylistListShortcut"
+			android:targetActivity=".activity.PlaylistList"
 			android:label="@string/playlists_shortcut_title"
 			android:icon="@drawable/ic_launcher_shortcut_music_playlist">
 			<intent-filter>
@@ -83,7 +83,7 @@
 		</activity-alias>
 
 		<activity
-			android:name=".music.activity.Player"
+			android:name=".activity.Player"
 			android:theme="@android:style/Theme.NoTitleBar"
 			android:launchMode="singleTask"
 			android:excludeFromRecents="true"

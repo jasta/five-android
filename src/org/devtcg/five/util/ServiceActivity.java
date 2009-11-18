@@ -32,7 +32,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /**
- * Utility class to create activities which critically depend on a service 
+ * Utility class to create activities which critically depend on a service
  * connection.
  */
 public abstract class ServiceActivity<T extends IInterface> extends Activity
@@ -49,7 +49,7 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 	 * Convenience feature to allow subclasses to defer UI
 	 * construction/assignment until the service is connected, and then manage
 	 * hiding/showing the UI to match the service state.
-	 * 
+	 *
 	 * @see onInitUI
 	 */
 	private boolean mShowingUI = false;
@@ -58,9 +58,9 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 	protected void onStart()
 	{
 		super.onStart();
-		
+
 		Log.d(TAG, "onStart(): Binding service...");
-		
+
 		if (bindService() == false)
 			onServiceFatal();
 	}
@@ -69,7 +69,7 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 	protected void onStop()
 	{
 		Log.d(TAG, "onStop(): Unbinding service...");
-		
+
 		if (mService != null)
 			onDetached();
 
@@ -110,7 +110,7 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 	 * time.  Initialization is similar to {@link Activity#onCreate}.
 	 */
 	protected abstract void onInitUI();
-	
+
 	/**
 	 * Called when the activity is attached to the service, and not necessarily
 	 * the first time it connects.  You should register listeners and fit
@@ -148,7 +148,7 @@ public abstract class ServiceActivity<T extends IInterface> extends Activity
 	{
 		unbindService(mConnection);
 	}
-	
+
 	private final ServiceConnection mConnection = new ServiceConnection()
 	{
 		public void onServiceConnected(ComponentName name, IBinder service)

@@ -20,7 +20,7 @@
 	android:layout_height="fill_parent"
 	>
 	
-	<org.devtcg.five.music.widget.FastScrollView
+	<org.devtcg.five.widget.FastScrollView
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
 		>
@@ -31,6 +31,6 @@
 			android:layout_height="fill_parent"
 			/>
 
-	</org.devtcg.five.music.widget.FastScrollView>
+	</org.devtcg.five.widget.FastScrollView>
 	
 </LinearLayout>
