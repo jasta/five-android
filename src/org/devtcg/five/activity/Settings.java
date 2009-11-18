@@ -5,8 +5,10 @@ import org.devtcg.five.R;
 import org.devtcg.five.service.MetaService;
 import org.devtcg.five.widget.ServerPreference;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
@@ -43,12 +45,15 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 		mServerPref.init();
 	}
 
-
-
 	@Override
 	protected void onResume()
 	{
 		super.onResume();
+
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(Constants.ACTION_SYNC_BEGIN);
+		filter.addAction(Constants.ACTION_SYNC_END);
+		registerReceiver(mSyncListener, filter);
 
 		getPreferenceScreen().getSharedPreferences()
 				.registerOnSharedPreferenceChangeListener(this);
@@ -61,6 +66,8 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 	protected void onPause()
 	{
 		super.onPause();
+
+		unregisterReceiver(mSyncListener);
 
 		getPreferenceScreen().getSharedPreferences()
 				.unregisterOnSharedPreferenceChangeListener(this);
@@ -86,6 +93,22 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 			updateSummaries();
 		}
 	}
+
+	private final BroadcastReceiver mSyncListener = new BroadcastReceiver()
+	{
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			/*
+			 * We don't really care what message was delivered, just check with
+			 * our global to figure out what's going on right now. Note that
+			 * ServerPreference also makes calls to MetaService.isSyncing()
+			 * whenever the cursor its watching changes. The setIsSyncing call
+			 * here is necessary to avoid a potential race condition.
+			 */
+			mServerPref.setIsSyncing(MetaService.isSyncing());
+		}
+	};
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)

@@ -149,8 +149,8 @@ public class MetaService extends Service
 
 			mWakeLock.acquire();
 			try {
-				showNotification();
 				sendBeginSync();
+				showNotification();
 
 				SourceItem item = new SourceItem(Sources.getSources(MetaService.this));
 
@@ -190,9 +190,9 @@ public class MetaService extends Service
 					item.close();
 				}
 			} finally {
-				sendEndSync();
 				cancelNotification();
 				cleanupAndStopService();
+				sendEndSync();
 			}
 		}
 

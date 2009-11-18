@@ -7,21 +7,26 @@ import org.devtcg.five.R;
 import org.devtcg.five.activity.SourceAdd;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.provider.util.Sources;
-import org.devtcg.five.util.DateUtils;
+import org.devtcg.five.service.MetaService;
 
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.DataSetObserver;
+import android.graphics.drawable.AnimationDrawable;
 import android.os.Handler;
 import android.preference.Preference;
 import android.util.AttributeSet;
+import android.view.View;
+import android.widget.ImageView;
 
 public class ServerPreference extends Preference
 {
 	private SourceItem mServer;
 	private static DateFormat mFormatter =
 		DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
+
+	private boolean mIsSyncing;
 
 	public ServerPreference(Context context)
 	{
@@ -36,12 +41,13 @@ public class ServerPreference extends Preference
 		 * manually, but this seems like the easiest way without added
 		 * fragility.
 		 */
-		this(context, attrs, android.R.attr.dialogPreferenceStyle);
+		this(context, attrs, 0);
 	}
 
 	public ServerPreference(Context context, AttributeSet attrs, int defStyle)
 	{
 		super(context, attrs, defStyle);
+		setWidgetLayoutResource(R.layout.server_preference_widget);
 	}
 
 	public void init()
@@ -74,8 +80,19 @@ public class ServerPreference extends Preference
 		return mServer == null || mServer.isEmpty();
 	}
 
+	public void setIsSyncing(boolean isSyncing)
+	{
+		if (mIsSyncing != isSyncing)
+		{
+			mIsSyncing = isSyncing;
+			notifyChanged();
+		}
+	}
+
 	private void refresh()
 	{
+		setIsSyncing(MetaService.isSyncing());
+
 		if (mServer.isEmpty())
 		{
 			setTitle(R.string.no_server);
@@ -99,6 +116,34 @@ public class ServerPreference extends Preference
 				else
 					setSummary(mFormatter.format(new Date(server.getRevision())));
 			}
+		}
+	}
+
+	@Override
+	protected void onBindView(View view)
+	{
+		super.onBindView(view);
+
+		ImageView syncIcon = (ImageView)view.findViewById(R.id.sync_active);
+		syncIcon.setVisibility(mIsSyncing ? View.VISIBLE : View.INVISIBLE);
+
+		final AnimationDrawable anim = (AnimationDrawable)syncIcon.getDrawable();
+
+		if (mIsSyncing)
+		{
+			/*
+			 * Why do I need to post a runnable here? This code was taken from
+			 * GoogleSubscribedFeedsProvider's SyncStateCheckBoxPreference which does it this way.
+			 */
+			syncIcon.post(new Runnable() {
+				public void run() {
+					anim.start();
+				}
+			});
+		}
+		else
+		{
+			anim.stop();
 		}
 	}
 
