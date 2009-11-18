@@ -35,4 +35,10 @@ public interface Constants
 	 * cancels.
 	 */
 	public static final String ACTION_STOP_SYNC = "org.devtcg.five.intent.action.STOP_SYNC";
+
+	/**
+	 * Boolean flag honored by Settings to immediately start SourceAdd to ease
+	 * the out-of-the-box set-up experience.
+	 */
+	public static final String EXTRA_START_SOURCE_ADD = "org.devtcg.five.intent.extra.START_SOURCE_ADD";
 }

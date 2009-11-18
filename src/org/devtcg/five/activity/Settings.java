@@ -30,10 +30,25 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 		context.startActivity(new Intent(context, Settings.class));
 	}
 
+	/**
+	 * Special case which asks us to keep a sensible back stack while
+	 * mechanizing the user toward the initial SourceAdd screen.
+	 */
+	public static void showThenStartSourceAdd(Context context)
+	{
+		context.startActivity(new Intent(context, Settings.class)
+				.putExtra(Constants.EXTRA_START_SOURCE_ADD, true));
+	}
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+
+		/* Only here to help with the OOBE. */
+		if (getIntent().getBooleanExtra(Constants.EXTRA_START_SOURCE_ADD, false))
+			SourceAdd.actionAddSource(this);
+
 		addPreferencesFromResource(R.xml.settings);
 
 		getPreferenceScreen().getSharedPreferences()

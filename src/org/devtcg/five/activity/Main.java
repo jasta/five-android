@@ -17,22 +17,17 @@
 package org.devtcg.five.activity;
 
 import org.devtcg.five.R;
-import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.Sources;
 import org.devtcg.five.util.PlaylistServiceActivity;
 import org.devtcg.five.util.Song;
 import org.devtcg.five.util.PlaylistServiceActivity.TrackChangeListener;
 
-import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
+import android.database.Cursor;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
 
@@ -54,6 +49,21 @@ public class Main extends PlaylistServiceActivity
 	public void onCreate(Bundle icicle)
 	{
 		super.onCreate(icicle);
+
+		/*
+		 * If there are no server sources configured, jump automatically to the
+		 * server set up screen.
+		 */
+		if (Sources.isEmpty(this))
+		{
+			/*
+			 * We're attempting to keep the back stack sensible, so we're not
+			 * calling finish, and we're going to ask Settings as soon as it
+			 * opens to start SourceAdd.
+			 */
+			Settings.showThenStartSourceAdd(this);
+		}
+
 		setTrackChangeListener(this);
 	}
 

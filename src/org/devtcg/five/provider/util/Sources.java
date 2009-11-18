@@ -65,4 +65,14 @@ public final class Sources
 		/* TODO: Implement this by just gutting the tables and deleting /sdcard/five. */
 		throw new UnsupportedOperationException();
 	}
+
+	public static boolean isEmpty(Context context)
+	{
+		Cursor cursor = getSources(context);
+		try {
+			return cursor.getCount() == 0;
+		} finally {
+			cursor.close();
+		}
+	}
 }
