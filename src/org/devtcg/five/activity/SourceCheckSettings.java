@@ -29,11 +29,11 @@ public class SourceCheckSettings extends Activity
 	private VerifyThread mThread;
 	private boolean mThreadSent;
 
-	public static void actionCheckSettings(Activity context, Uri uri)
+	public static void actionCheckSettings(Activity context, Uri uri, int requestCode)
 	{
 		Intent i = new Intent(context, SourceCheckSettings.class);
 		i.setData(uri);
-		context.startActivityForResult(i, 1);
+		context.startActivityForResult(i, requestCode);
 	}
 
 	@Override

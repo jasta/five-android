@@ -7,6 +7,7 @@ import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceItem;
+import org.devtcg.five.service.MetaService;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -22,6 +23,8 @@ import android.widget.Toast;
 
 public class SourceAdd extends Activity
 {
+	private static final int REQUEST_CHECK_SETTINGS = 1;
+
 	private Button mNext;
 	private EditText mHostname;
 	private EditText mPassword;
@@ -62,14 +65,14 @@ public class SourceAdd extends Activity
 		if (Intent.ACTION_EDIT.equals(intent.getAction()))
 		{
 			SourceItem source = SourceItem.getInstance(this, intent.getData());
-			if (source != null)
-			{
-				try {
-					mExisting = intent.getData();
-					mHostname.setText(source.getHostLabel());
-				} finally {
-					source.close();
-				}
+			if (source == null)
+				throw new IllegalArgumentException("No source found at " + intent.getData());
+
+			try {
+				mExisting = intent.getData();
+				mHostname.setText(source.getHostLabel());
+			} finally {
+				source.close();
 			}
 		}
 	}
@@ -78,8 +81,20 @@ public class SourceAdd extends Activity
     protected void onActivityResult(int requestCode, int resultCode,
       Intent data)
     {
-		if (resultCode == RESULT_OK)
-			finish();
+		switch (requestCode)
+		{
+			case REQUEST_CHECK_SETTINGS:
+				if (resultCode == RESULT_OK)
+				{
+					/*
+					 * When the source is first added, automatically initiate a
+					 * sync and return to the settings screen to observe.
+					 */
+					MetaService.startSync(this);
+					finish();
+				}
+				break;
+		}
     }
 
 	private OnClickListener mNextClick = new OnClickListener()
@@ -142,7 +157,7 @@ public class SourceAdd extends Activity
 			 * the user we'll go ahead and check that there is a server
 			 * waiting for us.  If not, we'll return back to this edit
 			 * screen. */
-			SourceCheckSettings.actionCheckSettings(SourceAdd.this, uri);
+			SourceCheckSettings.actionCheckSettings(SourceAdd.this, uri, REQUEST_CHECK_SETTINGS);
 		}
 	};
 }

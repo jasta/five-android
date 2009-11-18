@@ -96,7 +96,7 @@ public class ServerPreference extends Preference
 		if (mServer.isEmpty())
 		{
 			setTitle(R.string.no_server);
-			setSummary(R.string.click_to_add);
+			setSummary(R.string.no_server_summary);
 		}
 		else
 		{

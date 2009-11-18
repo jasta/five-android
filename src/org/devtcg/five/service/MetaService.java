@@ -59,6 +59,18 @@ public class MetaService extends Service
 
 	final Handler mHandler = new Handler();
 
+	public static void startSync(Context context)
+	{
+		context.startService(new Intent(Constants.ACTION_START_SYNC, null,
+				context, MetaService.class));
+	}
+
+	public static void stopSync(Context context)
+	{
+		context.startService(new Intent(Constants.ACTION_STOP_SYNC, null,
+				context, MetaService.class));
+	}
+
 	@Override
 	public void onCreate()
 	{

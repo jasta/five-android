@@ -47,8 +47,8 @@
 	<string name="server_preference_category">Server settings</string>
 	<string name="sync_preference_category">Sync settings</string>
 	<string name="no_server">No server</string>
-	<string name="click_to_add">Click to add.</string>
-	<string name="never_synchronized">Never synchronized.</string>
+	<string name="no_server_summary">Tap to begin</string>
+	<string name="never_synchronized">Never synchronized</string>
 	<string name="synchronizing">Synchronizing...</string>
 	<string name="autosync">Auto-sync</string>
 

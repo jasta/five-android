@@ -132,13 +132,11 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 		switch (item.getItemId())
 		{
 			case R.id.start_sync:
-				startService(new Intent(Constants.ACTION_START_SYNC, null,
-						this, MetaService.class));
+				MetaService.startSync(this);
 				return true;
 
 			case R.id.stop_sync:
-				startService(new Intent(Constants.ACTION_STOP_SYNC, null,
-						this, MetaService.class));
+				MetaService.stopSync(this);
 				return true;
 
 			default:
