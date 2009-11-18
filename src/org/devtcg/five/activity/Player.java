@@ -104,7 +104,6 @@ public class Player extends PlaylistServiceActivity
 	public void onCreate(Bundle icicle)
 	{
 		super.onCreate(icicle);
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
 
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 		loadWithHint(getIntent());

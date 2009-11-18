@@ -54,8 +54,6 @@ public class Main extends PlaylistServiceActivity
 	public void onCreate(Bundle icicle)
 	{
 		super.onCreate(icicle);
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-
 		setTrackChangeListener(this);
 	}
 
