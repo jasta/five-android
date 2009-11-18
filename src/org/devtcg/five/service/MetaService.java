@@ -287,7 +287,7 @@ public class MetaService extends Service
 
 	public void showNotification()
 	{
-		Notification n = new Notification(R.drawable.stat_notify_sync, null,
+		Notification n = new Notification(android.R.drawable.stat_notify_sync, null,
 				System.currentTimeMillis());
 
 		n.setLatestEventInfo(this, getString(R.string.syncing_notif_title),
