@@ -13,7 +13,7 @@ public class SourceItem extends AbstractDAOItem
 	private int mColumnId;
 	private int mColumnHost;
 	private int mColumnPort;
-	private int mColumnRevision;
+	private int mColumnLastSyncTime;
 	private int mColumnStatus;
 
 	public static SourceItem getInstance(Context context, Uri uri)
@@ -33,7 +33,7 @@ public class SourceItem extends AbstractDAOItem
 		mColumnId = cursor.getColumnIndex(Five.Sources._ID);
 		mColumnHost = cursor.getColumnIndex(Five.Sources.HOST);
 		mColumnPort = cursor.getColumnIndex(Five.Sources.PORT);
-		mColumnRevision = cursor.getColumnIndex(Five.Sources.REVISION);
+		mColumnLastSyncTime = cursor.getColumnIndex(Five.Sources.LAST_SYNC_TIME);
 		mColumnStatus = cursor.getColumnIndex(Five.Sources.STATUS);
 	}
 
@@ -57,9 +57,9 @@ public class SourceItem extends AbstractDAOItem
 		return mCursor.getInt(mColumnPort);
 	}
 
-	public long getRevision()
+	public long getLastSyncTime()
 	{
-		return mCursor.getLong(mColumnRevision);
+		return mCursor.getLong(mColumnLastSyncTime);
 	}
 
 	public String getStatus()

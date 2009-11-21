@@ -234,27 +234,15 @@ public class MetaService extends Service
 			Log.d(TAG, "recordSuccess: newestSyncTime=" + mContext.newestSyncTime);
 
 			/*
-			 * This happens only when something new is detected. Either case is
-			 * a success condition, but we have no need to write anything new
-			 * into the database.
+			 * Record the last successful sync time with the provider. This
+			 * field is used only for display purposes. Normally during sync,
+			 * the last modified since argument is derived from the latest
+			 * synced change either in the temp provider or the main provider,
+			 * or 0 if no data has been synced previously.
 			 */
-			if (mContext.newestSyncTime > 0)
-			{
-				/*
-				 * Record the most recent synced item as our revision anchor.
-				 * Next time we sync, we'll search for entries newer than this.
-				 *
-				 * XXX: This introduces an unlikely bug where changes at the
-				 * server between the merging of artist, album and song tables
-				 * would not be detected on the next sync. This will be fixed in
-				 * future revisions of this engine which rely on the Source
-				 * REVISION column merely for user display. Each table will be
-				 * versioned independently at that point.
-				 */
-				ContentValues v = new ContentValues();
-				v.put(Five.Sources.REVISION, mContext.newestSyncTime);
-				getContentResolver().update(source.getUri(), v, null, null);
-		    }
+			ContentValues v = new ContentValues();
+			v.put(Five.Sources.LAST_SYNC_TIME, System.currentTimeMillis());
+			getContentResolver().update(source.getUri(), v, null, null);
 		}
 
 		public void cleanupAndStopService()

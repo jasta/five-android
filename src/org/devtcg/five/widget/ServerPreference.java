@@ -109,12 +109,12 @@ public class ServerPreference extends Preference
 				setSummary(status);
 			else
 			{
-				long rev = server.getRevision();
+				long rev = server.getLastSyncTime();
 
 				if (rev == 0)
 					setSummary(R.string.never_synchronized);
 				else
-					setSummary(mFormatter.format(new Date(server.getRevision())));
+					setSummary(mFormatter.format(new Date(rev)));
 			}
 		}
 	}

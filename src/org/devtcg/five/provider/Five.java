@@ -51,7 +51,7 @@ public final class Five
 		 * Last successful sync time in milliseconds. This field should be used
 		 * for display purposes only.
 		 */
-		public static final String REVISION = "revision";
+		public static final String LAST_SYNC_TIME = "revision";
 
 		/**
 		 * Current status as updated by the sync process. This is used a way to
@@ -68,7 +68,7 @@ public final class Five
 			  "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
 			  HOST + " TEXT UNIQUE NOT NULL, " +
 			  PORT + " INTEGER NOT NULL, " +
-			  REVISION + " INTEGER, " +
+			  LAST_SYNC_TIME + " INTEGER, " +
 			  STATUS + " TEXT " +
 			  ");";
 

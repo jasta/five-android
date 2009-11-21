@@ -14,7 +14,9 @@ public class SyncContext
 
 	/**
 	 * Holds the largest (most recent) sync time of all the feeds being merged.
-	 * This is useful only for rough reporting purposes (i.e. "Last synchronized 10:32pm")
+	 *
+	 * @deprecated we derive this value from queries during sync now, so no need
+	 *             to track it during sync and store it anywhere.
 	 */
 	public long newestSyncTime;
 

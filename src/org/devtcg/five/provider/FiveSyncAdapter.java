@@ -11,9 +11,11 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.meta.data.Protos;
+import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
 import org.devtcg.five.service.SyncContext.CancelTrigger;
+import org.devtcg.five.util.DbUtils;
 import org.devtcg.five.util.Stopwatch;
 import org.devtcg.five.util.streaming.FailfastHttpClient;
 import org.devtcg.util.IOUtilities;
@@ -103,7 +105,8 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		if (context.hasError() == true || context.hasCanceled() == true)
 			return -1;
 
-		final HttpGet feeds = new HttpGet(mSource.getFeedUrl(feedType));
+		String feedUrl = mSource.getFeedUrl(feedType);
+		final HttpGet feeds = new HttpGet(feedUrl);
 		final Thread currentThread = Thread.currentThread();
 
 		context.trigger = new CancelTrigger() {
@@ -117,6 +120,9 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		/* TODO: Optimize with another URI inside the provider. */
 		long modifiedSince = getModifiedSinceArgument(serverDiffs, feedType);
 		feeds.setHeader(MODIFIED_SINCE_HEADER, String.valueOf(modifiedSince));
+
+		Log.i(TAG, "Downloading changes from feed=" + feedUrl + ", " +
+				"starting at modifiedSince=" + modifiedSince);
 
 		try {
 			HttpResponse response = mClient.execute(feeds);
@@ -341,31 +347,37 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 	{
 		Uri localFeedUri = getLocalFeedUri(feedType);
 
-		/*
+		/**
 		 * First check if the sync provider instance already has some entries
 		 * populated from a previously interrupted sync. If yes, the greatest
 		 * _SYNC_TIME of those records is considered our next starting point;
-		 * otherwise, just use the last sync time we saw from the last sync,
-		 * stored for us within the SOURCE table.
-		 *
+		 * otherwise, look for the latest record in the main provider. If no
+		 * records are present, assume this is first-time sync and start with 0.
+		 * <p>
 		 * TODO: This query sucks, we need to issue something that effectively
 		 * does SELECT MAX(_SYNC_TIME).
 		 */
-		Cursor cursor = serverDiffs.query(localFeedUri,
-			new String[] { AbstractTableMerger.SyncableColumns._SYNC_TIME },
-			null, null, AbstractTableMerger.SyncableColumns._SYNC_TIME + " DESC");
-		try {
-			if (cursor.moveToFirst() == true)
-				return cursor.getLong(0);
-		} finally {
-			cursor.close();
+		String[] projection = new String[] { SyncableColumns._SYNC_TIME };
+		String orderBy = SyncableColumns._SYNC_TIME + " DESC";
+
+		long maxSyncTime = DbUtils.cursorForLong(serverDiffs.query(localFeedUri,
+				projection, null, null, orderBy), -1);
+
+		if (maxSyncTime < 0)
+		{
+			/* Check with the real thing. */
+			maxSyncTime = DbUtils.cursorForLong(getContext().getContentResolver().query(
+					localFeedUri, projection, null, null, orderBy), -1);
+
+			/*
+			 * Ok fine, no records have been synced, so start at 0 (which
+			 * fetches them all).
+			 */
+			if (maxSyncTime < 0)
+				return 0;
 		}
 
-		/*
-		 * Fall back, sync provider is empty so this must be our first attempt
-		 * since last successful sync.
-		 */
-		return mSource.getRevision();
+		return maxSyncTime;
 	}
 
 	private void insertArtist(SyncContext context, AbstractSyncProvider serverDiffs,

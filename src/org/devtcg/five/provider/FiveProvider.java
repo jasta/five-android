@@ -706,8 +706,8 @@ public class FiveProvider extends AbstractSyncProvider
 		if (v.containsKey(Five.Sources.PORT) == false)
 			throw new IllegalArgumentException("PORT cannot be NULL");
 
-		if (v.containsKey(Five.Sources.REVISION) == false)
-			v.put(Five.Sources.REVISION, 0);
+		if (v.containsKey(Five.Sources.LAST_SYNC_TIME) == false)
+			v.put(Five.Sources.LAST_SYNC_TIME, 0);
 
 		long id = db.insert(Five.Sources.SQL.TABLE, Five.Sources.HOST, v);
 
