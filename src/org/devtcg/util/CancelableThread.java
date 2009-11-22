@@ -14,6 +14,8 @@
 
 package org.devtcg.util;
 
+import org.devtcg.five.Constants;
+
 import android.util.Log;
 
 public abstract class CancelableThread extends Thread
@@ -69,7 +71,8 @@ public abstract class CancelableThread extends Thread
 	public void joinUninterruptibly()
 	{
 		long startTime;
-		startTime = System.currentTimeMillis();
+		if (Constants.DEBUG)
+			startTime = System.currentTimeMillis();
 
 		while (true)
 		{
@@ -79,7 +82,10 @@ public abstract class CancelableThread extends Thread
 			} catch (InterruptedException e) {}
 		}
 
-		long elapsed = System.currentTimeMillis() - startTime;
-		Log.e(TAG, toString() + " took " + elapsed + "ms to join.");
+		if (Constants.DEBUG)
+		{
+			long elapsed = System.currentTimeMillis() - startTime;
+			Log.d(TAG, toString() + " took " + elapsed + "ms to join.");
+		}
 	}
 }
