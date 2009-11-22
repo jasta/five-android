@@ -120,6 +120,9 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		long modifiedSince = getModifiedSinceArgument(serverDiffs, feedType);
 		feeds.setHeader(MODIFIED_SINCE_HEADER, String.valueOf(modifiedSince));
 
+		if (context.hasCanceled() == true)
+			return -1;
+
 		Log.i(TAG, "Downloading changes from feed=" + feedUrl + ", " +
 				"starting at modifiedSince=" + modifiedSince);
 
