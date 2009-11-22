@@ -16,7 +16,6 @@ import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
 import org.devtcg.five.service.SyncContext.CancelTrigger;
 import org.devtcg.five.util.DbUtils;
-import org.devtcg.five.util.Stopwatch;
 import org.devtcg.five.util.streaming.FailfastHttpClient;
 import org.devtcg.util.IOUtilities;
 
