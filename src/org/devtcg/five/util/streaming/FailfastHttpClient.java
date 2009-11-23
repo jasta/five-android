@@ -75,7 +75,7 @@ import android.text.TextUtils;
  * <pre>context.setAttribute(ClientContext.COOKIE_STORE, cookieStore);</pre>
  * 
  * <p>Uses an alternate ClientConnectionManager ultimately to work around
- * HARMONY-6326.</p>
+ * a harmony socket closure bug on Linux.</p>
  */
 public final class FailfastHttpClient implements HttpClient {
         
