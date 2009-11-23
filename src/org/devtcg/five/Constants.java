@@ -1,5 +1,7 @@
 package org.devtcg.five;
 
+import android.os.Build;
+
 public interface Constants
 {
 	/**
@@ -9,6 +11,16 @@ public interface Constants
 	 *       development started.
 	 */
 	public static final boolean DEBUG = true;
+
+	/**
+	 * True if the current platform version is before 2.0; false if eclair or
+	 * later.
+	 * <p>
+	 *
+	 * @note Using Build.VERSION.SDK to support API Level 3 and below. API 4 was
+	 *       the first to add SDK_INT and VERSION_CODES.
+	 */
+	public static final boolean PRE_ECLAIR = (Integer.parseInt(Build.VERSION.SDK) <= 4);
 
 	/**
 	 * Generic logging tag to use for various Five components.

@@ -2,10 +2,11 @@ package org.devtcg.five.provider.util;
 
 import java.lang.reflect.Method;
 
+import org.devtcg.five.Constants;
+
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
-import android.os.Build;
 
 /**
  * Abstraction to acquire a local content provider reference. Android 2.0
@@ -16,11 +17,7 @@ public abstract class AcquireProvider
 {
 	public static AcquireProvider getInstance()
 	{
-		/*
-		 * XXX: Using Build.VERSION.SDK to support API Level 3 and below. API 4
-		 * was the first to add SDK_INT and VERSION_CODES.
-		 */
-		if (Integer.parseInt(Build.VERSION.SDK) <= 4)
+		if (Constants.PRE_ECLAIR)
 			return ThroughReflection.Holder.sInstance;
 		else
 			return DirectAccess.Holder.sInstance;

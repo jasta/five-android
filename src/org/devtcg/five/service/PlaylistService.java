@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.activity.Player;
 import org.devtcg.five.provider.Five;
@@ -423,41 +424,20 @@ public class PlaylistService extends Service implements
 		return true;
 	}
 
+	/**
+	 * Previously used simply to control the notification displayed in the
+	 * status bar. Changes in Eclair now require that we tie this to the
+	 * foreground state of the service so that has been tacked on here.
+	 * <p>
+	 * This method is called to handle the play, pause/unpause, and stop events,
+	 * making it a good fit for foreground state control.
+	 */
 	private void notifySong(long songId)
 	{
 		if (songId < 0)
-			mNM.cancel(NOTIF_PLAYING);
+			PlayerNotification.getInstance().hideNotification(this);
 		else
-		{
-			Notification n = new Notification();
-
-			n.contentIntent = PendingIntent.getActivity(this,
-			  0, new Intent(this, Player.class), 0);
-
-			n.flags = Notification.FLAG_NO_CLEAR |
-			  Notification.FLAG_ONGOING_EVENT;
-
-			n.icon = R.drawable.stat_notify_musicplayer;
-			n.when = System.currentTimeMillis();
-
-			RemoteViews view = new RemoteViews("org.devtcg.five",
-			  R.layout.notif_playing);
-
-			Song song = new Song(getContentResolver(), songId);
-
-			if (song.albumCover != null)
-				view.setImageViewUri(R.id.album_cover, song.albumCover);
-			else
-				view.setImageViewResource(R.id.album_cover, R.drawable.lastfm_cover_small);
-
-			view.setTextViewText(R.id.song_name, song.title);
-			view.setTextViewText(R.id.artist_name, song.artist);
-			view.setTextViewText(R.id.album_name, song.album);
-
-			n.contentView = view;
-
-			mNM.notify(NOTIF_PLAYING, n);
-		}
+			PlayerNotification.getInstance().showNotification(this, songId);
 	}
 
 	private long getPlayingSong()
@@ -1112,11 +1092,7 @@ public class PlaylistService extends Service implements
 			synchronized(mBinderLock) {
 				if (mPlaylist.isEmpty() == true)
 					return;
-			}
 
-			setForeground(true);
-
-			synchronized(mBinderLock) {
 				if (mPosition == -1)
 					jump(0);
 
@@ -1140,7 +1116,6 @@ public class PlaylistService extends Service implements
 			if (isPlaying() == false)
 				return;
 
-			setForeground(false);
 			notifySong(-1);
 
 			synchronized(mBinderLock) {
@@ -1158,8 +1133,6 @@ public class PlaylistService extends Service implements
 		{
 			if (isPaused() == false)
 				return;
-
-			setForeground(true);
 
 			synchronized(mBinderLock) {
 				assert mPlaying == true;
@@ -1191,7 +1164,6 @@ public class PlaylistService extends Service implements
 			if (isPlaying() == false && isPaused() == false)
 				return;
 
-			setForeground(false);
 			notifySong(-1);
 
 			synchronized(mBinderLock) {
