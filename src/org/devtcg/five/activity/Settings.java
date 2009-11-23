@@ -45,10 +45,6 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 	{
 		super.onCreate(savedInstanceState);
 
-		/* Only here to help with the OOBE. */
-		if (getIntent().getBooleanExtra(Constants.EXTRA_START_SOURCE_ADD, false))
-			SourceAdd.actionAddSource(this);
-
 		addPreferencesFromResource(R.xml.settings);
 
 		getPreferenceScreen().getSharedPreferences()
@@ -58,6 +54,11 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 		mAutosyncPref = (ListPreference)findPreference(KEY_AUTOSYNC);
 
 		mServerPref.init();
+
+		/* Only here to help with the OOBE. */
+		if (getIntent().getBooleanExtra(Constants.EXTRA_START_SOURCE_ADD, false) &&
+				mServerPref.isEmpty())
+			SourceAdd.actionAddSource(this);
 	}
 
 	@Override
