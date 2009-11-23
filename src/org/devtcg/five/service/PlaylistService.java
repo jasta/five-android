@@ -909,6 +909,31 @@ public class PlaylistService extends Service implements
 //		mBufferListeners.broadcastOnBufferingUpdate(songId, percent);
 	}
 
+	private void tidyThenAdvance()
+	{
+		boolean playing;
+		boolean paused;
+
+		/* Cleanup the MediaPlayer object's state. */
+		synchronized(mBinderLock) {
+			playing = mPlaying;
+			paused = mPaused;
+
+			if (mPlayer.isPlaying())
+				mPlayer.stop();
+
+			mPlayer.reset();
+
+			mPrepared = false;
+		}
+
+		/* If we were previously playing, advance to the next track. */
+		try {
+			if (playing == true && paused == false)
+				mBinder.next();
+		} catch (RemoteException e) {}
+	}
+
 	public boolean onError(MediaPlayer mp, int what, int extra)
 	{
 		Log.d(TAG, "Media playback error, what=" + what + ", extra=" + extra);
@@ -943,27 +968,7 @@ public class PlaylistService extends Service implements
 			}
 		}
 
-		boolean playing;
-		boolean paused;
-
-		synchronized(mBinderLock) {
-			playing = mPlaying;
-			paused = mPaused;
-
-			if (mPlayer.isPlaying() == true)
-				mPlayer.stop();
-
-			mPlayer.reset();
-
-			mPlaying = false;
-			mPrepared = false;
-			mPaused = false;
-		}
-
-		try {
-			if (playing == true && paused == false)
-				mBinder.next();
-		} catch (RemoteException e) {}
+		tidyThenAdvance();
 
 		return true;
 	}
@@ -971,22 +976,7 @@ public class PlaylistService extends Service implements
 	public void onCompletion(MediaPlayer mp)
 	{
 		Log.i(TAG, "Should be finished.");
-
-		assert mp == mPlayer;
-
-		assert mPlaying == true;
-		assert mPaused == false;
-
-		synchronized(mBinderLock) {
-			mPlayer.stop();
-			mPlayer.reset();
-
-			mPrepared = false;
-		}
-
-		try {
-			mBinder.next();
-		} catch (RemoteException e) {}
+		tidyThenAdvance();
 	}
 
 	public void onPrepared(MediaPlayer mp)
