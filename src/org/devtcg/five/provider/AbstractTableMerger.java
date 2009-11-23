@@ -72,8 +72,6 @@ public abstract class AbstractTableMerger
 
 		if (clientDiffs != null)
 			findLocalChanges(context, syncContext, clientDiffs);
-
-		Log.i(TAG, "merge complete");
 	}
 
 	private void mergeServerDiffs(Context context, SyncContext syncContext,
