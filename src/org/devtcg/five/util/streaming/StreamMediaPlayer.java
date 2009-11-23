@@ -323,6 +323,12 @@ public class StreamMediaPlayer extends MediaPlayer
 		 * otherwise, -1.
 		 */
 		public abstract long size();
+
+		/**
+		 * Provide stream content-type. This is HTTP-specific header
+		 * information.
+		 */
+		public abstract String getContentType();
 	}
 
 	/**
@@ -429,6 +435,7 @@ public class StreamMediaPlayer extends MediaPlayer
 
 				interpretRangeThenSeek(request, stream);
 
+				response.setHeader("Accept-Ranges", "bytes");
 				response.setEntity(ent);
 				response.setStatusCode(HttpStatus.SC_OK);
 			}
@@ -447,6 +454,14 @@ public class StreamMediaPlayer extends MediaPlayer
 			  throws IOException
 			{
 				super();
+
+				/*
+				 * This seems to be necessary only for _certain_ streams?
+				 * Perhaps the issue is with automatic detection?
+				 */
+				String contentType = stream.getContentType();
+				if (contentType != null)
+					setContentType(contentType);
 
 				mStream = stream;
 

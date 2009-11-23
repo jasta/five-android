@@ -77,6 +77,13 @@ public class TailStream extends RandomAccessStream
 	}
 
 	@Override
+	public String getContentType()
+	{
+		/* TODO: Use the value the server gave us when we synced this entry. */
+		return "audio/mpeg";
+	}
+
+	@Override
 	public void open() throws IOException
 	{
 		mChannel = (new RandomAccessFile(mPath, "r")).getChannel();
