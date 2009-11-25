@@ -33,9 +33,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.devtcg.five.Constants;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.provider.util.Sources;
+import org.devtcg.five.receiver.MediaButton;
 import org.devtcg.five.util.AuthHelper;
 import org.devtcg.five.util.streaming.DownloadManager;
 import org.devtcg.five.util.streaming.StreamMediaPlayer;
@@ -61,6 +63,7 @@ import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.KeyEvent;
 
 public class PlaylistService extends Service implements
   MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnErrorListener,
@@ -188,6 +191,21 @@ public class PlaylistService extends Service implements
 		mWakeLock.release();
 
 		super.onDestroy();
+	}
+
+	@Override
+	public void onStart(Intent intent, int startId)
+	{
+		if (Intent.ACTION_MEDIA_BUTTON.equals(intent.getAction()))
+		{
+			KeyEvent event = (KeyEvent)intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+			try {
+				MediaButton.handleMediaButtonEvent(mBinder, event);
+			} catch (Exception e) {
+				if (Constants.DEBUG)
+					Log.d(Constants.TAG, "PlaylistService failed to start", e);
+			}
+		}
 	}
 
 	public void saveState()

@@ -97,5 +97,11 @@
 			android:configChanges="orientation|keyboardHidden"
 			/>
 
+		<receiver android:name=".receiver.MediaButton">
+			<intent-filter android:priority="50">
+				<action android:name="android.intent.action.MEDIA_BUTTON" />
+			</intent-filter>
+		</receiver>
+
 	</application>
 </manifest> 
