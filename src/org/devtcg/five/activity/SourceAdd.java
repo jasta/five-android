@@ -90,7 +90,9 @@ public class SourceAdd extends Activity
 					 * When the source is first added, automatically initiate a
 					 * sync and return to the settings screen to observe.
 					 */
-					MetaService.startSync(this);
+					if (!Intent.ACTION_EDIT.equals(getIntent().getAction()))
+						MetaService.startSync(this);
+
 					finish();
 				}
 				break;
