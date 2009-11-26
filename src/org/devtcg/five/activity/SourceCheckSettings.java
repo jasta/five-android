@@ -3,8 +3,6 @@ package org.devtcg.five.activity;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.util.SourceItem;
@@ -19,6 +17,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Process;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -78,7 +77,10 @@ public class SourceCheckSettings extends Activity
 	protected void onDestroy()
 	{
 		if (!mThreadSent)
-			mThread.requestCancelAndWait();
+		{
+			mThread.requestCancel();
+			mThread.setActivity(null);
+		}
 
 		mThread = null;
 
@@ -119,8 +121,6 @@ public class SourceCheckSettings extends Activity
 		private final SourceItem mSource;
 		private final Socket mSocket;
 		private SourceCheckSettings mActivity;
-		private final ReentrantLock mActivityLock = new ReentrantLock();
-		private final Condition mActivityNonNull = mActivityLock.newCondition();
 
 		public VerifyThread(SourceCheckSettings activity, SourceItem source)
 		{
@@ -131,30 +131,30 @@ public class SourceCheckSettings extends Activity
 
 		public void setActivity(SourceCheckSettings activity)
 		{
-			mActivityLock.lock();
-			try {
+			synchronized(this) {
 				mActivity = activity;
 				if (activity != null)
-					mActivityNonNull.signal();
-			} finally {
-				mActivityLock.unlock();
+					notify();
 			}
 		}
 
 		private SourceCheckSettings getActivity()
 		{
-			mActivityLock.lock();
-			try {
-				if (mActivity == null)
+			/*
+			 * We assume that anywhere calling getActivity() will be in a
+			 * non-canceled path which means that the activity must be either
+			 * non-null, or the activity is recreating itself so it will be
+			 * non-null very soon.
+			 */
+			synchronized(this) {
+				while (hasCanceled() == false && mActivity == null)
 				{
 					try {
-						mActivityNonNull.await();
+						wait();
 					} catch (InterruptedException e) {}
 				}
 
 				return mActivity;
-			} finally {
-				mActivityLock.unlock();
 			}
 		}
 
@@ -162,17 +162,22 @@ public class SourceCheckSettings extends Activity
 		protected void onRequestCancel()
 		{
 			IOUtilities.closeSocketQuietly(mSocket);
-			interrupt();
+
+			synchronized(this) {
+				/* Unblock getActivity() if necessary. */
+				notify();
+			}
 		}
 
 		public void run()
 		{
+			Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+
 			try {
-				mSocket.connect(new InetSocketAddress(mSource.getHost(),
-						mSource.getPort()));
+				mSocket.connect(new InetSocketAddress(mSource.getHost(), mSource.getPort()));
 
 				if (hasCanceled())
-						return;
+					return;
 
 				final SourceCheckSettings activity = getActivity();
 				if (activity != null)
@@ -185,9 +190,12 @@ public class SourceCheckSettings extends Activity
 					});
 				}
 			} catch (IOException e) {
-				SourceCheckSettings activity = getActivity();
-				if (!hasCanceled() && activity != null)
-					activity.showErrorDialog("Error connecting to server: " + e.getMessage());
+				if (!hasCanceled())
+				{
+					SourceCheckSettings activity = getActivity();
+					if (activity != null)
+						activity.showErrorDialog("Error connecting to server: " + e.getMessage());
+				}
 			} finally {
 				mSource.close();
 
