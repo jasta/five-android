@@ -2,7 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="org.devtcg.five">
 
-	<uses-sdk android:minSdkVersion="3" />
+	<uses-sdk
+		android:minSdkVersion="3"
+		android:targetSdkVersion="5" />
 
 	<!-- Access PROPERTY_IMEI for unique device signature. 
 	   - TODO: Generate my own unique id. -->
