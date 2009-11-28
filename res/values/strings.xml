@@ -59,4 +59,6 @@
 	<string name="syncing_notif_content">Music data is downloading</string>
 
 	<string name="pref_autosync_dialogtitle">Auto-sync</string>
+
+	<string name="existing_password">Use existing password</string>
 </resources>

@@ -58,7 +58,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 	DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 34;
+	private static final int DATABASE_VERSION = 35;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> artistsMap;

@@ -13,6 +13,7 @@ public class SourceItem extends AbstractDAOItem
 	private int mColumnId;
 	private int mColumnHost;
 	private int mColumnPort;
+	private int mColumnPassword;
 	private int mColumnLastSyncTime;
 	private int mColumnStatus;
 
@@ -33,6 +34,7 @@ public class SourceItem extends AbstractDAOItem
 		mColumnId = cursor.getColumnIndex(Five.Sources._ID);
 		mColumnHost = cursor.getColumnIndex(Five.Sources.HOST);
 		mColumnPort = cursor.getColumnIndex(Five.Sources.PORT);
+		mColumnPassword = cursor.getColumnIndex(Five.Sources.PASSWORD);
 		mColumnLastSyncTime = cursor.getColumnIndex(Five.Sources.LAST_SYNC_TIME);
 		mColumnStatus = cursor.getColumnIndex(Five.Sources.STATUS);
 	}
@@ -55,6 +57,11 @@ public class SourceItem extends AbstractDAOItem
 	public int getPort()
 	{
 		return mCursor.getInt(mColumnPort);
+	}
+
+	public String getPassword()
+	{
+		return mCursor.getString(mColumnPassword);
 	}
 
 	public long getLastSyncTime()
@@ -97,6 +104,11 @@ public class SourceItem extends AbstractDAOItem
 	public String getImageThumbUrl(String feedType, long syncId)
 	{
 		return "http://" + getHost() + ":" + getPort() + "/imageThumb/" + feedType + "/" + syncId;
+	}
+
+	public String getServerInfoUrl()
+	{
+		return "http://" + getHost() + ":" + getPort() + "/info";
 	}
 
 	private static final AbstractDAOItem.Creator<SourceItem> CREATOR =

@@ -48,6 +48,12 @@ public final class Five
 		public static final String PORT = "port";
 
 		/**
+		 * Hashed mutation of the password originally given by the user (cannot
+		 * be decoded, sent verbatim to the server as an authentication token)
+		 */
+		public static final String PASSWORD = "password";
+
+		/**
 		 * Last successful sync time in milliseconds. This field should be used
 		 * for display purposes only.
 		 */
@@ -68,6 +74,7 @@ public final class Five
 			  "_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
 			  HOST + " TEXT UNIQUE NOT NULL, " +
 			  PORT + " INTEGER NOT NULL, " +
+			  PASSWORD + " TEXT NOT NULL, " +
 			  LAST_SYNC_TIME + " INTEGER, " +
 			  STATUS + " TEXT " +
 			  ");";

@@ -1,5 +1,6 @@
 package org.devtcg.five.activity;
 
+import java.security.MessageDigest;
 import java.text.ParseException;
 import java.util.regex.Pattern;
 
@@ -8,6 +9,7 @@ import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.MetaService;
+import org.devtcg.five.util.StringUtils;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -71,6 +73,7 @@ public class SourceAdd extends Activity
 			try {
 				mExisting = intent.getData();
 				mHostname.setText(source.getHostLabel());
+				mPassword.setHint(R.string.existing_password);
 			} finally {
 				source.close();
 			}
@@ -101,8 +104,8 @@ public class SourceAdd extends Activity
 
 	private OnClickListener mNextClick = new OnClickListener()
 	{
-		private void insertValues(ContentValues values, String host)
-		  throws ParseException
+		private void parseHostAndPopulate(ContentValues values, String host)
+				throws ParseException
 		{
 			int colon;
 			if ((colon = host.indexOf(':')) >= 0)
@@ -122,14 +125,42 @@ public class SourceAdd extends Activity
 			}
 		}
 
+		private String hashString(String string)
+		{
+			try {
+				MessageDigest md = MessageDigest.getInstance("SHA-1");
+				md.update(string.getBytes("UTF-8"));
+				return StringUtils.byteArrayToHexString(md.digest());
+			} catch (Exception e) {
+				/*
+				 * This shouldn't happen, both exceptions that can be thrown are
+				 * related to unsupported algorithm or encoding, but we know
+				 * confidently that Android does support what we've requested.
+				 */
+				throw new UnsupportedOperationException(e);
+			}
+		}
+
+		private void hashPasswordAndPopulate(ContentValues values, String password)
+		{
+			values.put(Five.Sources.PASSWORD, hashString(password));
+		}
+
+		private void populateContentValues(ContentValues values)
+				throws ParseException
+		{
+			parseHostAndPopulate(values, mHostname.getText().toString());
+
+			if (mExisting == null || mPassword.getText().length() > 0)
+				hashPasswordAndPopulate(values, mPassword.getText().toString());
+		}
+
 		public void onClick(View v)
 		{
 			ContentValues values = new ContentValues();
 
-			String host = mHostname.getText().toString();
-
 			try {
-				insertValues(values, host);
+				populateContentValues(values);
 			} catch (ParseException e) {
 				Toast.makeText(SourceAdd.this, e.getMessage(),
 				  Toast.LENGTH_LONG).show();

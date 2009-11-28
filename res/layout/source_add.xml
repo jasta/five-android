@@ -36,7 +36,6 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:text="Password"
-				android:enabled="false"
 				/>
 
 			<EditText
@@ -44,8 +43,7 @@
 				android:layout_width="fill_parent"
 				android:layout_height="wrap_content"
 				android:singleLine="true"
-				android:enabled="false"
-				android:focusable="false"
+				android:password="true"
 				/>
 
 		</LinearLayout>

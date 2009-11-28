@@ -37,7 +37,9 @@ import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.activity.Player;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.provider.util.Sources;
+import org.devtcg.five.util.AuthHelper;
 import org.devtcg.five.util.Song;
 import org.devtcg.five.util.streaming.DownloadManager;
 import org.devtcg.five.util.streaming.StreamMediaPlayer;
@@ -534,6 +536,14 @@ public class PlaylistService extends Service implements
 		mPlayer.setOnPreparedListener(this);
 
 		try {
+			SourceItem source = SourceItem.getInstance(this, Sources.makeUri(sourceId));
+			try {
+				mManager.updateCredentials(source);
+			} finally {
+				if (source != null)
+					source.close();
+			}
+
 			if (cachePath != null)
 			{
 				long length = (new File(cachePath)).length();
@@ -741,6 +751,11 @@ public class PlaylistService extends Service implements
 		public SongDownloadManager(Context ctx)
 		{
 			super(ctx);
+		}
+
+		public synchronized void updateCredentials(SourceItem source)
+		{
+			AuthHelper.setCredentials(mClient, source);
 		}
 
 		@Override

@@ -9,12 +9,15 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.meta.data.Protos;
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
 import org.devtcg.five.service.SyncContext.CancelTrigger;
+import org.devtcg.five.util.AuthHelper;
 import org.devtcg.five.util.DbUtils;
 import org.devtcg.five.util.streaming.FailfastHttpClient;
 import org.devtcg.util.IOUtilities;
@@ -70,6 +73,8 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		/* Source must have been deleted or something? */
 		if (mSource.moveToFirst() == false)
 			return;
+
+		AuthHelper.setCredentials(mClient, mSource);
 
 		long modifiedSince;
 

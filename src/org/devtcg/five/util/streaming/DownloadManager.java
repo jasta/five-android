@@ -39,6 +39,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.devtcg.five.util.AuthHelper;
 import org.devtcg.util.CancelableThread;
 
 import android.content.Context;
@@ -61,7 +62,7 @@ public abstract class DownloadManager
 
 	protected final ConnectivityManager mConnMan;
 
-	private FailfastHttpClient mClient =
+	protected FailfastHttpClient mClient =
 	  FailfastHttpClient.newInstance(null);
 
 	private volatile boolean mDuringShutdown = false;
@@ -122,7 +123,7 @@ public abstract class DownloadManager
 	 * aborting downloads up to the connection pool limit will cause the
 	 * HttpClient to refuse to execute new methods.
 	 */
-	/* package */ void refreshHttpClient()
+	/* package */ synchronized void refreshHttpClient()
 	{
 		if (mDuringShutdown == false && mClient != null)
 		{

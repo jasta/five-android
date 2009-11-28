@@ -1,13 +1,17 @@
 package org.devtcg.five.activity;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.provider.util.SourceItem;
+import org.devtcg.five.util.AuthHelper;
+import org.devtcg.five.util.streaming.FailfastHttpClient;
 import org.devtcg.util.CancelableThread;
-import org.devtcg.util.IOUtilities;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -18,12 +22,15 @@ import android.content.DialogInterface.OnClickListener;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
 public class SourceCheckSettings extends Activity
 {
+	private static final String HEADER_FIVE_VERSION = "X-Five-Version";
+
 	private TextView mMessage;
 	private VerifyThread mThread;
 	private boolean mThreadSent;
@@ -112,21 +119,23 @@ public class SourceCheckSettings extends Activity
 		});
 	}
 
-	/* TODO: We should be using MetaService to provide a more sophisticated
-	 * test, including authentication and proof that there is a database
-	 * on the other side ready to be synced.  For now we just do a simple
-	 * connection test. */
 	private static class VerifyThread extends CancelableThread
 	{
-		private final SourceItem mSource;
-		private final Socket mSocket;
 		private SourceCheckSettings mActivity;
+		private final HttpGet mRequest;
+
+		private static final FailfastHttpClient mClient = FailfastHttpClient.newInstance(null);
 
 		public VerifyThread(SourceCheckSettings activity, SourceItem source)
 		{
-			mSource = source;
-			mSocket = new Socket();
 			mActivity = activity;
+
+			try {
+				mRequest = new HttpGet(source.getServerInfoUrl());
+				AuthHelper.setCredentials(mClient, source);
+			} finally {
+				source.close();
+			}
 		}
 
 		public void setActivity(SourceCheckSettings activity)
@@ -161,7 +170,7 @@ public class SourceCheckSettings extends Activity
 		@Override
 		protected void onRequestCancel()
 		{
-			IOUtilities.closeSocketQuietly(mSocket);
+			mRequest.abort();
 
 			synchronized(this) {
 				/* Unblock getActivity() if necessary. */
@@ -173,11 +182,21 @@ public class SourceCheckSettings extends Activity
 		{
 			Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
 
+			HttpEntity entity = null;
+
 			try {
-				mSocket.connect(new InetSocketAddress(mSource.getHost(), mSource.getPort()));
+				HttpResponse response = mClient.execute(mRequest);
+				entity = response.getEntity();
 
 				if (hasCanceled())
 					return;
+
+				Header versionHead = response.getFirstHeader(HEADER_FIVE_VERSION);
+				if (versionHead == null)
+					throw new IOException("not a five server");
+
+				Log.i(Constants.TAG, mRequest.getRequestLine().getUri() +
+						" reports five version: " + versionHead.getValue());
 
 				final SourceCheckSettings activity = getActivity();
 				if (activity != null)
@@ -197,10 +216,12 @@ public class SourceCheckSettings extends Activity
 						activity.showErrorDialog("Error connecting to server: " + e.getMessage());
 				}
 			} finally {
-				mSource.close();
-
-				if (!hasCanceled())
-					IOUtilities.closeSocketQuietly(mSocket);
+				if (entity != null)
+				{
+					try {
+						entity.consumeContent();
+					} catch (IOException e) {}
+				}
 			}
 		}
 	}
