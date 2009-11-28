@@ -17,6 +17,9 @@
 	<!-- To efficiently manage retries. -->
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+	<!-- Maintain the storage card cache. -->
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
 	<application
 		android:icon="@drawable/music_icon"
 		android:label="@string/app_name">
