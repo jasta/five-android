@@ -33,21 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.devtcg.five.Constants;
-import org.devtcg.five.R;
-import org.devtcg.five.activity.Player;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.provider.util.Sources;
 import org.devtcg.five.util.AuthHelper;
-import org.devtcg.five.util.Song;
 import org.devtcg.five.util.streaming.DownloadManager;
 import org.devtcg.five.util.streaming.StreamMediaPlayer;
 import org.devtcg.five.util.streaming.TailStream;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
@@ -68,7 +61,6 @@ import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.RemoteViews;
 
 public class PlaylistService extends Service implements
   MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnErrorListener,
@@ -80,10 +72,6 @@ public class PlaylistService extends Service implements
 	private static final String STATE_FILE_TMP = "playlist_state.tmp";
 	private static final int STATE_FILE_FORMAT = 3;
 
-	/* Lock allowing us to guarantee the presence of the cache service
-	 * on demand. */
-	final Object mCacheLock = new Object();
-
 	/* Lock synchronizing resource access from binder threads.  This is more
 	 * of a hint than a rule as we know that only one thread will be making
 	 * changes to the playlist state at any time. */
@@ -94,8 +82,6 @@ public class PlaylistService extends Service implements
 	CacheManager mCacheMgr = null;
 
 	StreamMediaPlayer mPlayer = null;
-	NotificationManager mNM = null;
-	private static final int NOTIF_PLAYING = 0;
 
 	final List<Long> mPlaylist =
 	  Collections.synchronizedList(new ArrayList<Long>(50));
@@ -141,9 +127,6 @@ public class PlaylistService extends Service implements
 
 		mPlayer = new StreamMediaPlayer();
 		mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-
-		mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-		assert mNM != null;
 
 		mChangeListeners = new IPlaylistChangeListenerCallbackList();
 		mMoveListeners = new IPlaylistMoveListenerCallbackList();
