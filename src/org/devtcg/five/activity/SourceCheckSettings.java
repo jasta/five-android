@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.Constants;
 import org.devtcg.five.R;
@@ -190,6 +191,9 @@ public class SourceCheckSettings extends Activity
 
 				if (hasCanceled())
 					return;
+
+				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED)
+					throw new IOException("invalid password");
 
 				Header versionHead = response.getFirstHeader(HEADER_FIVE_VERSION);
 				if (versionHead == null)
