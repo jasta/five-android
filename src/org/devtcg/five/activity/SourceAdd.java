@@ -149,10 +149,11 @@ public class SourceAdd extends Activity
 		private void populateContentValues(ContentValues values)
 				throws ParseException
 		{
-			parseHostAndPopulate(values, mHostname.getText().toString());
+			parseHostAndPopulate(values, mHostname.getText().toString().trim());
 
-			if (mExisting == null || mPassword.getText().length() > 0)
-				hashPasswordAndPopulate(values, mPassword.getText().toString());
+			String password = mPassword.getText().toString().trim();
+			if (mExisting == null || password.length() > 0)
+				hashPasswordAndPopulate(values, password);
 		}
 
 		public void onClick(View v)
