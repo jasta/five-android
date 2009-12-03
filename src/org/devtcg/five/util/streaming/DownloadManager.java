@@ -16,7 +16,6 @@
 
 package org.devtcg.five.util.streaming;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
@@ -38,8 +36,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.devtcg.five.util.AuthHelper;
+import org.devtcg.five.Constants;
 import org.devtcg.util.CancelableThread;
 
 import android.content.Context;
@@ -143,19 +140,10 @@ public abstract class DownloadManager
 		return mDownloads.get(url);
 	}
 
-	public Download startDownload(String url, String path, long resumeFrom)
-	  throws IOException
+	public Download startDownload(String url, String path, long expectedContentLength,
+			long resumeFrom) throws IOException
 	{
-		Download d = newDownload(url, path, resumeFrom);
-		mDownloads.put(url, d);
-		d.start();
-		return d;
-	}
-
-	public Download startDownload(String url, String path)
-	  throws IOException
-	{
-		Download d = newDownload(url, path);
+		Download d = newDownload(url, path, expectedContentLength, resumeFrom);
 		mDownloads.put(url, d);
 		d.start();
 		return d;
@@ -202,16 +190,10 @@ public abstract class DownloadManager
 		}
 	}
 
-	protected Download newDownload(String url, String path, long resumeFrom)
-	  throws IOException
+	protected Download newDownload(String url, String path, long expectedContentLength,
+			long resumeFrom) throws IOException
 	{
-		return new Download(this, url, path, resumeFrom);
-	}
-
-	protected Download newDownload(String url, String path)
-	  throws IOException
-	{
-		return new Download(this, url, path);
+		return new Download(this, url, path, expectedContentLength, resumeFrom);
 	}
 
 	protected void removeDownload(String url)
@@ -286,12 +268,27 @@ public abstract class DownloadManager
 		private volatile boolean mPostResponse;
 		private long mBytes = 0;
 		private long mLength = -1;
+		private final long mExpectedLength;
 
 		private int mLastProgress = 0;
 
+		/**
+		 * @param expectedContentLength
+		 *            The presence of this field is a mistake. We assume that
+		 *            the server will respond with this content length (as this
+		 *            was the file size reported during the last sync), but this
+		 *            assumption is used in the tail reading stream to mean the
+		 *            actual amount of data to wait on! This means if the file
+		 *            has changed at all, even if slightly (say, meta data
+		 *            modified), the playback attempt may lock up towards the
+		 *            end. Also, this will prevent us from ever doing
+		 *            transcoding, so really we should nuke this field and find
+		 *            a better way to defer the necessity of this value until it
+		 *            has been provided by the server in response to this
+		 *            download.
+		 */
 		private Download(DownloadManager mgr, String url, String path,
-		  long resumeFrom)
-		  throws IOException
+				long expectedContentLength, long resumeFrom) throws IOException
 		{
 			super("Download #" + mCount.getAndIncrement() + ": " + url);
 
@@ -299,15 +296,10 @@ public abstract class DownloadManager
 			mUrl = url;
 			mDest = new File(path);
 
+			mExpectedLength = expectedContentLength;
 			mResumeFrom = resumeFrom;
 			mBytes = resumeFrom;
 			mOut = new FileOutputStream(path, (resumeFrom > 0));
-		}
-
-		private Download(DownloadManager mgr, String url, String path)
-		  throws IOException
-		{
-			this(mgr, url, path, 0);
 		}
 
 		public String getUrl()
@@ -383,6 +375,11 @@ public abstract class DownloadManager
 					mPauseLock.notify();
 				} catch (AbortedException e) {}
 			}
+		}
+
+		public long getExpectedContentLength()
+		{
+			return mExpectedLength;
 		}
 
 		public long getContentLength()
@@ -510,6 +507,12 @@ public abstract class DownloadManager
 							throw new IOException("Range request inconsistently answered");
 
 						mLength = length;
+					}
+
+					if (mLength != mExpectedLength)
+					{
+						Log.w(Constants.TAG, "Content-Length response (" + mLength +
+								") did not match our expectation (" + mExpectedLength + ")");
 					}
 				} finally {
 					synchronized(mResponseLock) {

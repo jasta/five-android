@@ -7,6 +7,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
+/**
+ * @deprecated Use {@link #SongItem}.
+ */
 public class Song
 {
 	public long id;

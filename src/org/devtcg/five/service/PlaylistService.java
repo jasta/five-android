@@ -35,9 +35,12 @@ import java.util.Map.Entry;
 
 import org.devtcg.five.Constants;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.SongItem;
+import org.devtcg.five.provider.util.Songs;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.provider.util.Sources;
 import org.devtcg.five.receiver.MediaButton;
+import org.devtcg.five.service.CacheManager.CacheAllocationException;
 import org.devtcg.five.util.AuthHelper;
 import org.devtcg.five.util.streaming.DownloadManager;
 import org.devtcg.five.util.streaming.StreamMediaPlayer;
@@ -501,34 +504,6 @@ public class PlaylistService extends Service implements
 	{
 		mHandler.cancelStopSelf();
 
-		Cursor c = getContentCursor(songId);
-
-		long contentId;
-		long sourceId;
-		String cachePath;
-		long size;
-
-		try {
-			if (c.moveToFirst() == false)
-				return false;
-
-			contentId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs._SYNC_ID));
-			assert contentId >= 0;
-
-			sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SOURCE_ID));
-			assert sourceId >= 0;
-
-			cachePath = c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.CACHED_PATH));
-
-			size = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SIZE));
-			assert size > 0;
-		} finally {
-			c.close();
-		}
-
-		Log.v(TAG, "Preparing to play songId=" + songId + ": " +
-		  "size=" + size + ", cachePath=" + cachePath);
-
 		mPrepared = false;
 		mPlayer.reset();
 //		mPlayer.setOnBufferingUpdateListener(this);
@@ -536,71 +511,33 @@ public class PlaylistService extends Service implements
 		mPlayer.setOnErrorListener(this);
 		mPlayer.setOnPreparedListener(this);
 
+		SongItem song = SongItem.getInstance(Songs.getSong(this, songId));
 		try {
-			SourceItem source = SourceItem.getInstance(this, Sources.makeUri(sourceId));
-			try {
-				mManager.updateCredentials(source);
-			} finally {
-				if (source != null)
-					source.close();
-			}
+			DownloadManager.Download download = acquireDownload(song);
 
-			if (cachePath != null)
-			{
-				long length = (new File(cachePath)).length();
-
-				if (length == size)
-				{
-					Log.i(TAG, "Cache hit, playing " + cachePath);
-					mPlayer.setDataSource(cachePath);
-				}
-				else
-				{
-					Log.i(TAG, "Partial cache hit, resuming from " +
-					  cachePath + " at " + length);
-
-					/* XXX: We have a small race condition possibility here
-					 * since we aren't synchronizing anything.  The download
-					 * might have just finished, in which case our lookup
-					 * would yield null, but we'll foolishly try a resumed
-					 * download for a very small section of the file. */
-					DownloadManager.Download dl =
-					  mManager.lookupDownload(songId);
-
-					/* Must be a partially complete, canceled download. */
-					if (dl == null)
-					{
-						mManager.stopAllDownloads();
-
-						String url = Sources.getContentURL(this, sourceId, contentId);
-						dl = mManager.startDownload(songId, url, cachePath, length);
-					}
-
-					mPlayer.setDataSource(new TailStream(cachePath, size));
-				}
-			}
+			if (download == null)
+				mPlayer.setDataSource(song.getCachePath());
 			else
 			{
-				assert mManager.lookupDownload(songId) == null;
-
-				cachePath = mCacheMgr.requestStorage(sourceId, contentId);
-
-				String url = Sources.getContentURL(this, sourceId, contentId);
-				assert url != null;
-
-				/* We only allow 1 download active at a time, and it's gonna
-				 * be the one that is currently streaming. */
-				mManager.stopAllDownloads();
-
-				DownloadManager.Download dl =
-				  mManager.startDownload(songId, url, cachePath);
-
-				mPlayer.setDataSource(new TailStream(cachePath, size));
+				/*
+				 * XXX: There is a bug here where if the server responds with a
+				 * different content length than was our initial guess (based on
+				 * the synced meta data), we'll end up waiting for the download
+				 * to complete forever.
+				 */
+				mPlayer.setDataSource(new TailStream(download.getDestination().getAbsolutePath(),
+						download.getExpectedContentLength()));
 			}
 		} catch (Exception e) {
-			Log.e(TAG, "Crap", e);
+			/*
+			 * This code looks suspicious to me. If this ever happens, I believe
+			 * we'll end up leaving the PlaylistService in a weird state where
+			 * it think its still playing but nothing is happening.
+			 */
+			Log.e(Constants.TAG, "Unable to start playback", e);
 			mPlayer.reset();
-			return false;
+		} finally {
+			song.close();
 		}
 
 		notifySong(songId);
@@ -608,107 +545,96 @@ public class PlaylistService extends Service implements
 		mBufferListeners.broadcastOnBufferingUpdate(songId, 0);
 		mPlayer.prepareAsync();
 
-		Log.i(TAG, "Should be preparing...");
-
 		return true;
 	}
 
-	/* XXX: Copy/paste job from playInternal.  Refactor SOON. */
-	private DownloadManager.Download preempt(long songId)
+	/**
+	 * Get or start a download for the request song id.
+	 *
+	 * @return The download instance (either recently started, or reacquired
+	 *         from an existing download) if the song is not in cache;
+	 *         otherwise, null.
+	 *
+	 * @throws IOException
+	 *             When the download destination path cannot be opened for
+	 *             writing.
+	 * @throws CacheAllocationException
+	 */
+	private DownloadManager.Download acquireDownload(SongItem song)
+			throws IOException, CacheAllocationException
 	{
-		Cursor c = getContentCursor(songId);
-
-		long contentId;
-		long sourceId;
-		String cachePath;
-		long size;
+		SourceItem source = SourceItem.getInstance(this, Sources.makeUri(song.getSourceId()));
 
 		try {
-			if (c.moveToFirst() == false)
-				return null;
+			long songId = song.getId();
+			String url = source.getSongUrl(song.getSyncId());
+			long size = song.getSize();
+			String cachePath = song.getCachePath();
 
-			contentId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs._SYNC_ID));
-			assert contentId >= 0;
+			Log.v(TAG, "Preparing to download [url=" + url + "; size=" + size +
+					"; cachePath=" + cachePath + "]");
 
-			sourceId = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SOURCE_ID));
-			assert sourceId >= 0;
+			long resumeFrom = 0;
 
-			cachePath = c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.CACHED_PATH));
-
-			size = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SIZE));
-			assert size > 0;
-		} finally {
-			c.close();
-		}
-
-		Log.v(TAG, "Preparing to preempt songId=" + songId + ": " +
-		  "size=" + size + ", cachePath=" + cachePath);
-
-		try {
 			if (cachePath != null)
 			{
-				long length = (new File(cachePath)).length();
+				resumeFrom = (new File(cachePath)).length();
 
-				if (length == size)
+				if (resumeFrom == size)
 				{
-					Log.i(TAG, "Cache hit, preemption not necessary.");
+					Log.i(TAG, "Cache hit, download of " + cachePath + " already complete!");
 					return null;
 				}
 				else
 				{
 					Log.i(TAG, "Partial cache hit, resuming from " +
-					  cachePath + " at " + length);
+							cachePath + " at " + resumeFrom);
 
-					/* XXX: We have a small race condition possibility here
-					 * since we aren't synchronizing anything.  The download
-					 * might have just finished, in which case our lookup
-					 * would yield null, but we'll foolishly try a resumed
-					 * download for a very small section of the file. */
-					DownloadManager.Download dl =
-					  mManager.lookupDownload(songId);
-
-					/* Must be a partially complete, canceled download. */
-					if (dl == null)
-					{
-						mManager.stopAllDownloads();
-
-						String url = Sources.getContentURL(this, sourceId, contentId);
-						dl = mManager.startDownload(songId, url, cachePath, length);
-					}
-
-					return dl;
+					/*
+					 * XXX: We have a small race condition possibility here
+					 * since we aren't synchronizing anything. The download
+					 * might have just finished, in which case our lookup would
+					 * yield null, but we'll foolishly try a resumed download
+					 * for a very small section of the file.
+					 */
+					DownloadManager.Download download = mManager.lookupDownload(songId);
+					if (download != null)
+						return download;
 				}
 			}
 			else
 			{
-				assert mManager.lookupDownload(songId) == null;
+				if (mManager.lookupDownload(songId) != null)
+					throw new IllegalStateException("Download started, but did not register with the cache.");
 
-				cachePath = mCacheMgr.requestStorage(sourceId, contentId);
-
-				String url = Sources.getContentURL(this, sourceId, contentId);
-				assert url != null;
-
-				Log.i(TAG, "Preemptively downloading to " + cachePath);
-
-				mManager.stopAllDownloads();
-
-				DownloadManager.Download dl =
-				  mManager.startDownload(songId, url, cachePath);
+				cachePath = mCacheMgr.requestStorage(song.getSourceId(), song.getSyncId());
 			}
-		} catch (Exception e) {
-			Log.e(TAG, "Preemption failed!", e);
-			mManager.stopDownload(songId);
-			return null;
-		}
 
-		return null;
+			/*
+			 * We only allow 1 download at a time, so invoking this method
+			 * implicitly asks for all other downloads to be canceled.
+			 */
+			mManager.stopAllDownloads();
+
+			mManager.updateCredentials(source);
+
+			try {
+				return mManager.startDownload(songId, url, cachePath, size, resumeFrom);
+			} catch (IOException e) {
+				mManager.stopDownload(songId);
+				throw e;
+			}
+		} finally {
+			if (source != null)
+				source.close();
+		}
 	}
 
 	/**
 	 * Check at key stages to make sure that the song to be played next
 	 * is preemptively downloading.
 	 */
-	private void preemptionCheck()
+	private void prefetchCheck()
 	  throws RemoteException
 	{
 		long currentId;
@@ -731,17 +657,28 @@ public class PlaylistService extends Service implements
 
 		if (mManager.lookupDownload(currentId) != null)
 		{
-			Log.i(TAG, "Preemption miss due to active download.");
+			Log.i(TAG, "Prefetch miss due to active download.");
 			return;
 		}
 
 		if (mManager.lookupDownload(nextId) != null)
 		{
-			Log.i(TAG, "Preemption already in progress.");
+			Log.i(TAG, "Prefetch already in progress.");
 			return;
 		}
 
-		preempt(nextId);
+		SongItem song = SongItem.getInstance(Songs.getSong(this, nextId));
+		try {
+			DownloadManager.Download download = acquireDownload(song);
+			if (download == null)
+				Log.i(TAG, "Prefetch not necessary, next track (nextId=" + nextId + ") already in cache");
+			else
+				Log.i(TAG, "Prefetch started on next track (nextId=" + nextId + ")");
+		} catch (Exception e) {
+			Log.e(TAG, "acquireDownload failed", e);
+		} finally {
+			song.close();
+		}
 	}
 
 	private class SongDownloadManager extends DownloadManager
@@ -809,7 +746,7 @@ public class PlaylistService extends Service implements
 						/* Should be on its way out, but until then
 						 * the manager thinks we're actively downloading. */
 						d.joinUninterruptibly();
-						preemptionCheck();
+						prefetchCheck();
 					} catch (RemoteException e) {}
 				}
 			});
@@ -860,21 +797,10 @@ public class PlaylistService extends Service implements
 		}
 
 		public Download startDownload(long songId, String url, String path,
-		  long resumeFrom)
+		  long expectedContentLength, long resumeFrom)
 		  throws IOException
 		{
-			Download d = super.startDownload(url, path, resumeFrom);
-
-			if (d != null)
-				mUrlToSongMap.put(url, songId);
-
-			return d;
-		}
-
-		public Download startDownload(long songId, String url, String path)
-		  throws IOException
-		{
-			Download d = super.startDownload(url, path);
+			Download d = super.startDownload(url, path, expectedContentLength, resumeFrom);
 
 			if (d != null)
 				mUrlToSongMap.put(url, songId);
@@ -1095,7 +1021,7 @@ public class PlaylistService extends Service implements
 					play();
 
 				synchronized(mBinderLock) {
-					preemptionCheck();
+					prefetchCheck();
 				}
 			}
 		}
@@ -1440,7 +1366,7 @@ public class PlaylistService extends Service implements
 				}
 
 				if (peekNext() == pos)
-					preemptionCheck();
+					prefetchCheck();
 			}
 
 			mChangeListeners.broadcastOnInsert(songId, pos);

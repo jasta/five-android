@@ -94,7 +94,7 @@ public class StreamMediaPlayerTest extends Activity
 			if ((d = mManager.lookupDownload(STREAM_URI)) == null)
 			{
 				try {
-					mManager.startDownload(STREAM_URI, CACHE_PATH);
+					mManager.startDownload(STREAM_URI, CACHE_PATH, 0, 0);
 				} catch (IOException e) {
 					Log.e(TAG, "Crap", e);
 				}
@@ -130,7 +130,7 @@ public class StreamMediaPlayerTest extends Activity
 			if (dl == null)
 			{
 				try {
-					dl = mManager.startDownload(STREAM_URI, CACHE_PATH);
+					dl = mManager.startDownload(STREAM_URI, CACHE_PATH, 0, 0);
 				} catch (IOException e) {
 					Log.e(TAG, "Crap", e);
 				}

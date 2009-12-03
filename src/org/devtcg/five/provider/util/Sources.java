@@ -36,30 +36,6 @@ public final class Sources
 			null, null, null, null);
 	}
 
-	/**
-	 * Convenience method to access the HTTP URL to download content from
-	 * this service.  Accesses the database to perform this operation.
-	 *
-	 * @param ctx
-	 *   Activity context (to use {@link android.context#getContentResolver()}).
-	 *
-	 * @param sourceId
-	 * @param contentId
-	 *
-	 * @return
-	 *   URL
-	 */
-	public static String getContentURL(Context context,
-	  long sourceId, long contentId)
-	{
-		Uri sourceUri = ContentUris.withAppendedId(Five.Sources.CONTENT_URI, sourceId);
-		SourceItem source = SourceItem.getInstance(context, sourceUri);
-		if (source == null)
-			throw new IllegalStateException("No source found for id=" + sourceId);
-
-		return source.getSongUrl(contentId);
-	}
-
 	public static void deleteSource(Context context, long sourceId)
 	{
 		/* TODO: Implement this by just gutting the tables and deleting /sdcard/five. */
