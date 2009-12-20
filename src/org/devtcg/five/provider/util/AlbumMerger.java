@@ -72,29 +72,39 @@ public final class AlbumMerger extends AbstractTableMerger
 			cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTIST_ID))));
 	}
 
-	private void mergeImageColumn(Context context, Cursor cursor, long actualId)
+	private void mergeImageColumns(Context context, Cursor cursor, long actualId)
 	{
-		String imageUri = cursor.getString(cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK));
-		if (imageUri != null)
+		ContentValues values = mTmpValues;
+		values.clear();
+
+		long tmpId = cursor.getLong(cursor.getColumnIndexOrThrow(Five.Music.Albums._ID));
+
+		String thumbUri = cursor.getString(cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK));
+		if (thumbUri != null)
 		{
 			try {
-				long tmpId = cursor.getLong(cursor.getColumnIndexOrThrow(Five.Music.Albums._ID));
 				File imageFile = FiveProvider.getAlbumArtwork(tmpId, true);
-				if (imageFile.renameTo(FiveProvider.getAlbumArtwork(actualId, false)) == false)
-					return;
+				if (imageFile.renameTo(FiveProvider.getAlbumArtwork(actualId, false)))
+					values.put(Five.Music.Albums.ARTWORK, Five.makeAlbumArtworkUri(actualId).toString());
 			} catch (FileNotFoundException e) {
-				return;
 			}
+		}
 
-			ContentValues values = mTmpValues;
-			values.clear();
-			values.put(Five.Music.Albums.ARTWORK,
-				Five.Music.Albums.CONTENT_URI.buildUpon()
-					.appendPath(String.valueOf(actualId))
-					.appendPath("artwork")
-					.build().toString());
+		String bigUri = cursor.getString(cursor.getColumnIndexOrThrow(Five.Music.Albums.ARTWORK_BIG));
+		if (bigUri != null)
+		{
+			try {
+				File imageFile = FiveProvider.getLargeAlbumArtwork(tmpId, true);
+				if (imageFile.renameTo(FiveProvider.getLargeAlbumArtwork(actualId, false)))
+					values.put(Five.Music.Albums.ARTWORK_BIG, Five.makeAlbumArtworkBigUri(actualId).toString());
+			} catch (FileNotFoundException e) {
+			}
+		}
+
+		if (values.size() > 0)
+		{
 			mProvider.updateInternal(ContentUris.withAppendedId(mTableUri, actualId),
-				values, null, null);
+					values, null, null);
 		}
 	}
 
@@ -104,7 +114,7 @@ public final class AlbumMerger extends AbstractTableMerger
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
 		Uri uri = mProvider.insertInternal(mTableUri, mTmpValues);
 		if (uri != null)
-			mergeImageColumn(context, diffsCursor, ContentUris.parseId(uri));
+			mergeImageColumns(context, diffsCursor, ContentUris.parseId(uri));
 	}
 
 	@Override
@@ -113,6 +123,6 @@ public final class AlbumMerger extends AbstractTableMerger
 		rowToContentValues(diffs, diffsCursor, mTmpValues);
 		mProvider.updateInternal(mTableUri, mTmpValues, Five.Music.Albums._ID + " = ?",
 			new String[] { String.valueOf(id) });
-		mergeImageColumn(context, diffsCursor, id);
+		mergeImageColumns(context, diffsCursor, id);
 	}
 }

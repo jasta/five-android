@@ -65,11 +65,7 @@ public final class ArtistMerger extends AbstractTableMerger
 
 			ContentValues values = mTmpValues;
 			values.clear();
-			values.put(Five.Music.Artists.PHOTO,
-				Five.Music.Artists.CONTENT_URI.buildUpon()
-					.appendPath(String.valueOf(actualId))
-					.appendPath("photo")
-					.build().toString());
+			values.put(Five.Music.Artists.PHOTO, Five.makeArtistPhotoUri(actualId).toString());
 			mProvider.updateInternal(ContentUris.withAppendedId(mTableUri, actualId),
 				values, null, null);
 		}

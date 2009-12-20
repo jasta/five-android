@@ -23,10 +23,38 @@ import android.provider.BaseColumns;
 
 /**
  * Structured representation of the Five Meta Data ContentProvider.
+ *
+ * @todo This class needs to be refactored significantly. It's gotten way too
+ *       muddled and confused...
  */
 public final class Five
 {
 	public static final String AUTHORITY = "org.devtcg.five";
+
+	public static Uri makeArtistPhotoUri(long id)
+	{
+		return Five.Music.Artists.CONTENT_URI.buildUpon()
+				.appendEncodedPath(String.valueOf(id))
+				.appendEncodedPath("photo")
+				.build();
+	}
+
+	public static Uri makeAlbumArtworkUri(long id)
+	{
+		return Five.Music.Albums.CONTENT_URI.buildUpon()
+				.appendPath(String.valueOf(id))
+				.appendPath("artwork")
+				.build();
+	}
+
+	public static Uri makeAlbumArtworkBigUri(long id)
+	{
+		return Five.Music.Albums.CONTENT_URI.buildUpon()
+				.appendEncodedPath(String.valueOf(id))
+				.appendEncodedPath("artwork")
+				.appendEncodedPath("big")
+				.build();
+	}
 
 	/**
 	 * Concrete synchronization source.  Under this implementation, a TCP

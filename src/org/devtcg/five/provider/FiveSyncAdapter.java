@@ -1,5 +1,6 @@
 package org.devtcg.five.provider;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -9,8 +10,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.meta.data.Protos;
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
@@ -207,61 +206,31 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 				modifiedSince, null, null);
 
 		try {
-			while (newRecords.moveToNext())
+			while (newRecords.moveToNext() && !context.hasError() && !context.hasCanceled())
 			{
 				long id = newRecords.getLong(0);
 				long syncId = newRecords.getLong(1);
 
-				String imageUrl = mSource.getImageThumbUrl(feedType, syncId);
-
 				try {
-					HttpResponse response = downloadFile(context, imageUrl);
-					if (response == null)
-						continue;
+					Uri localFeedItemUri = ContentUris.withAppendedId(localFeedUri, id);
 
-					if (context.hasCanceled() == true)
-						break;
-
-					Uri thumbUri = getLocalThumbUri(feedType, id);
-
-					/*
-					 * Access a temp file path (FiveProvider treats this as a
-					 * special case when isTemporary is true and uses a temporary
-					 * path to be moved manually during merging).
-					 */
-					ParcelFileDescriptor pfd = serverDiffs.openFile(thumbUri, "w");
-					if (pfd == null)
-						continue;
-
-					InputStream in = response.getEntity().getContent();
-					OutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
-
-					try {
-						IOUtilities.copyStream(in, out);
-
-						if (context.hasCanceled() == true)
-							break;
-
-						/*
-						 * Update the record to reflect the newly downloaded uri.
-						 * During table merging we'll need to move the file and
-						 * update the photo uri.
-						 */
-						ContentValues values = new ContentValues();
-
-						if (feedType.equals(FEED_ARTISTS))
-							values.put(Five.Music.Artists.PHOTO, thumbUri.toString());
-						else if (feedType.equals(FEED_ALBUMS))
-							values.put(Five.Music.Albums.ARTWORK, thumbUri.toString());
-
-						serverDiffs.update(ContentUris.withAppendedId(localFeedUri, id),
-							values, null, null);
-					} finally {
-						if (in != null)
-							IOUtilities.close(in);
-
-						if (out != null)
-							IOUtilities.close(out);
+					if (feedType.equals(FEED_ARTISTS))
+					{
+						downloadFileAndUpdateProvider(context, serverDiffs,
+								mSource.getImageThumbUrl(feedType, syncId),
+								Five.makeArtistPhotoUri(id), localFeedItemUri,
+								Five.Music.Artists.PHOTO);
+					}
+					else if (feedType.equals(FEED_ALBUMS))
+					{
+						downloadFileAndUpdateProvider(context, serverDiffs,
+								mSource.getImageThumbUrl(feedType, syncId),
+								Five.makeAlbumArtworkUri(id), localFeedItemUri,
+								Five.Music.Albums.ARTWORK);
+						downloadFileAndUpdateProvider(context, serverDiffs,
+								mSource.getImageUrl(feedType, syncId),
+								Five.makeAlbumArtworkBigUri(id), localFeedItemUri,
+								Five.Music.Albums.ARTWORK_BIG);
 					}
 				} catch (IOException e) {
 					context.networkError = true;
@@ -275,9 +244,19 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		}
 	}
 
-	private HttpResponse downloadFile(SyncContext context, String url) throws IOException
+	/**
+	 * Issue an HTTP GET request and store the result in a content provider.
+	 * Also triggers an update to <code>localFeedItemUri</code>, storing
+	 * <code>localUri</code> in <code>columnToUpdate</code>.
+	 */
+	private static void downloadFileAndUpdateProvider(SyncContext context,
+			AbstractSyncProvider serverDiffs, String httpUrl, Uri localUri, Uri localFeedItemUri,
+			String columnToUpdate) throws IOException
 	{
-		final HttpGet request = new HttpGet(url);
+		if (context.hasError() || context.hasCanceled())
+			return;
+
+		final HttpGet request = new HttpGet(httpUrl);
 
 		final Thread currentThread = Thread.currentThread();
 
@@ -292,12 +271,50 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		HttpResponse response = mClient.execute(request);
 
 		if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
-		{
 			response.getEntity().consumeContent();
-			return null;
-		}
+		else
+		{
+			if (context.hasCanceled() == true)
+				return;
 
-		return response;
+			/*
+			 * Access a temp file path (FiveProvider treats this as a
+			 * special case when isTemporary is true and uses a temporary
+			 * path to be moved manually during merging).
+			 */
+			ParcelFileDescriptor pfd;
+			try {
+				pfd = serverDiffs.openFile(localUri, "w");
+			} catch (FileNotFoundException e) {
+				response.getEntity().consumeContent();
+				throw e;
+			}
+
+			InputStream in = response.getEntity().getContent();
+			OutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
+
+			try {
+				IOUtilities.copyStream(in, out);
+
+				if (context.hasCanceled() == true)
+					return;
+
+				/*
+				 * Update the record to reflect the newly downloaded uri.
+				 * During table merging we'll need to move the file and
+				 * update the uri we store here.
+				 */
+				ContentValues values = new ContentValues();
+				values.put(columnToUpdate, localUri.toString());
+				serverDiffs.update(localFeedItemUri, values, null, null);
+			} finally {
+				if (in != null)
+					IOUtilities.close(in);
+
+				if (out != null)
+					IOUtilities.close(out);
+			}
+		}
 	}
 
 	private void adjustNewestSyncTime(SyncContext context, HttpResponse response)
@@ -326,26 +343,6 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			return Five.Music.Playlists.CONTENT_URI;
 		else if (feedType.equals(FEED_PLAYLIST_SONGS))
 			return Five.Music.PlaylistSongs.CONTENT_URI;
-
-		throw new IllegalArgumentException();
-	}
-
-	private static Uri getLocalThumbUri(String feedType, long id)
-	{
-		if (feedType.equals(FEED_ARTISTS))
-		{
-			return Five.Music.Artists.CONTENT_URI.buildUpon()
-				.appendPath(String.valueOf(id))
-				.appendPath("photo")
-				.build();
-		}
-		else if (feedType.equals(FEED_ALBUMS))
-		{
-			return Five.Music.Albums.CONTENT_URI.buildUpon()
-				.appendPath(String.valueOf(id))
-				.appendPath("artwork")
-				.build();
-		}
 
 		throw new IllegalArgumentException();
 	}
