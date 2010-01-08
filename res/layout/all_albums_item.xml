@@ -20,18 +20,18 @@
 	android:layout_width="fill_parent"
 	android:layout_height="wrap_content"
 	android:baselineAligned="false"
-	android:minHeight="66px"
+	android:minHeight="66dp"
 	>
 
 	<ImageView
 		android:id="@+id/album_cover"
-		android:layout_width="64px"
+		android:layout_width="64dp"
 		android:layout_height="fill_parent"
-		android:scaleType="center"
+		android:scaleType="centerCrop"
 		android:src="@drawable/albumart_mp_unknown"
-		android:layout_marginTop="1px"
-		android:layout_marginBottom="1px"
-		android:layout_marginRight="2dip"
+		android:layout_marginTop="1dp"
+		android:layout_marginBottom="1dp"
+		android:layout_marginRight="2dp"
 		/>
 
 	<LinearLayout

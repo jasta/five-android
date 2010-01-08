@@ -16,14 +16,16 @@
 
 package org.devtcg.five.widget;
 
+import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
-import android.graphics.PixelFormat;
-import android.graphics.Bitmap;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.SystemClock;
+import android.util.DisplayMetrics;
 
 public class CrossFadeDrawable extends Drawable {
     private static final int TRANSITION_STARTING = 0;
@@ -41,6 +43,7 @@ public class CrossFadeDrawable extends Drawable {
     private int mOriginalDuration;
     private int mAlpha;
 
+    private DisplayMetrics mDisplayMetrics;
     private Bitmap mStart;
     private Bitmap mEnd;
 
@@ -55,7 +58,8 @@ public class CrossFadeDrawable extends Drawable {
     private final Handler mHandler;
     private final Runnable mInvalidater;
 
-    public CrossFadeDrawable(Bitmap start, Bitmap end) {
+    public CrossFadeDrawable(Resources r, Bitmap start, Bitmap end) {
+        mDisplayMetrics = r.getDisplayMetrics();
         mStart = start;
         mEnd = end;
         
@@ -211,11 +215,11 @@ public class CrossFadeDrawable extends Drawable {
         final int width = right - left;
         final int height = bottom - top;
 
-        mStartX = (width - mStart.getWidth()) / 2.0f;
-        mStartY = height - mStart.getHeight();
+        mStartX = (width - mStart.getScaledWidth(mDisplayMetrics)) / 2.0f;
+        mStartY = height - mStart.getScaledHeight(mDisplayMetrics);
 
-        mEndX = (width - mEnd.getWidth()) / 2.0f;
-        mEndY = height - mEnd.getHeight();
+        mEndX = (width - mEnd.getScaledWidth(mDisplayMetrics)) / 2.0f;
+        mEndY = height - mEnd.getScaledHeight(mDisplayMetrics);
     }
 
     @Override

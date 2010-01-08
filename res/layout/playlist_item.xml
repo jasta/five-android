@@ -19,8 +19,8 @@
 	android:orientation="horizontal"
 	android:layout_width="fill_parent"
 	android:layout_height="wrap_content"
-	android:minHeight="66px"
-	android:padding="13dip"
+	android:minHeight="66dp"
+	android:padding="13dp"
 	>
 
 	<LinearLayout

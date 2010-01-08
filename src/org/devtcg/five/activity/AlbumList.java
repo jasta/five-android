@@ -248,7 +248,7 @@ public class AlbumList extends Activity
 			holder.albumArtwork = (ImageView)row.findViewById(R.id.album_cover);
 
 			CrossFadeDrawable transition =
-			  new CrossFadeDrawable(mCache.getFallback().getBitmap(), null);
+			  new CrossFadeDrawable(getResources(), mCache.getFallback().getBitmap(), null);
 			transition.setCrossFadeEnabled(true);
 			holder.transition = transition;
 

@@ -28,6 +28,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
@@ -116,8 +117,10 @@ public class FastScrollView extends FrameLayout
 
     private void useThumbDrawable(Drawable drawable) {
         mCurrentThumb = drawable;
-        mThumbW = 64; //mCurrentThumb.getIntrinsicWidth();
-        mThumbH = 52; //mCurrentThumb.getIntrinsicHeight();
+        mThumbW = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64,
+                getContext().getResources().getDisplayMetrics());
+        mThumbH = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 52,
+                getContext().getResources().getDisplayMetrics());
         mChangedBounds = true;
     }
 

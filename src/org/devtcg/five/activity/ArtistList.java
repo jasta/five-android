@@ -254,7 +254,7 @@ public class ArtistList extends Activity
 			holder.artistPhoto = (ImageView)row.findViewById(R.id.artist_photo);
 
 			CrossFadeDrawable transition =
-			  new CrossFadeDrawable(mCache.getFallback().getBitmap(), null);
+			  new CrossFadeDrawable(getResources(), mCache.getFallback().getBitmap(), null);
 			transition.setCrossFadeEnabled(true);
 			holder.transition = transition;
 

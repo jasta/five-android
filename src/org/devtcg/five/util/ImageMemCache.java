@@ -153,6 +153,9 @@ public class ImageMemCache
 	{
 		if (bmp != null)
 		{
+			/* XXX: We're making a fairly large assumption here.  Fix soon. */
+			bmp.setDensity(160);
+
 			FastBitmapDrawable d = new FastBitmapDrawable(bmp);
 			put(id, d);
 			return d;
