@@ -35,9 +35,9 @@ public class ImageMemCache
 {
 	private final HashMap<Long, SoftReference<FastBitmapDrawable>> mCache =
 	  new HashMap<Long, SoftReference<FastBitmapDrawable>>();
-	
+
 	private FastBitmapDrawable mFallback;
-	
+
 	/* Special drawable indicating that the fallback should be used.  This
 	 * is stored in the cache in place of the fallback itself so that
 	 * retroactive changes can be made to the fallback parameter. */
@@ -55,7 +55,7 @@ public class ImageMemCache
 	{
 		setFallback(fallback);
 	}
-	
+
 	/**
 	 * Completely wipe the cache.
 	 */
@@ -67,7 +67,7 @@ public class ImageMemCache
 	/**
 	 * The cached entries stored here represent Drawable primitives which
 	 * can be attached to views and associated with an Android context.
-	 * To avoid leaks, you must call cleanup to disassociate all 
+	 * To avoid leaks, you must call cleanup to disassociate all
 	 * bitmap drawables.  This normally would occur during an activity's
 	 * {@link Activity#onDestroy} method.
 	 */
@@ -103,7 +103,7 @@ public class ImageMemCache
 	{
 		setFallback(BitmapFactory.decodeResource(r, resId));
 	}
-	
+
 	public FastBitmapDrawable getFallback()
 	{
 		return mFallback;
@@ -123,13 +123,13 @@ public class ImageMemCache
 			FastBitmapDrawable d = ref.get();
 			if (d == NULL_DRAWABLE)
 				return mFallback;
-			
+
 			return d;
 		}
 
 		return null;
 	}
-	
+
 	/**
 	 * Add an entry directly to the cache, replacing any existing record.
 	 */
@@ -140,7 +140,7 @@ public class ImageMemCache
 
 		mCache.put(id, new SoftReference<FastBitmapDrawable>(d));
 	}
-	
+
 	/**
 	 * Remove an entry directly from the cache.
 	 */
@@ -164,7 +164,7 @@ public class ImageMemCache
 		{
 			put(id, NULL_DRAWABLE);
 			return mFallback;
-		}				
+		}
 	}
 
 	public FastBitmapDrawable fetchFromDisk(Long id, String path)
@@ -200,7 +200,7 @@ public class ImageMemCache
 	 * database column.  Normal Android convention applies where the
 	 * literal value of the column should be a Uri reference which can
 	 * be opened via a local content provider.
-	 * 
+	 *
 	 * This method is a performance win over manually calling
 	 * {@link fetchFromUri} as the cursor column won't be copied if
 	 * a cache entry is found.
