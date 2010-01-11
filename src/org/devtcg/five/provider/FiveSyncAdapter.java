@@ -11,6 +11,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
+import org.devtcg.five.R;
 import org.devtcg.five.meta.data.Protos;
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 import org.devtcg.five.provider.util.SourceItem;
@@ -24,6 +25,7 @@ import org.devtcg.util.IOUtilities;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -205,6 +207,14 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			tablePrefix + AbstractTableMerger.SyncableColumns._SYNC_TIME + " > " +
 				modifiedSince, null, null);
 
+		Resources res = getContext().getResources();
+
+		int thumbWidth = res.getDimensionPixelSize(R.dimen.image_thumb_width);
+		int thumbHeight = res.getDimensionPixelSize(R.dimen.image_thumb_height);
+
+		int fullWidth = res.getDimensionPixelSize(R.dimen.large_artwork_width);
+		int fullHeight = res.getDimensionPixelSize(R.dimen.large_artwork_height);
+
 		try {
 			while (newRecords.moveToNext() && !context.hasError() && !context.hasCanceled())
 			{
@@ -217,18 +227,18 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 					if (feedType.equals(FEED_ARTISTS))
 					{
 						downloadFileAndUpdateProvider(context, serverDiffs,
-								mSource.getImageThumbUrl(feedType, syncId),
+								mSource.getImageUrl(feedType, syncId, thumbWidth, thumbHeight),
 								Five.makeArtistPhotoUri(id), localFeedItemUri,
 								Five.Music.Artists.PHOTO);
 					}
 					else if (feedType.equals(FEED_ALBUMS))
 					{
 						downloadFileAndUpdateProvider(context, serverDiffs,
-								mSource.getImageThumbUrl(feedType, syncId),
+								mSource.getImageUrl(feedType, syncId, thumbWidth, thumbHeight),
 								Five.makeAlbumArtworkUri(id), localFeedItemUri,
 								Five.Music.Albums.ARTWORK);
 						downloadFileAndUpdateProvider(context, serverDiffs,
-								mSource.getImageUrl(feedType, syncId),
+								mSource.getImageUrl(feedType, syncId, fullWidth, fullHeight),
 								Five.makeAlbumArtworkBigUri(id), localFeedItemUri,
 								Five.Music.Albums.ARTWORK_BIG);
 					}

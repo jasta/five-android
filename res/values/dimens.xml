@@ -16,4 +16,7 @@
 <resources>
 	<dimen name="image_thumb_width">64dp</dimen>
 	<dimen name="image_thumb_height">64dp</dimen>
+
+	<dimen name="large_artwork_width">320dp</dimen>
+	<dimen name="large_artwork_height">320dp</dimen>
 </resources>

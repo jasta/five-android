@@ -96,14 +96,10 @@ public class SourceItem extends AbstractDAOItem
 		return "http://" + getHost() + ":" + getPort() + "/songs/" + syncId;
 	}
 
-	public String getImageUrl(String feedType, long syncId)
+	public String getImageUrl(String feedType, long syncId, int width, int height)
 	{
-		return "http://" + getHost() + ":" + getPort() + "/image/" + feedType + "/" + syncId;
-	}
-
-	public String getImageThumbUrl(String feedType, long syncId)
-	{
-		return "http://" + getHost() + ":" + getPort() + "/imageThumb/" + feedType + "/" + syncId;
+		return "http://" + getHost() + ":" + getPort() + "/image/" + feedType + "/" +
+				width + "x" + height + "/" + syncId;
 	}
 
 	public String getServerInfoUrl()
