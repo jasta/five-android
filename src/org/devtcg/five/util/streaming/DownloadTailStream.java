@@ -34,7 +34,11 @@ public class DownloadTailStream extends TailStream
 
 	public DownloadTailStream(DownloadManager.Download dl)
 	{
-		super(dl.getDestination().getAbsolutePath());
+		/*
+		 * XXX: Hardcoded audio/mpeg as mime type here. This is only used by
+		 * StreamMediaPlayerTest, which will be removed shortly.
+		 */
+		super(dl.getDestination().getAbsolutePath(), "audio/mpeg");
 		mDownload = dl;
 	}
 

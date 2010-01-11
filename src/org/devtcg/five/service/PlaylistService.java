@@ -526,7 +526,7 @@ public class PlaylistService extends Service implements
 				 * to complete forever.
 				 */
 				mPlayer.setDataSource(new TailStream(download.getDestination().getAbsolutePath(),
-						download.getExpectedContentLength()));
+						song.getMimeType(), download.getExpectedContentLength()));
 			}
 		} catch (Exception e) {
 			/*

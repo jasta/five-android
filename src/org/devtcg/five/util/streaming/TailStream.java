@@ -33,29 +33,32 @@ public class TailStream extends RandomAccessStream
 {
 	public static final String TAG = "TailStream";
 
-	protected String mPath;
+	protected final String mPath;
+	protected final String mMimeType;
 	protected long mLength = -1;
 	private FileChannel mChannel;
 
 	private long mRemaining = 0;
-	
-	protected TailStream(String path)
+
+	protected TailStream(String path, String mimeType)
 	{
 		mPath = path;
+		mMimeType = mimeType;
 	}
 
-	public TailStream(String path, long length)
+	public TailStream(String path, String mimeType, long length)
 	{
+		this(path, mimeType);
+
 		if (length <= 0)
 			throw new IllegalArgumentException("Length must be positive");
 
-		mPath = path;
 		setLength(length);
 	}
 
 	public RandomAccessStream newInstance()
 	{
-		return new TailStream(mPath, mLength);
+		return new TailStream(mPath, mMimeType, mLength);
 	}
 
 	protected void setLength(long length)
@@ -79,8 +82,7 @@ public class TailStream extends RandomAccessStream
 	@Override
 	public String getContentType()
 	{
-		/* TODO: Use the value the server gave us when we synced this entry. */
-		return "audio/mpeg";
+		return mMimeType;
 	}
 
 	@Override

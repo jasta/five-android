@@ -162,6 +162,10 @@ OUTER:
 			return "mp3";
 		else if (mime.equals("application/ogg") == true)
 			return "ogg";
+		else if (mime.equals("audio/mp4a-latm") == true)
+			return "m4a";
+		else if (mime.equals("audio/mp4") == true)
+			return "mp4";
 
 		throw new IllegalArgumentException("Unknown mime type " + mime);
 	}

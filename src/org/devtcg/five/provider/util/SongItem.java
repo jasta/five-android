@@ -14,6 +14,7 @@ public class SongItem extends AbstractDAOItem
 	private int mColumnCachePath;
 	private int mColumnSize;
 	private int mColumnSourceId;
+	private int mColumnMimeType;
 
 	public static SongItem getInstance(Context context, Uri uri)
 	{
@@ -35,6 +36,7 @@ public class SongItem extends AbstractDAOItem
 		mColumnCachePath = cursor.getColumnIndex(Five.Music.Songs.CACHED_PATH);
 		mColumnSize = cursor.getColumnIndex(Five.Music.Songs.SIZE);
 		mColumnSourceId = cursor.getColumnIndex(Five.Music.Songs.SOURCE_ID);
+		mColumnMimeType = cursor.getColumnIndex(Five.Music.Songs.MIME_TYPE);
 	}
 
 	public Uri getUri()
@@ -65,6 +67,11 @@ public class SongItem extends AbstractDAOItem
 	public long getSourceId()
 	{
 		return mCursor.getLong(mColumnSourceId);
+	}
+
+	public String getMimeType()
+	{
+		return mCursor.getString(mColumnMimeType);
 	}
 
 	private static final AbstractDAOItem.Creator<SongItem> CREATOR =
