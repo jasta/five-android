@@ -17,4 +17,5 @@
 
 <resources>
 	<drawable name="white">#ffffffff</drawable>
+	<drawable name="controls_transparency">#bb666666</drawable>
 </resources>

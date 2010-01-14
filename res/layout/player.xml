@@ -60,104 +60,11 @@
 
 	</LinearLayout>
 
-	<org.devtcg.five.widget.BetterReflectionLayout
-		android:id="@+id/album_cover"
+	<org.devtcg.five.widget.PlayerControls
+		android:id="@+id/player_controls"
 		android:layout_width="fill_parent"
 		android:layout_height="0px"
 		android:layout_weight="1"
-		>
-
-		<LinearLayout
-			android:id="@+id/progress_controls"
-			android:orientation="horizontal"
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
-			android:gravity="center_vertical"
-			android:paddingTop="5dip"
-			android:paddingBottom="5dip"
-			>
-
-			<TableLayout
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:stretchColumns="1"
-				>
-
-				<TableRow>
-
-					<TextView
-						/>
-
-					<TextView
-						android:id="@+id/playlist_position"
-						android:layout_gravity="center_horizontal"
-						style="@style/PlaybackText"
-						/>
-
-				</TableRow>
-
-				<TableRow>
-
-					<TextView
-						android:id="@+id/playback_position"
-						android:paddingLeft="10dip"
-						android:paddingRight="5dip"
-						style="@style/PlaybackText"
-						android:layout_gravity="center_vertical"
-						/>
-
-					<org.devtcg.five.widget.PlaybackBar
-						android:id="@+id/playback_info"
-						android:layout_gravity="center_vertical"
-						/>
-
-					<TextView
-						android:id="@+id/playback_duration"
-						android:paddingLeft="5dip"
-						android:paddingRight="10dip"
-						style="@style/PlaybackText"
-						android:layout_gravity="center_vertical"
-						/>
-
-				</TableRow>
-
-			</TableLayout>
-
-		</LinearLayout>
-
-		<LinearLayout
-			android:orientation="horizontal"
-			android:layout_width="fill_parent"
-			android:layout_height="0px"
-			>
-
-			<LinearLayout
-				android:orientation="horizontal"
-				android:layout_width="fill_parent"
-				android:layout_height="wrap_content"
-				android:layout_gravity="center_vertical"
-				android:gravity="center_horizontal"
-				>
-
-				<ImageButton
-					android:id="@+id/control_prev"
-					style="@android:style/MediaButton.Previous"
-					/>
-
-				<ImageButton
-					android:id="@+id/control_pause"
-					style="@android:style/MediaButton.Pause"
-					/>
-
-				<ImageButton
-					android:id="@+id/control_next"
-					style="@android:style/MediaButton.Next"
-					/>
-
-			</LinearLayout>
-
-		</LinearLayout>
-
-	</org.devtcg.five.widget.BetterReflectionLayout>
+		/>
 
 </LinearLayout>

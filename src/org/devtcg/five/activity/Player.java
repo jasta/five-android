@@ -23,8 +23,7 @@ import org.devtcg.five.service.IPlaylistDownloadListener;
 import org.devtcg.five.service.IPlaylistMoveListener;
 import org.devtcg.five.util.PlaylistServiceActivity;
 import org.devtcg.five.util.Song;
-import org.devtcg.five.widget.BetterReflectionLayout;
-import org.devtcg.five.widget.PlaybackBar;
+import org.devtcg.five.widget.PlayerControls;
 
 import android.content.Context;
 import android.content.Intent;
@@ -35,15 +34,10 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
 import android.view.View.OnClickListener;
-import android.view.View.OnTouchListener;
-import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -58,36 +52,15 @@ public class Player extends PlaylistServiceActivity
 	private TextView mAlbum;
 	private TextView mSong;
 
-	private BetterReflectionLayout mAlbumCover;
-	private View mProgressControls;
-	private TextView mPlaybackPos;
-	private TextView mPlaybackDur;
-	private TextView mPlaylistPos;
-	private PlaybackBar mPlaybackInfo;
-	private ImageButton mControlPrev;
-	private ImageButton mControlPause;
-	private ImageButton mControlNext;
-
-	private GestureDetector mGestureDetector;
-
-	/* How many milliseconds to display the progress controls?  This
-	 * timer begins after a user-initiated gesture or after the playback
-	 * buffer becomes full. */
-	private static final int PROGRESS_TIMEOUT = 5500;
+	private PlayerControls mControlsView;
 
 	private boolean mPaused = false;
-
-	private int mBufferPercent;
 
 	private Song mSongPlaying;
 
 	/* Flag used to determine if we have exercised an optimization potential
 	 * given by the supplied Intent's extras. */
 	private boolean mHintedOpt = false;
-
-	/* Minimum distance a fling must move along the X axis in order
-	 * to be considered a gesture to jump to a new playlist position. */
-	private static final int MINIMUM_GESTURE_DISTANCE = 50;
 
 	private static final int MENU_SET_RANDOM = Menu.FIRST;
 	private static final int MENU_MORE_BY_ARTIST = Menu.FIRST + 1;
@@ -123,7 +96,7 @@ public class Player extends PlaylistServiceActivity
 			mHintedOpt = true;
 			showUI(true);
 			setNowPlaying(extras);
-			showProgress();
+			mControlsView.showProgressControls();
 		}
 	}
 
@@ -136,29 +109,9 @@ public class Player extends PlaylistServiceActivity
 		mAlbum = (TextView)findViewById(R.id.album_name);
 		mSong = (TextView)findViewById(R.id.song_name);
 
-		mAlbumCover = (BetterReflectionLayout)findViewById(R.id.album_cover);
-		mAlbumCover.setOnClickListener(mAlbumClick);
-		mAlbumCover.setOnTouchListener(mAlbumTouch);
-
-		mProgressControls = mAlbumCover.findViewById(R.id.progress_controls);
-
-		mPlaybackPos = (TextView)mAlbumCover.findViewById(R.id.playback_position);
-		mPlaybackDur = (TextView)mAlbumCover.findViewById(R.id.playback_duration);
-		mPlaylistPos = (TextView)mAlbumCover.findViewById(R.id.playlist_position);
-
-		mPlaybackInfo = (PlaybackBar)mAlbumCover.findViewById(R.id.playback_info);
-		mPlaybackInfo.setKeyProgressIncrement(10);
-		mPlaybackInfo.setOnSeekBarChangeListener(mSeeked);
-
-		mControlPrev = (ImageButton)mAlbumCover.findViewById(R.id.control_prev);
-		mControlPause = (ImageButton)mAlbumCover.findViewById(R.id.control_pause);
-		mControlNext = (ImageButton)mAlbumCover.findViewById(R.id.control_next);
-
-		mControlPrev.setOnClickListener(mControlClick);
-		mControlPause.setOnClickListener(mControlClick);
-		mControlNext.setOnClickListener(mControlClick);
-
-		mGestureDetector = new GestureDetector(mGestureListener);
+		mControlsView = (PlayerControls)findViewById(R.id.player_controls);
+		mControlsView.setOnControlClickListener(mControlClick);
+		mControlsView.getSeekBar().setOnSeekBarChangeListener(mSeeked);
 	}
 
 	@Override
@@ -202,94 +155,6 @@ public class Player extends PlaylistServiceActivity
 			mService.unregisterOnDownloadListener(mServiceDownloadListener);
 		} catch (RemoteException e) {}
 	}
-
-	private void hideProgress()
-	{
-		if (progressIsShown() == true)
-		{
-			mPlaybackInfo.clearAnimation();
-			mProgressControls.setVisibility(View.GONE);
-			mAlbumCover.requestLayout();
-			mAlbumCover.invalidate();
-		}
-	}
-
-	private void showProgress()
-	{
-		if (mBufferPercent < 100)
-			showProgress(0);
-		else
-			showProgress(PROGRESS_TIMEOUT);
-	}
-
-	private void showProgress(int timeout)
-	{
-		if (progressIsShown() == false)
-		{
-			mPlaybackInfo.clearAnimation();
-			mProgressControls.setVisibility(View.VISIBLE);
-			mAlbumCover.requestLayout();
-			mAlbumCover.invalidate();
-		}
-
-		if (timeout > 0)
-			mHandler.startProgressTimeout(timeout);
-		else
-			mHandler.stopProgressTimeout();
-	}
-
-	private boolean progressIsShown()
-	{
-		return mProgressControls.getVisibility() == View.VISIBLE;
-	}
-
-	private final OnClickListener mAlbumClick = new OnClickListener()
-	{
-		public void onClick(View v)
-		{
-			if (progressIsShown() == false)
-				showProgress();
-			else
-				hideProgress();
-		}
-	};
-
-	GestureDetector.SimpleOnGestureListener mGestureListener =
-	  new GestureDetector.SimpleOnGestureListener()
-	{
-		public boolean onFling(MotionEvent e1, MotionEvent e2,
-		  float velocityX, float velocityY)
-		{
-			int dx = (int)(e2.getX() - e1.getX());
-
-			if (Math.abs(dx) > MINIMUM_GESTURE_DISTANCE &&
-			  Math.abs(velocityX) > Math.abs(velocityY))
-			{
-				/* Some may consider this logic backward, but I hope to
-				 * introduce an animation soon which makes it seem
-				 * clearer that you're "dragging" in the next song, not
-				 * flicking a directional gesture.  That is, flinging
-				 * to the left actually moves to the next song and
-				 * vice versa. */
-				if (velocityX > 0)
-					doMove(-1);
-				else
-					doMove(1);
-
-				return true;
-			}
-
-			return false;
-		}
-	};
-
-	private final OnTouchListener mAlbumTouch = new OnTouchListener()
-	{
-		public boolean onTouch(View v, MotionEvent event)
-		{
-			return mGestureDetector.onTouchEvent(event);
-		}
-	};
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
@@ -370,25 +235,8 @@ public class Player extends PlaylistServiceActivity
 		startActivity(chosen);
 	}
 
-	private static String formatTime(int sec)
-	{
-		int minutes = sec / 60;
-		int seconds = sec % 60;
-
-		StringBuilder b = new StringBuilder();
-		b.append(minutes).append(':');
-
-		if (seconds < 10)
-			b.append('0');
-
-		b.append(seconds);
-
-		return b.toString();
-	}
-
 	private class ProgressHandler extends Handler
 	{
-		private static final int MSG_HIDE_PROGRESS = 0;
 		private static final int MSG_DOWNLOAD_PROGRESS = 1;
 		private static final int MSG_PLAYBACK_PROGRESS = 2;
 
@@ -396,12 +244,9 @@ public class Player extends PlaylistServiceActivity
 		{
 			switch (msg.what)
 			{
-			case MSG_HIDE_PROGRESS:
-				hideProgress();
-				break;
 			case MSG_DOWNLOAD_PROGRESS:
 				if (mSongPlaying != null && mSongPlaying.id == (Long)msg.obj)
-					mPlaybackInfo.setSecondaryProgress(msg.arg1);
+					mControlsView.getSeekBar().setSecondaryProgress(msg.arg1);
 				break;
 			case MSG_PLAYBACK_PROGRESS:
 				try {
@@ -409,13 +254,10 @@ public class Player extends PlaylistServiceActivity
 					{
 						long pos = mService.tell();
 						long dur = mService.getSongDuration();
+						int progress = (int)(((float)pos / (float)dur) * 100f);
 
-						mPlaybackPos.setText(formatTime((int)(pos / 1000)));
-						mPlaybackDur.setText("-" +
-						  formatTime((int)((dur - pos) / 1000)));
-
-						mPlaybackInfo.setProgress((int)
-						  (((float)pos / (float)dur) * 100f));
+						mControlsView.setTrackPosition((int)(pos / 1000), (int)(dur / 1000));
+						mControlsView.getSeekBar().setProgress(progress);
 					}
 				} catch (RemoteException e) {}
 				sendMessageDelayed(obtainMessage(MSG_PLAYBACK_PROGRESS), 1000);
@@ -423,17 +265,6 @@ public class Player extends PlaylistServiceActivity
 			default:
 				super.handleMessage(msg);
 			}
-		}
-
-		public void startProgressTimeout(int timeout)
-		{
-			removeMessages(MSG_HIDE_PROGRESS);
-			sendMessageDelayed(obtainMessage(MSG_HIDE_PROGRESS), timeout);
-		}
-
-		public void stopProgressTimeout()
-		{
-			removeMessages(MSG_HIDE_PROGRESS);
 		}
 
 		public void startPlaybackMonitoring(boolean updateNow)
@@ -460,7 +291,7 @@ public class Player extends PlaylistServiceActivity
 	}
 
 	private final SeekBar.OnSeekBarChangeListener mSeeked =
-	  new SeekBar.OnSeekBarChangeListener()
+			new SeekBar.OnSeekBarChangeListener()
 	{
 		public void onProgressChanged(SeekBar seekBar, int progress,
 		  boolean fromTouch)
@@ -558,14 +389,8 @@ public class Player extends PlaylistServiceActivity
 		mSong.setText("End of Playlist");
 		mArtist.setText("");
 		mAlbum.setText("");
-		mAlbumCover.setImageResource(R.drawable.not_playing_cover);
 
-		mPlaybackPos.setText("0:00");
-		mPlaybackDur.setText("-:--");
-		mPlaylistPos.setText("");
-		mPlaybackInfo.setEnabled(false);
-		mPlaybackInfo.setProgress(0);
-		mPlaybackInfo.setSecondaryProgress(0);
+		mControlsView.setNotPlaying();
 
 		/* Not really, we just want the mechanics to restart playback. */
 		setPausedState(true);
@@ -585,11 +410,11 @@ public class Player extends PlaylistServiceActivity
 			  mSongPlaying.albumCoverBig : null);
 
 			if (song.albumCoverBig == null)
-				mAlbumCover.setImageResource(R.drawable.lastfm_cover);
+				mControlsView.setAlbumCover(R.drawable.lastfm_cover);
 			else
 			{
 				if (coverNow == null || coverNow.equals(song.albumCoverBig) == false)
-					mAlbumCover.setImageURI(song.albumCoverBig);
+					mControlsView.setAlbumCover(song.albumCoverBig);
 			}
 		}
 
@@ -599,13 +424,8 @@ public class Player extends PlaylistServiceActivity
 		mArtist.setText(song.artist);
 		mAlbum.setText(song.album);
 
-		mPlaybackPos.setText("0:00");
-		mPlaybackDur.setText("-" + formatTime((int)song.length));
-		mPlaybackInfo.setEnabled(true);
-		mPlaybackInfo.setProgress(0);
-		mPlaybackInfo.setSecondaryProgress(0);
-
-		mPlaylistPos.setText((pos + 1) + " of " + len);
+		mControlsView.setPlaylistPosition(pos + 1, len);
+		mControlsView.setTrackPosition(0, (int)song.length);
 
 		mHandler.startPlaybackMonitoring(true);
 	}
@@ -650,7 +470,7 @@ public class Player extends PlaylistServiceActivity
 		  android.R.drawable.ic_media_play :
 		  android.R.drawable.ic_media_pause;
 
-		mControlPause.setImageResource(resid);
+		mControlsView.getPauseButton().setImageResource(resid);
 		mPaused = paused;
 	}
 
@@ -658,22 +478,26 @@ public class Player extends PlaylistServiceActivity
 	  new IPlaylistBufferListener.Stub()
 	{
 		public void onBufferingUpdate(long songId, final int bufferPercent)
-		  throws RemoteException
+				throws RemoteException
 		{
 			mHandler.post(new Runnable() {
 				public void run() {
-					mBufferPercent = bufferPercent;
+					mControlsView.setBufferPercent(bufferPercent);
 
 					/* If the buffer is empty, show the progress bar until the
 					 * download begins again or the player aborts.  Otherwise,
 					 * start the timeout to automatically hide the progress
 					 * controls */
 					if (bufferPercent == 0)
-						showProgress(0);
+						mControlsView.showProgressControls(0);
 					else if (bufferPercent == 100)
 					{
-						if (progressIsShown() == true)
-							showProgress();
+						/*
+						 * This reads funny, I get that. We're really trying to
+						 * make sure the auto-hide timer is set up.
+						 */
+						if (mControlsView.progressControlsAreShown())
+							mControlsView.showProgressControls();
 					}
 				}
 			});
@@ -787,7 +611,7 @@ public class Player extends PlaylistServiceActivity
 			mHandler.post(new Runnable() {
 				public void run() {
 					if (mSongPlaying != null && mSongPlaying.id == songId)
-						mPlaybackInfo.fadeOutDownloadProgress();
+						mControlsView.getSeekBar().setSecondaryProgress(0);
 				}
 			});
 		}
