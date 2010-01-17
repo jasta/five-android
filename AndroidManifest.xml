@@ -22,6 +22,7 @@
 
 	<application
 		android:debuggable="true"
+		android:taskAffinity="org.devtcg.five.task.music"
 		android:icon="@drawable/music_icon"
 		android:label="@string/app_name">
 
@@ -38,16 +39,22 @@
 		<activity
 			android:name=".activity.Settings"
 			android:label="@string/settings_title"
+			android:launchMode="singleTop"
+			android:taskAffinity="org.devtcg.five.task.sync"
 			/>
 
 		<activity
 			android:name=".activity.SourceAdd"
 			android:label="@string/source_add_title"
+			android:launchMode="singleTop"
+			android:taskAffinity="org.devtcg.five.task.sync"
 			/>
 
 		<activity
 			android:name=".activity.SourceCheckSettings"
 			android:label="@string/source_check_settings_title"
+			android:launchMode="singleTop"
+			android:taskAffinity="org.devtcg.five.task.sync"
 			/>
 
 		<activity
