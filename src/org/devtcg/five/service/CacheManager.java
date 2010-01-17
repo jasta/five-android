@@ -17,11 +17,10 @@
 package org.devtcg.five.service;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.util.FileUtils;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -269,6 +268,17 @@ OUTER:
 	public void releaseStorage(long sourceId, long contentId)
 	{
 		throw new RuntimeException("Not implemented");
+	}
+
+	/**
+	 * Delete all meta data. This is a special case during first-time set up to
+	 * ensure that any previous installations data is removed before proceeding.
+	 */
+	public void wipeAll() throws IOException
+	{
+		File fiveStorage = new File(Environment.getExternalStorageDirectory(), "five");
+		if (fiveStorage.exists())
+			FileUtils.deleteDirectory(fiveStorage);
 	}
 
 	public static class CacheAllocationException extends Exception

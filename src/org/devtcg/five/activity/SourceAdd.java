@@ -1,5 +1,6 @@
 package org.devtcg.five.activity;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.text.ParseException;
 import java.util.regex.Pattern;
@@ -8,6 +9,7 @@ import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.SourceItem;
+import org.devtcg.five.service.CacheManager;
 import org.devtcg.five.service.MetaService;
 import org.devtcg.five.util.StringUtils;
 
@@ -17,6 +19,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -94,7 +97,22 @@ public class SourceAdd extends Activity
 					 * sync and return to the settings screen to observe.
 					 */
 					if (!Intent.ACTION_EDIT.equals(getIntent().getAction()))
+					{
+						/*
+						 * We think this is the first time Five has been
+						 * initialized and is syncing, but maybe a previous
+						 * instance's data is still around? Remove it just to be
+						 * sure.
+						 */
+						try {
+							CacheManager.getInstance(this).wipeAll();
+						} catch (IOException e) {
+							Log.e(Constants.TAG, "Failed to clear /sdcard/five, syncing may not work properly", e);
+						}
+
+						/* Now begin the first time sync. */
 						MetaService.startSync(this);
+					}
 
 					finish();
 				}
