@@ -11,6 +11,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
+import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.meta.data.Protos;
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
@@ -186,6 +187,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 				context.trigger = null;
 			}
 		} catch (IOException e) {
+			Log.e(Constants.TAG, "Sync error downloading feed data", e);
 			context.networkError = true;
 			context.errorMessage = e.getMessage();
 		}
@@ -243,6 +245,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 								Five.Music.Albums.ARTWORK_BIG);
 					}
 				} catch (IOException e) {
+					Log.e(Constants.TAG, "Sync error downloading image data", e);
 					context.networkError = true;
 					context.errorMessage = e.getMessage();
 				} finally {
