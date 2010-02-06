@@ -1,3 +1,17 @@
+/*
+ * Copyright (C) 2010 Josh Guilfoyle <jasta@devtcg.org>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2, or (at your option) any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ */
+
 package org.devtcg.five.activity;
 
 import java.io.IOException;
@@ -22,10 +36,10 @@ import android.widget.Toast;
 public class StreamMediaPlayerTest extends Activity
 {
 	public static final String TAG = "StreamMediaPlayerTest";
-	
+
 	private static final String STREAM_URI = "http://www.theyellowstereo.com/Daily%20Graboid/Kings%20of%20Leon%20-%20Sex%20on%20Fire.mp3";
 	private static final String CACHE_PATH = "/sdcard/Kings_of_Leon-Sex_on_Fire.mp3";
-	
+
 	private ProgressHandler mHandler = new ProgressHandler();
 
 	private final StreamMediaPlayer mPlayer = new StreamMediaPlayer();
@@ -34,7 +48,7 @@ public class StreamMediaPlayerTest extends Activity
 
 	private SeekBar mPlayInfo;
 	private Button mDownload;
-	private Button mPlay; 
+	private Button mPlay;
 
 	@Override
 	public void onCreate(Bundle icicle)
@@ -45,7 +59,7 @@ public class StreamMediaPlayerTest extends Activity
 		mPlayInfo = (SeekBar)findViewById(R.id.playback_info);
 		mPlayInfo.setOnSeekBarChangeListener(mSeeked);
 		mPlayInfo.setThumb(null);
-		
+
 		mDownload = (Button)findViewById(R.id.download);
 		mDownload.setOnClickListener(mDownloadClick);
 
@@ -113,7 +127,7 @@ public class StreamMediaPlayerTest extends Activity
 		public void onClick(View v)
 		{
 			StreamMediaPlayer player = mPlayer;
-			
+
 			/* I don't understand why this is necessary.  I am cleanly invoking
 			 * reset() each time the MediaPlayer is to be returned to
 			 * its initial state however it doesn't seem to matter for the case
@@ -243,7 +257,7 @@ public class StreamMediaPlayerTest extends Activity
 			setPlaying(false);
 		}
 	};
-	
+
 	private final DownloadManager mManager = new DownloadManager(this)
 	{
 		@Override

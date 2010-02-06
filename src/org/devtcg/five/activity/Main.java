@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -24,7 +22,6 @@ import org.devtcg.five.util.PlaylistServiceActivity.TrackChangeListener;
 
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;

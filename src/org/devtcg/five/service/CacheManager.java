@@ -1,6 +1,4 @@
 /*
- * $Id: CacheService.java 1045 2008-12-30 04:17:41Z jasta00 $
- *
  * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  *
  * This program is free software; you can redistribute it and/or modify it

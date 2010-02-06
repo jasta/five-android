@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -16,16 +14,11 @@
 
 package org.devtcg.five.activity;
 
-import java.lang.ref.SoftReference;
-import java.util.HashMap;
-
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
-import org.devtcg.five.util.BetterBitmapFactory;
 import org.devtcg.five.util.ImageMemCache;
 import org.devtcg.five.widget.AlphabetIndexer;
 import org.devtcg.five.widget.CrossFadeDrawable;
-import org.devtcg.five.widget.EfficientCursorAdapter;
 import org.devtcg.five.widget.FastBitmapDrawable;
 import org.devtcg.five.widget.FastScrollView;
 import org.devtcg.five.widget.IdleListDetector;
@@ -36,11 +29,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.CharArrayBuffer;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -54,15 +43,13 @@ import android.widget.FilterQueryProvider;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.SimpleCursorAdapter.ViewBinder;
 
 public class ArtistList extends Activity
 {
 	private static final String TAG = "ArtistList";
 
-	private static final String PROJECTION[] = 
+	private static final String PROJECTION[] =
 	  { Five.Music.Artists._ID, Five.Music.Artists.NAME,
 		Five.Music.Artists.FULL_NAME, Five.Music.Artists.PHOTO,
 		Five.Music.Artists.NUM_ALBUMS, Five.Music.Artists.NUM_SONGS };
@@ -79,14 +66,14 @@ public class ArtistList extends Activity
 	private Cursor getCursor(String selection, String[] args)
 	{
 		String where = Five.Music.Artists.NUM_SONGS + " > 0";
-		
+
 		if (TextUtils.isEmpty(selection) == false)
 			where = where + " AND (" + selection + ")";
 
 		return getContentResolver().query(getIntent().getData(), PROJECTION,
 		  where, args, Five.Music.Artists.NAME + " COLLATE UNICODE ASC");
 	}
-	
+
 	public static void show(Context context)
 	{
 		context.startActivity(new Intent(context, ArtistList.class));
@@ -97,7 +84,7 @@ public class ArtistList extends Activity
     {
         super.onCreate(icicle);
         setContentView(R.layout.artist_list);
-        
+
         if (mCache.getFallback() == null)
         	mCache.setFallback(getResources(), R.drawable.picture_contact_placeholder);
 
@@ -127,7 +114,7 @@ public class ArtistList extends Activity
         list.setOnItemClickListener(mClickEvent);
         list.setTextFilterEnabled(true);
     }
-    
+
     @Override
     protected void onDestroy()
     {
@@ -179,12 +166,12 @@ public class ArtistList extends Activity
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
-		
+
 		menu.add(0, MENU_RETURN_LIBRARY, 0, R.string.return_library)
 		  .setIcon(R.drawable.ic_menu_music_library);
 		menu.add(0, MENU_GOTO_PLAYER, 0, R.string.goto_player)
 		  .setIcon(R.drawable.ic_menu_playback);
-		
+
 		return true;
 	}
 
@@ -217,7 +204,7 @@ public class ArtistList extends Activity
 	{
     	private final AlphabetIndexer mIndexer;
     	private final LayoutInflater mInflater;
-    	
+
     	private final int mIdIdx;
     	private final int mArtistPhotoIdx;
     	private final int mArtistNameIdx;
@@ -228,7 +215,7 @@ public class ArtistList extends Activity
 		{
 			super(ArtistList.this, c);
 			setFilterQueryProvider(this);
-			
+
 			mInflater = LayoutInflater.from(ArtistList.this);
 			mIdIdx = c.getColumnIndexOrThrow(Five.Music.Artists._ID);
 			mArtistPhotoIdx = c.getColumnIndexOrThrow(Five.Music.Artists.PHOTO);
@@ -260,7 +247,7 @@ public class ArtistList extends Activity
 
 			return row;
 		}
-		
+
 		private void bindArtistCounts(TextView view, Cursor c)
 		{
 			int nalbums = c.getInt(mNumAlbumsIdx);
@@ -278,12 +265,12 @@ public class ArtistList extends Activity
 
 			view.setText(b.toString());
 		}
-		
+
 		@Override
 		public void bindView(View view, Context context, Cursor cursor)
 		{
 			ArtistViewHolder holder = (ArtistViewHolder)view.getTag();
-			
+
 			holder.artistId = cursor.getLong(mIdIdx);
 
 			if (mImageLoader.isListIdle() == true)
@@ -299,11 +286,11 @@ public class ArtistList extends Activity
 				holder.artistPhoto.setImageDrawable(mCache.getFallback());
 				holder.setTemporaryBind(true);
 			}
-			
+
 			cursor.copyStringToBuffer(mArtistNameIdx, holder.artistBuffer);
 			holder.artistName.setText(holder.artistBuffer.data, 0,
 			  holder.artistBuffer.sizeCopied);
-			
+
 			bindArtistCounts(holder.artistCounts, cursor);
 		}
 
@@ -331,7 +318,7 @@ public class ArtistList extends Activity
 			super.changeCursor(cursor);
 			mIndexer.setCursor(cursor);
 		}
-		
+
 		public int getPositionForSection(int section)
 		{
 			return mIndexer.indexOf(section);

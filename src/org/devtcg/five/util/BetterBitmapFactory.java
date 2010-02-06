@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -16,11 +14,8 @@
 
 package org.devtcg.five.util;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.devtcg.five.R;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -37,10 +32,10 @@ public class BetterBitmapFactory extends BitmapFactory
 	{
 		if (uri == null)
 			return null;
-		
+
 		return decodeUri(ctx, Uri.parse(uri));
 	}
-	
+
 	/**
 	 * Decode a Uri as a bitmap, as ImageView.setImageURI would do.
 	 */
@@ -63,7 +58,7 @@ public class BetterBitmapFactory extends BitmapFactory
 
 	/**
 	 * Decode a Uri as a bitmap, using the supplied resource drawable
-	 * as a fallback. 
+	 * as a fallback.
 	 */
 	public static Bitmap decodeUriWithFallback(Context ctx, String uri, int resId)
 	{
@@ -77,9 +72,9 @@ public class BetterBitmapFactory extends BitmapFactory
 				r = decodeResource(ctx.getResources(), resId);
 
 			return r;
-		}		
+		}
 	}
-	
+
 	public static Bitmap decodeUriWithFallback(Context ctx, String uri, Bitmap fallback)
 	{
 		if (uri == null)

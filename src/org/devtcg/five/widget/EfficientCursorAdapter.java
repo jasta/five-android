@@ -1,18 +1,30 @@
+/*
+ * Copyright (C) 2010 Josh Guilfoyle <jasta@devtcg.org>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2, or (at your option) any
+ * later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ */
+
 package org.devtcg.five.widget;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.widget.SimpleCursorAdapter.ViewBinder;
 
 /**
  * SimpleCursorAdapter which implements the ViewBinder using the
- * ViewHolder pattern.  See ApiDemos sample List14.java ("Efficient 
+ * ViewHolder pattern.  See ApiDemos sample List14.java ("Efficient
  * Adapter") for more information on the ViewHolder pattern.
  */
 public class EfficientCursorAdapter extends SimpleCursorAdapter
@@ -28,7 +40,7 @@ public class EfficientCursorAdapter extends SimpleCursorAdapter
 		mFrom = getColumnIndices(c, from);
 		mTo = to;
 	}
-	
+
 	private static int[] getColumnIndices(Cursor c, String[] from)
 	{
 		int n = from.length;

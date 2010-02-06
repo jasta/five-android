@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -17,8 +15,6 @@
 package org.devtcg.five.util.streaming;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -26,13 +22,11 @@ import java.net.Socket;
 import java.util.HashSet;
 
 import org.apache.http.HttpServerConnection;
-import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.DefaultHttpServerConnection;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.BasicHttpProcessor;
@@ -43,8 +37,8 @@ import org.apache.http.protocol.HttpService;
 import org.apache.http.protocol.ResponseConnControl;
 import org.apache.http.protocol.ResponseContent;
 
-import android.util.Log;
 import android.os.Process;
+import android.util.Log;
 
 public abstract class LocalHttpServer extends Thread
 {
@@ -56,7 +50,7 @@ public abstract class LocalHttpServer extends Thread
 	protected ServerSocket mSocket;
 	protected HttpParams mParams;
 	private HttpRequestHandler mReqHandler;
-	
+
 	public LocalHttpServer()
 	{
 		super("LocalHttpServer");
@@ -109,7 +103,7 @@ public abstract class LocalHttpServer extends Thread
 	public void reset()
 	{
 		WorkerThread[] workersCopy;
-		
+
 		synchronized(mWorkers) {
 			/* Copied because shutdown() will try to access mWorkers. */
 			workersCopy =
@@ -139,10 +133,10 @@ public abstract class LocalHttpServer extends Thread
 	{
 		if (mReqHandler == null)
 			throw new IllegalStateException("Request handler not set.");
-		
+
 		if (mSocket == null)
 			throw new IllegalStateException("Not bound.");
-		
+
 		Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
 
 		while (Thread.interrupted() == false)
@@ -159,7 +153,7 @@ public abstract class LocalHttpServer extends Thread
 				proc.addInterceptor(new ResponseConnControl());
 
 				HttpRequestHandlerRegistry reg =
-				  new HttpRequestHandlerRegistry();				
+				  new HttpRequestHandlerRegistry();
 				reg.register("*", mReqHandler);
 
 				HttpService svc = new HttpService(proc,
@@ -172,7 +166,7 @@ public abstract class LocalHttpServer extends Thread
 				WorkerThread t;
 
 				synchronized(mWorkers) {
-					t = new WorkerThread(svc, conn);					
+					t = new WorkerThread(svc, conn);
 					mWorkers.add(t);
 				}
 

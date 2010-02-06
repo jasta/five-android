@@ -1,17 +1,12 @@
 /*
- * $Id$
- * 
  * Much of this logic was taken from Romain Guy's Shelves project:
- * 
+ *
  *   http://code.google.com/p/shelves/
  */
 package org.devtcg.five.widget;
 
-import org.devtcg.five.widget.FastScrollView;
-
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AbsListView;
@@ -21,10 +16,10 @@ import android.widget.AbsListView.OnScrollListener;
  * Abstracts a mechanism for determining an appropriate time to load
  * images into an animating ListView.  That is, only load the images when
  * the list view is not flinging.
- * 
+ *
  * To use, you must make sure that you call through to
  * {@link onScrollStateChanged} and {@link onTouch}.
- * 
+ *
  * This class was inspired by Romain Guy's ShelvesActivity.  Rather, it
  * was blatantly lifted from it :)
  */
@@ -39,7 +34,7 @@ public class IdleListDetector
 	private static final int DELAY_FAST_IDLE_DETECTION = DELAY_IDLE_DETECTION;
 
 	private int mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
-	
+
 	/* Special considerations for FastScrollView. */
 	private int mFastScrollState = FastScrollView.SCROLL_STATE_FAST_IDLE;
 
@@ -104,7 +99,7 @@ public class IdleListDetector
 			mScrollHandler.sendListIdle(mFingerUp);
 		else if (scrollState == OnScrollListener.SCROLL_STATE_FLING)
 			mScrollHandler.cancelListIdle();
-		
+
 		mScrollState = scrollState;
 	}
 
@@ -122,13 +117,13 @@ public class IdleListDetector
 				break;
 			}
 		}
-		
+
 		public void sendListIdle(int delay)
 		{
 			Message m = obtainMessage(MSG_LIST_IDLE);
 			removeMessages(MSG_LIST_IDLE);
 			mPending = true;
-			sendMessageDelayed(m, delay);			
+			sendMessageDelayed(m, delay);
 		}
 
 		public void sendListIdle(boolean fingerUp)

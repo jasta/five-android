@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (C) 2008 Josh Guilfoyle <jasta@devtcg.org>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -25,33 +23,26 @@ import org.devtcg.five.widget.FastBitmapDrawable;
 import org.devtcg.five.widget.FastScrollView;
 import org.devtcg.five.widget.IdleListDetector;
 import org.devtcg.five.widget.ImageLoaderIdleListener;
-import org.devtcg.five.widget.IdleListDetector.OnListIdleListener;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.CharArrayBuffer;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.View.OnTouchListener;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.FilterQueryProvider;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView.OnItemClickListener;
 
 public class AlbumList extends Activity
@@ -175,12 +166,12 @@ public class AlbumList extends Activity
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
-		
+
 		menu.add(0, MENU_RETURN_LIBRARY, 0, R.string.return_library)
 		  .setIcon(R.drawable.ic_menu_music_library);
 		menu.add(0, MENU_GOTO_PLAYER, 0, R.string.goto_player)
 		  .setIcon(R.drawable.ic_menu_playback);
-		
+
 		return true;
 	}
 
@@ -206,7 +197,7 @@ public class AlbumList extends Activity
 
 		return false;
 	}
-    
+
 	private class AlbumAdapter extends CursorAdapter
 	  implements FilterQueryProvider, FastScrollView.SectionIndexer,
 	    ImageLoaderIdleListener.ImageLoaderAdapter
@@ -348,7 +339,7 @@ public class AlbumList extends Activity
 		CrossFadeDrawable transition;
 		final CharArrayBuffer albumBuffer = new CharArrayBuffer(64);
 		final CharArrayBuffer artistBuffer = new CharArrayBuffer(64);
-		
+
 		public Long getItemId() { return albumId; }
 		public boolean isTemporaryBind() { return tempBind; }
 		public void setTemporaryBind(boolean temp) { tempBind = temp; }

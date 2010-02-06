@@ -1,8 +1,6 @@
 /*
- * $Id$
- *
  * Much of this logic was taken from Romain Guy's Shelves project:
- * 
+ *
  *   http://code.google.com/p/shelves/
  */
 
@@ -13,7 +11,6 @@ import org.devtcg.five.widget.IdleListDetector.OnListIdleListener;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.CursorAdapter;
@@ -27,15 +24,15 @@ import android.widget.ImageView;
 public class ImageLoaderIdleListener implements OnListIdleListener
 {
 	private final Context mContext;
-	
+
 	private final AbsListView mList;
 	private final CursorAdapter mAdapter;
 	private final int mImageColumnIndex;
-	
+
 	private final ImageMemCache mCache;
 
 	private static final int TRANSITION_DURATION = 175;
-	
+
 	public ImageLoaderIdleListener(Context ctx,
 	  AbsListView list, ImageMemCache cache)
 	{
@@ -51,8 +48,8 @@ public class ImageLoaderIdleListener implements OnListIdleListener
 		/* Hmm, this is pretty kludgey. */
 		if (!(list.getAdapter() instanceof ImageLoaderAdapter))
 			throw new IllegalArgumentException("ListView adapter must implement ImageLoaderAdapter.");
-		
-		mImageColumnIndex = 
+
+		mImageColumnIndex =
 		  ((ImageLoaderAdapter)list.getAdapter()).getImageColumnIndex();
 	}
 
@@ -65,7 +62,7 @@ public class ImageLoaderIdleListener implements OnListIdleListener
 		{
 			View row = mList.getChildAt(i);
 			ImageLoaderHolder holder = (ImageLoaderHolder)row.getTag();
-			
+
 			if (holder.isTemporaryBind() == true)
 			{
 				Cursor c = (Cursor)mAdapter.getItem(first + i);
