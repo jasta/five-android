@@ -121,7 +121,7 @@ public class PlaylistService extends Service implements
 		 * When playback is explicitly stopped, we delay for a short while
 		 * then die, releasing the wake lock. */
 		PowerManager pm = (PowerManager)getSystemService(POWER_SERVICE);
-		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, PlaylistService.class.getName());
 		mWakeLock.acquire();
 
 		/* Listen for incoming calls so we can temporarily pause playback. */
