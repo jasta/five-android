@@ -126,6 +126,7 @@ public class SourceAdd extends Activity
 
 						/* Now begin the first time sync. */
 						MetaService.startSync(this);
+						MetaService.scheduleAutoSync(this);
 					}
 
 					finish();

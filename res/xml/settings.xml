@@ -31,7 +31,7 @@
 
 		<ListPreference
 			android:key="autosync"
-			android:defaultValue="86400000"
+			android:defaultValue="@integer/defaultAutoSyncInterval"
 			android:title="@string/autosync"
 			android:entries="@array/pref_autosync_choices"
 			android:entryValues="@array/pref_autosync_values"

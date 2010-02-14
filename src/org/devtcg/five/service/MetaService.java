@@ -34,6 +34,7 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
@@ -113,10 +114,17 @@ public class MetaService extends Service
 		}
 	}
 
+	public static void scheduleAutoSync(Context context)
+	{
+		SharedPreferences prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+		rescheduleAutoSync(context, prefs.getLong("autosync",
+				context.getResources().getInteger(R.integer.defaultAutoSyncInterval)));
+	}
+
 	public static void rescheduleAutoSync(Context context, long interval)
 	{
-		if (Constants.DEBUG)
-			Log.d(Constants.TAG, "Rescheduling with auto sync interval of " + interval + " ms");
+		if (interval < 0)
+			throw new IllegalArgumentException("Interval must be non-negative.");
 
 		AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
 
@@ -126,8 +134,17 @@ public class MetaService extends Service
 		/* Cancel any previously scheduled auto-syncs. */
 		am.cancel(syncIntent);
 
-		if (interval > 0)
+		/* Make sure that we actually have sources to sync. */
+		if (Sources.isEmpty(context))
 		{
+			if (Constants.DEBUG)
+				Log.i(Constants.TAG, "No auto-sync scheduling (no sources to sync)");
+		}
+		else
+		{
+			if (Constants.DEBUG)
+				Log.i(Constants.TAG, "Rescheduling with auto sync interval of " + interval + " ms");
+
 			am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
 					SystemClock.elapsedRealtime() + interval, interval, syncIntent);
 		}
