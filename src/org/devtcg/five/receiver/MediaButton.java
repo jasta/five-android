@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.KeyEvent;
 
@@ -41,6 +42,21 @@ public class MediaButton extends BroadcastReceiver
 		event = filterKeyEvent(event);
 		if (event == null)
 			return;
+
+		/*
+		 * If the dubious headset hook / media play/pause button is pressed,
+		 * check the phone state and abort processing if it's active in any way.
+		 * This allows the phone app to receive the MediaButton event and
+		 * provide a more appropriate action for the user. Note that the main
+		 * Music app does not need to do this as they declare a priority for
+		 * this receiver of 0, whereas the phone app declares priority 1.
+		 */
+		if (event.getKeyCode() == KeyEvent.KEYCODE_HEADSETHOOK)
+		{
+			TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+			if (tm.getCallState() != TelephonyManager.CALL_STATE_IDLE)
+				return;
+		}
 
 		/*
 		 * Only react on ACTION_UP, but consume (via abortBroadcast()) any
@@ -96,6 +112,7 @@ public class MediaButton extends BroadcastReceiver
 		switch (event.getKeyCode())
 		{
 			case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+			case KeyEvent.KEYCODE_HEADSETHOOK:
 			case KeyEvent.KEYCODE_MEDIA_NEXT:
 			case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
 			case KeyEvent.KEYCODE_MEDIA_STOP:
@@ -121,6 +138,7 @@ public class MediaButton extends BroadcastReceiver
 
 		switch (event.getKeyCode())
 		{
+			case KeyEvent.KEYCODE_HEADSETHOOK:
 			case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
 				if (!service.isPlaying())
 					service.play();
