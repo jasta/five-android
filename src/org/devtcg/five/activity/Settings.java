@@ -61,9 +61,6 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
 
 		addPreferencesFromResource(R.xml.settings);
 
-		getPreferenceScreen().getSharedPreferences()
-				.registerOnSharedPreferenceChangeListener(this);
-
 		mServerPref = (ServerPreference)findPreference(KEY_SERVER);
 		mAutosyncPref = (ListPreference)findPreference(KEY_AUTOSYNC);
 
