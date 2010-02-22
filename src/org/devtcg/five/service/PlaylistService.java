@@ -197,6 +197,18 @@ public class PlaylistService extends Service implements
 	@Override
 	public void onStart(Intent intent, int startId)
 	{
+		handleStart(intent, startId);
+	}
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId)
+	{
+		handleStart(intent, startId);
+		return START_NOT_STICKY;
+	}
+
+	private void handleStart(Intent intent, int startId)
+	{
 		if (Intent.ACTION_MEDIA_BUTTON.equals(intent.getAction()))
 		{
 			KeyEvent event = (KeyEvent)intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
