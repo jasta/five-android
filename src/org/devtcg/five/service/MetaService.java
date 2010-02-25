@@ -163,6 +163,8 @@ public class MetaService extends Service
 
 	private class SyncThread extends CancelableThread
 	{
+		private static final String TAG = "SyncThread";
+
 		private volatile SyncContext mContext;
 
 		public SyncThread()
