@@ -43,22 +43,17 @@ public class CacheManager
 
 	private static CacheManager INSTANCE;
 
-	private Context mContext;
-
 	/* XXX: The default policy (which is not configurable, sadly) is to
 	 * attempt to leave 100MB free.  This should be made far more robust
 	 * and flexible in the future. */
 	private static final int POLICY_LEAVE_FREE = 100 * 1024 * 1024;
 
-	private CacheManager(Context ctx)
-	{
-		mContext = ctx;
-	}
+	private CacheManager() {}
 
-	public synchronized static CacheManager getInstance(Context ctx)
+	public synchronized static CacheManager getInstance()
 	{
 		if (INSTANCE == null)
-			INSTANCE = new CacheManager(ctx);
+			INSTANCE = new CacheManager();
 
 		return INSTANCE;
 	}
@@ -69,24 +64,24 @@ public class CacheManager
 			Five.Music.Songs._SYNC_ID + " = " + contentId;
 	}
 
-	private Cursor getContentCursor(long sourceId, long contentId)
+	private Cursor getContentCursor(Context context, long sourceId, long contentId)
 	{
 		String fields[] =
 		  new String[] { Five.Music.Songs._ID, Five.Music.Songs.SIZE,
 		    Five.Music.Songs.CACHED_PATH, Five.Music.Songs.MIME_TYPE };
-		return mContext.getContentResolver()
+		return context.getContentResolver()
 		  .query(Five.Music.Songs.CONTENT_URI, fields,
 			  getContentWhereClause(sourceId, contentId), null, null);
 	}
 
-	private int updateContentRow(long sourceId, long contentId,
+	private int updateContentRow(Context context, long sourceId, long contentId,
 	  ContentValues values)
 	{
-		return mContext.getContentResolver().update(Five.Music.Songs.CONTENT_URI, values,
+		return context.getContentResolver().update(Five.Music.Songs.CONTENT_URI, values,
 			getContentWhereClause(sourceId, contentId), null);
 	}
 
-	private boolean deleteSufficientSpace(File sdcard, long size)
+	private boolean deleteSufficientSpace(Context context, File sdcard, long size)
 	{
 		ContentResolver cr = null;
 		Cursor c = null;
@@ -108,7 +103,7 @@ OUTER:
 			 * being enough space we don't have to perform a query. */
 			if (cr == null)
 			{
-				cr = mContext.getContentResolver();
+				cr = context.getContentResolver();
 				c = cr.query(Five.Music.Songs.CONTENT_URI,
 				  new String[] { Five.Music.Songs._ID,
 				    Five.Music.Songs.CACHED_PATH, Five.Music.Songs.SIZE },
@@ -176,7 +171,7 @@ OUTER:
 	 * @return
 	 *   Filename for storage.
 	 */
-	private String makeStorage(long sourceId, long contentId,
+	private String makeStorage(Context context, long sourceId, long contentId,
 	  String mime, long size)
 	  throws CacheAllocationException
 	{
@@ -190,7 +185,7 @@ OUTER:
 		if (sdcard.exists() == false)
 			throw new NoStorageCardException();
 
-		if (deleteSufficientSpace(sdcard, size) == false)
+		if (deleteSufficientSpace(context, sdcard, size) == false)
 			throw new OutOfSpaceException();
 
 		String basePath = sdcard.getAbsolutePath() + "/five/cache/" + sourceId;
@@ -219,10 +214,10 @@ OUTER:
 	 * @return
 	 *   The path to the allocated storage.
 	 */
-	public String requestStorage(long sourceId, long contentId)
+	public String requestStorage(Context context, long sourceId, long contentId)
 	  throws CacheAllocationException
 	{
-		Cursor c = getContentCursor(sourceId, contentId);
+		Cursor c = getContentCursor(context, sourceId, contentId);
 
 		try {
 			if (c.moveToFirst() == false)
@@ -231,13 +226,13 @@ OUTER:
 			long size = c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.SIZE));
 			String mime = c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.MIME_TYPE));
 
-			String path = makeStorage(sourceId, contentId, mime, size);
+			String path = makeStorage(context, sourceId, contentId, mime, size);
 
 			ContentValues cv = new ContentValues();
 			cv.put(Five.Music.Songs.CACHED_TIMESTAMP,
 			  System.currentTimeMillis());
 			cv.put(Five.Music.Songs.CACHED_PATH, path);
-			updateContentRow(sourceId, contentId, cv);
+			updateContentRow(context, sourceId, contentId, cv);
 
 			return path;
 		} finally {
@@ -277,6 +272,14 @@ OUTER:
 		File fiveStorage = new File(Environment.getExternalStorageDirectory(), "five");
 		if (fiveStorage.exists())
 			FileUtils.deleteDirectory(fiveStorage);
+	}
+
+	/**
+	 * Delete artist meta data.
+	 */
+	public void deleteArtist(long artistId)
+	{
+
 	}
 
 	public static class CacheAllocationException extends Exception

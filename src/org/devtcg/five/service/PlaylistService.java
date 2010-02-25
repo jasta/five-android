@@ -139,7 +139,7 @@ public class PlaylistService extends Service implements
 
 		mManager = new SongDownloadManager(this);
 
-		mCacheMgr = CacheManager.getInstance(this);
+		mCacheMgr = CacheManager.getInstance();
 
 		/* When the service dies we attempt to serialize playlist state to
 		 * disk.  Check for, and recover from, this state file. */
@@ -620,7 +620,7 @@ public class PlaylistService extends Service implements
 				if (mManager.lookupDownload(songId) != null)
 					throw new IllegalStateException("Download started, but did not register with the cache.");
 
-				cachePath = mCacheMgr.requestStorage(song.getSourceId(), song.getSyncId());
+				cachePath = mCacheMgr.requestStorage(this, song.getSourceId(), song.getSyncId());
 			}
 
 			/*

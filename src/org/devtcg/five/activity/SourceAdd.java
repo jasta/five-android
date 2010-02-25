@@ -119,7 +119,7 @@ public class SourceAdd extends Activity
 						 * sure.
 						 */
 						try {
-							CacheManager.getInstance(this).wipeAll();
+							CacheManager.getInstance().wipeAll();
 						} catch (IOException e) {
 							Log.e(Constants.TAG, "Failed to clear /sdcard/five, syncing may not work properly", e);
 						}
