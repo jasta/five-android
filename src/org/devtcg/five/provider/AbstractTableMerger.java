@@ -36,11 +36,13 @@ public abstract class AbstractTableMerger
 	/**
 	 * Print excessive debug of each entry being merged.
 	 */
-	private static final boolean DEBUG_ENTRIES = false;
+	private static final boolean DEBUG_ENTRIES = true;
 
 	protected final SQLiteDatabase mDb;
 	protected final String mTable;
+	protected final String mDeletedTable;
 	protected final Uri mTableUri;
+	protected final Uri mDeletedTableUri;
 
 	public interface SyncableColumns extends BaseColumns
 	{
@@ -55,21 +57,19 @@ public abstract class AbstractTableMerger
 		public static final String _SYNC_ID = "_sync_id";
 	}
 
-	public AbstractTableMerger(SQLiteDatabase db, String table, Uri tableUri)
+	public AbstractTableMerger(SQLiteDatabase db, String table, String deletedTable,
+			Uri tableUri, Uri deletedTableUri)
 	{
 		mDb = db;
 		mTable = table;
 		mTableUri = tableUri;
+		mDeletedTable = deletedTable;
+		mDeletedTableUri = deletedTableUri;
 	}
 
 	protected SQLiteDatabase getDatabase()
 	{
 		return mDb;
-	}
-
-	public String getTableName()
-	{
-		return mTable;
 	}
 
 	public void merge(Context context, SyncContext syncContext,
@@ -91,6 +91,128 @@ public abstract class AbstractTableMerger
 	private void mergeServerDiffs(Context context, SyncContext syncContext,
 		AbstractSyncProvider serverDiffs)
 	{
+		Log.d(TAG, mTable + ": beginning table merge");
+
+		try {
+			/*
+			 * Step 1: process server intiated deletes. This is done first in
+			 * case the id has been re-used by the server (for instance, server
+			 * deleted id 1, then inserted a new record to fill that same id).
+			 */
+			Log.d(TAG, mTable + ": applying server deletions...");
+			int deleteCount = mergeServerDeletions(context, syncContext, serverDiffs);
+
+			/*
+			 * Step 2: process server initiated inserts and modifications.
+			 */
+			Log.d(TAG, mTable + ": applying server modifications...");
+			int diffCount = mergeServerChanges(context, syncContext, serverDiffs);
+
+			Log.d(TAG, mTable + ": table merge complete, processed " +
+					deleteCount + " deletes, " +
+					diffCount + " inserts/updates");
+		} catch (Exception e) {
+			/* Aiiee!! How can we capture this failure? */
+			Log.e(TAG, mTable + ": table merge failed!", e);
+			syncContext.mergeError = true;
+			syncContext.errorMessage = e.toString();
+		}
+	}
+
+	/**
+	 * Merge collected server deletion requests into the main database table.
+	 *
+	 * @return Number of deletions successfully applied.
+	 */
+	private int mergeServerDeletions(Context context, SyncContext syncContext,
+			AbstractSyncProvider serverDiffs)
+	{
+		/* Set containing all deleted entries (to be merged into main provider). */
+		Cursor deletedCursor = serverDiffs.query(mDeletedTableUri, null, null, null, null);
+
+		try {
+			int deleteCount = 0;
+			int deletedSyncIdColumn = deletedCursor.getColumnIndexOrThrow(SyncableColumns._SYNC_ID);
+
+			while (deletedCursor.moveToNext())
+			{
+				mDb.yieldIfContendedSafely();
+
+				long syncId = deletedCursor.getLong(deletedSyncIdColumn);
+
+				/*
+				 * Locate the local record and request its deletion. This design
+				 * is copied from Android's AbstractTableMerger (as is most of
+				 * this class) but I find myself surprised by the relatively
+				 * poor efficiency employed here.
+				 *
+				 * Seems like a manual join could achieve much better
+				 * performance here. We could use the local data set queried in
+				 * mergeServerDiffs and then order our deleted records and walk
+				 * along the two cursors. This introduces overhead for the
+				 * common case of few deletes but it could be tuned for use when
+				 * the number of deletions reaches some threshold like 20% of
+				 * total records.
+				 */
+				Cursor localCursor = mDb.query(mTable, null,
+						SyncableColumns._SYNC_ID + " = ?", new String[] { String.valueOf(syncId) },
+						null, null, null);
+
+				try {
+					int matches = localCursor.getCount();
+
+					if (matches == 0)
+					{
+						/*
+						 * This might happen if the local side has already
+						 * deleted the record prior to syncing. Not a big deal,
+						 * but warn just in case.
+						 */
+						Log.d(TAG, "received deletion request from server for _sync_id " +
+								syncId + ", but there is no matching local record.");
+					}
+					else if (matches > 1)
+					{
+						/*
+						 * This is a much weirder situation. We should have
+						 * never permitted a database entry to be inserted with
+						 * a _SYNC_ID matching a previous record. This makes no
+						 * sense at all and should absolutely never happen.
+						 * Server bug? Client bug? Malicious server? Hmm...
+						 */
+						Log.d(TAG, "multiple records matched delete request for _sync_id " + syncId);
+					}
+
+					while (localCursor.moveToNext())
+					{
+						if (DEBUG_ENTRIES)
+						{
+							long localId = localCursor.getLong(
+									localCursor.getColumnIndexOrThrow(SyncableColumns._ID));
+							Log.d(TAG, "deleting local record " + localId + " with _sync_id " + syncId);
+						}
+
+						deleteRow(context, serverDiffs, localCursor);
+						syncContext.numberOfDeletes++;
+						deleteCount++;
+					}
+				} finally {
+					localCursor.close();
+				}
+			}
+
+			return deleteCount;
+		} finally {
+			deletedCursor.close();
+		}
+	}
+
+	/**
+	 * Merge collected server inserts and modifications.
+	 */
+	private int mergeServerChanges(Context context, SyncContext syncContext,
+			AbstractSyncProvider serverDiffs)
+	{
 		/* Set containing all local entries so we can merge (insert/update/resolve). */
 		Cursor localCursor = mDb.query(mTable,
 			new String[] { SyncableColumns._ID, SyncableColumns._SYNC_TIME,
@@ -99,23 +221,20 @@ public abstract class AbstractTableMerger
 
 		/* Set containing all diffed entries (to be merged into main provider). */
 		Cursor diffsCursor = serverDiffs.query(mTableUri, null, null, null,
-			SyncableColumns._SYNC_ID);
-
-		Log.d(TAG, "Beginning merge of " + mTable);
+				SyncableColumns._SYNC_ID);
 
 		try {
 			int localCount = 0;
 			int diffsCount = 0;
-
-			/*
-			 * Move it to the first record; our loop below expects it to keep
-			 * pace with diffsSet.
-			 */
-			boolean localSetHasRows = localCursor.moveToFirst();
-
 			int diffsIdColumn = diffsCursor.getColumnIndexOrThrow(SyncableColumns._ID);
 			int diffsSyncTimeColumn = diffsCursor.getColumnIndexOrThrow(SyncableColumns._SYNC_TIME);
 			int diffsSyncIdColumn = diffsCursor.getColumnIndexOrThrow(SyncableColumns._SYNC_ID);
+
+			/*
+			 * Move it to the first record to match the diffsCursor position
+			 * when it enters the loop below.
+			 */
+			boolean localSetHasRows = localCursor.moveToFirst();
 
 			/*
 			 * Walk the diffs cursor, replaying each change onto the local
@@ -227,9 +346,7 @@ public abstract class AbstractTableMerger
 				}
 			}
 
-			Log.d(TAG, "merge complete: processed " + diffsCount + " server entries");
-		} catch (Exception e) {
-			Log.e(TAG, "merge failed.", e);
+			return diffsCount;
 		} finally {
 			diffsCursor.close();
 			localCursor.close();
@@ -247,11 +364,55 @@ public abstract class AbstractTableMerger
 	 */
 	public abstract void notifyChanges(Context context);
 
+	/**
+	 * Process a server initiated insert by inserting the record into the main
+	 * provider.
+	 *
+	 * @param context
+	 * @param diffs
+	 *            Temporary content provider holding all sync entries received
+	 *            from the server.
+	 * @param diffsCursor
+	 *            Cursor positioned at a temporary record sent from the server.
+	 */
 	public abstract void insertRow(Context context, ContentProvider diffs, Cursor diffsCursor);
-	public abstract void deleteRow(Context context, ContentProvider diffs, Cursor diffsCursor);
+
+	/**
+	 * Process a server initiated delete by deleting the record from the main
+	 * provider.
+	 *
+	 * @param context
+	 * @param diffs
+	 *            Temporary content provider holding all sync entries received
+	 *            from the server.
+	 * @param localCursor
+	 *            Cursor positioned at the local record to delete. Unlike
+	 *            {@link #insertRow} and {@link #updateRow}, this cursor was
+	 *            queried from the main provider not <code>diffs</code>.
+	 */
+	public abstract void deleteRow(Context context, ContentProvider diffs, Cursor localCursor);
+
+	/**
+	 * Process a server initiated modification by applying all columns from the
+	 * provided record to the local record specified.
+	 *
+	 * @param context
+	 * @param diffs
+	 *            Temporary content provider holding all sync entries received
+	 *            from the server.
+	 * @param id
+	 *            Local record id into which the merge occurs.
+	 * @param localCursor
+	 *            Cursor positioned at a temporary record sent from the server.
+	 */
 	public abstract void updateRow(Context context, ContentProvider diffs,
 		long id, Cursor diffsCursor);
 
+	/**
+	 * Process a server initiated modification which conflicts with local
+	 * modifications. This is currently not implemented and not used. For now,
+	 * server always wins.
+	 */
 	public void resolveRow(Context context, ContentProvider main, long id, String syncId,
 		Cursor diffsCursor)
 	{

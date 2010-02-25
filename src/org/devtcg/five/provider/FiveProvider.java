@@ -20,12 +20,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.devtcg.five.Constants;
+import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 import org.devtcg.five.provider.util.AlbumMerger;
 import org.devtcg.five.provider.util.ArtistMerger;
 import org.devtcg.five.provider.util.PlaylistMerger;
 import org.devtcg.five.provider.util.PlaylistSongMerger;
+import org.devtcg.five.provider.util.SongItem;
 import org.devtcg.five.provider.util.SongMerger;
 import org.devtcg.five.provider.util.SourceItem;
+import org.devtcg.five.service.CacheManager;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -56,7 +60,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 	DatabaseHelper mHelper;
 	private static final String DATABASE_NAME = "five.db";
-	private static final int DATABASE_VERSION = 35;
+	private static final int DATABASE_VERSION = 36;
 
 	private static final UriMatcher URI_MATCHER;
 	private static final HashMap<String, String> artistsMap;
@@ -66,16 +70,22 @@ public class FiveProvider extends AbstractSyncProvider
 	private InsertHelper mArtistInserter;
 	private InsertHelper mAlbumInserter;
 	private InsertHelper mSongInserter;
+	private InsertHelper mDeletedArtistInserter;
+	private InsertHelper mDeletedAlbumInserter;
+	private InsertHelper mDeletedSongInserter;
+	private InsertHelper mDeletedPlaylistInserter;
+	private InsertHelper mDeletedPlaylistSongInserter;
 
 	private static enum URIPatternIds
 	{
 		SOURCES, SOURCE,
-		ARTISTS, ARTIST, ARTIST_PHOTO,
+		ARTISTS, ARTIST, ARTIST_PHOTO, DELETED_ARTIST,
 		ALBUMS, ALBUMS_BY_ARTIST, ALBUMS_WITH_ARTIST, ALBUMS_COMPLETE, ALBUM,
-		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG,
+		  ALBUM_ARTWORK, ALBUM_ARTWORK_BIG, DELETED_ALBUM,
 		SONGS, SONGS_BY_ALBUM, SONGS_BY_ARTIST, SONGS_BY_ARTIST_ON_ALBUM, SONG,
+		  DELETED_SONG,
 		PLAYLISTS, PLAYLIST, SONGS_IN_PLAYLIST, SONG_IN_PLAYLIST,
-		  PLAYLIST_SONGS,
+		  PLAYLIST_SONG, PLAYLIST_SONGS, DELETED_PLAYLIST, DELETED_PLAYLIST_SONG,
 		CACHE, CACHE_ITEMS_BY_SOURCE,
 		ADJUST_COUNTS,
 		;
@@ -99,35 +109,44 @@ public class FiveProvider extends AbstractSyncProvider
 			db.execSQL(Five.Sources.SQL.CREATE);
 //			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 
-			db.execSQL(Five.Music.Artists.SQL.CREATE);
-			db.execSQL(Five.Music.Albums.SQL.CREATE);
-			db.execSQL(Five.Music.Songs.SQL.CREATE);
-			db.execSQL(Five.Music.Playlists.SQL.CREATE);
-			db.execSQL(Five.Music.PlaylistSongs.SQL.CREATE);
+			execStatements(db, Five.Music.Artists.SQL.CREATE);
+			execStatements(db, Five.Music.Albums.SQL.CREATE);
+			execStatements(db, Five.Music.Songs.SQL.CREATE);
+			execStatements(db, Five.Music.Playlists.SQL.CREATE);
+			execStatements(db, Five.Music.PlaylistSongs.SQL.CREATE);
 
 			if (isTemporary() == false)
 			{
-				execIndex(db, Five.Music.Albums.SQL.INDEX);
-				execIndex(db, Five.Music.Songs.SQL.INDEX);
-				execIndex(db, Five.Music.PlaylistSongs.SQL.INDEX);
+				execStatements(db, Five.Music.Albums.SQL.INDEX);
+				execStatements(db, Five.Music.Songs.SQL.INDEX);
+				execStatements(db, Five.Music.PlaylistSongs.SQL.INDEX);
 			}
 		}
 
-		private void execIndex(SQLiteDatabase db, String[] idx)
+		private void createDeletedTable(SQLiteDatabase db, String deletedTable)
 		{
-			for (int i = 0; i < idx.length; i++)
-				db.execSQL(idx[i]);
+			db.execSQL("CREATE TABLE " + deletedTable + " (" +
+					SyncableColumns._ID + " INTEGER PRIMARY KEY, " +
+					SyncableColumns._SYNC_ID + " INTEGER, " +
+					SyncableColumns._SYNC_TIME + " BIGINT " +
+					")");
+		}
+
+		private void execStatements(SQLiteDatabase db, String[] statements)
+		{
+			for (int i = 0; i < statements.length; i++)
+				db.execSQL(statements[i]);
 		}
 
 		private void onDrop(SQLiteDatabase db)
 		{
 			db.execSQL(Five.Sources.SQL.DROP);
 
-			db.execSQL(Five.Music.Artists.SQL.DROP);
-			db.execSQL(Five.Music.Albums.SQL.DROP);
-			db.execSQL(Five.Music.Songs.SQL.DROP);
-			db.execSQL(Five.Music.Playlists.SQL.DROP);
-			db.execSQL(Five.Music.PlaylistSongs.SQL.DROP);
+			execStatements(db, Five.Music.Artists.SQL.DROP);
+			execStatements(db, Five.Music.Albums.SQL.DROP);
+			execStatements(db, Five.Music.Songs.SQL.DROP);
+			execStatements(db, Five.Music.Playlists.SQL.DROP);
+			execStatements(db, Five.Music.PlaylistSongs.SQL.DROP);
 		}
 
 		@Override
@@ -136,9 +155,9 @@ public class FiveProvider extends AbstractSyncProvider
 			if (oldVersion == 17 && newVersion == 18)
 			{
 				Log.w(TAG, "Attempting to upgrade to " + newVersion);
-				execIndex(db, Five.Music.Artists.SQL.INDEX);
-				execIndex(db, Five.Music.Albums.SQL.INDEX);
-				execIndex(db, Five.Music.Songs.SQL.INDEX);
+				execStatements(db, Five.Music.Artists.SQL.INDEX);
+				execStatements(db, Five.Music.Albums.SQL.INDEX);
+				execStatements(db, Five.Music.Songs.SQL.INDEX);
 			}
 			else
 			{
@@ -154,6 +173,12 @@ public class FiveProvider extends AbstractSyncProvider
 			mArtistInserter = new InsertHelper(db, Five.Music.Artists.SQL.TABLE);
 			mAlbumInserter = new InsertHelper(db, Five.Music.Albums.SQL.TABLE);
 			mSongInserter = new InsertHelper(db, Five.Music.Songs.SQL.TABLE);
+
+			mDeletedArtistInserter = new InsertHelper(db, Five.Music.Artists.SQL.DELETED_TABLE);
+			mDeletedAlbumInserter = new InsertHelper(db, Five.Music.Albums.SQL.DELETED_TABLE);
+			mDeletedSongInserter = new InsertHelper(db, Five.Music.Songs.SQL.DELETED_TABLE);
+			mDeletedPlaylistInserter = new InsertHelper(db, Five.Music.Playlists.SQL.DELETED_TABLE);
+			mDeletedPlaylistSongInserter = new InsertHelper(db, Five.Music.PlaylistSongs.SQL.DELETED_TABLE);
 		}
 	}
 
@@ -504,7 +529,26 @@ public class FiveProvider extends AbstractSyncProvider
 			qb.setProjectionMap(proj);
 
 			groupBy = "a." + Five.Music.Albums._ID;
+			break;
 
+		case DELETED_ARTIST:
+			qb.setTables(Five.Music.Artists.SQL.DELETED_TABLE);
+			break;
+
+		case DELETED_ALBUM:
+			qb.setTables(Five.Music.Albums.SQL.DELETED_TABLE);
+			break;
+
+		case DELETED_SONG:
+			qb.setTables(Five.Music.Songs.SQL.DELETED_TABLE);
+			break;
+
+		case DELETED_PLAYLIST:
+			qb.setTables(Five.Music.Playlists.SQL.DELETED_TABLE);
+			break;
+
+		case DELETED_PLAYLIST_SONG:
+			qb.setTables(Five.Music.PlaylistSongs.SQL.DELETED_TABLE);
 			break;
 
 		default:
@@ -868,6 +912,28 @@ public class FiveProvider extends AbstractSyncProvider
 		return playlistSongUri;
 	}
 
+	private Uri insertDeletedItem(SQLiteDatabase db, Uri uri, URIPatternIds type, ContentValues v)
+	{
+		InsertHelper inserter;
+
+		switch (type) {
+			case DELETED_ARTIST: inserter = mDeletedArtistInserter; break;
+			case DELETED_ALBUM: inserter = mDeletedAlbumInserter; break;
+			case DELETED_SONG: inserter = mDeletedSongInserter; break;
+			case DELETED_PLAYLIST: inserter = mDeletedPlaylistInserter; break;
+			case DELETED_PLAYLIST_SONG: inserter = mDeletedPlaylistSongInserter; break;
+			default:
+				throw new IllegalArgumentException("Unknown URI: " + uri);
+		}
+
+		long id = inserter.insert(v);
+
+		if (id == -1)
+			return null;
+
+		return ContentUris.withAppendedId(uri, id);
+	}
+
 	@Override
 	public Uri insertInternal(Uri uri, ContentValues values)
 	{
@@ -892,9 +958,15 @@ public class FiveProvider extends AbstractSyncProvider
 		case SONGS_IN_PLAYLIST:
 		case PLAYLIST_SONGS:
 			return insertPlaylistSongs(db, uri, type, values);
-		default:
-			throw new IllegalArgumentException("Cannot insert URI: " + uri);
+		case DELETED_ARTIST:
+		case DELETED_ALBUM:
+		case DELETED_SONG:
+		case DELETED_PLAYLIST:
+		case DELETED_PLAYLIST_SONG:
+			return insertDeletedItem(db, uri, type, values);
 		}
+
+		throw new IllegalArgumentException("Cannot insert URI: " + uri);
 	}
 
 	/*-***********************************************************************/
@@ -928,7 +1000,7 @@ public class FiveProvider extends AbstractSyncProvider
 		return extendWhere(old, new String[] { add });
 	}
 
-	private int deleteSource(SQLiteDatabase db, Uri uri, URIPatternIds type,
+	private int deleteSources(SQLiteDatabase db, Uri uri, URIPatternIds type,
 	  String selection, String[] selectionArgs)
 	{
 		String custom;
@@ -962,166 +1034,99 @@ public class FiveProvider extends AbstractSyncProvider
 		return count;
 	}
 
-	private int deleteArtist(SQLiteDatabase db, Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
+	private void assertNoSelection(String selection, String[] selectionArgs)
 	{
-		String custom;
-		int count;
+		if (selection != null || selectionArgs != null)
+			throw new IllegalArgumentException();
+	}
 
-		switch (type)
-		{
-		case ARTISTS:
-			custom = selection;
-			break;
+	private int deleteArtist(SQLiteDatabase db, Uri uri, URIPatternIds type,
+			String selection, String[] selectionArgs)
+	{
+		assertNoSelection(selection, selectionArgs);
 
-		case ARTIST:
-			StringBuilder where = new StringBuilder();
-			where.append(Five.Music.Artists._ID).append('=').append(uri.getLastPathSegment());
+		long artistId = ContentUris.parseId(uri);
 
-			if (TextUtils.isEmpty(selection) == false)
-				where.append(" AND (").append(selection).append(')');
+		int count = db.delete(Five.Music.Artists.SQL.TABLE,
+				Five.Music.Artists._ID + " = " + artistId, null);
 
-			custom = where.toString();
-			break;
-
-		default:
-			throw new IllegalArgumentException("Cannot delete artist URI: " + uri);
+		try {
+			if (count > 0)
+				getArtistPhoto(artistId, false).delete();
+		} catch (FileNotFoundException e) {
+			if (Constants.DEBUG)
+				Log.d(TAG, "Unexpected sdcard error: " + e.toString());
 		}
-
-		count = db.delete(Five.Music.Artists.SQL.TABLE, custom, selectionArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
 
 	private int deleteAlbum(SQLiteDatabase db, Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
+			String selection, String[] selectionArgs)
 	{
-		String custom;
-		int count;
+		assertNoSelection(selection, selectionArgs);
 
-		switch (type)
-		{
-		case ALBUMS:
-			custom = selection;
-			break;
+		long albumId = ContentUris.parseId(uri);
 
-		case ALBUM:
-			StringBuilder where = new StringBuilder();
-			where.append(Five.Music.Albums._ID).append('=').append(uri.getLastPathSegment());
+		int count = db.delete(Five.Music.Albums.SQL.TABLE,
+				Five.Music.Albums._ID + " = " + albumId, null);
 
-			if (TextUtils.isEmpty(selection) == false)
-				where.append(" AND (").append(selection).append(')');
-
-			custom = where.toString();
-			break;
-
-		default:
-			throw new IllegalArgumentException("Cannot delete album URI: " + uri);
+		try {
+			if (count > 0)
+			{
+				getAlbumArtwork(albumId, false).delete();
+				getLargeAlbumArtwork(albumId, false).delete();
+			}
+		} catch (FileNotFoundException e) {
+			if (Constants.DEBUG)
+				Log.d(TAG, "Unexpected sdcard error: " + e.toString());
 		}
-
-		count = db.delete(Five.Music.Albums.SQL.TABLE, custom, selectionArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return count;
 	}
 
 	private int deleteSong(SQLiteDatabase db, Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
+			String selection, String[] selectionArgs)
 	{
-		String custom;
-		int count;
+		assertNoSelection(selection, selectionArgs);
 
-		switch (type)
+		long songId = ContentUris.parseId(uri);
+		String queryForSongId = Five.Music.Songs._ID + " = " + songId;
+
+		SongItem item = SongItem.getInstance(db.query(Five.Music.Songs.SQL.TABLE, null,
+				queryForSongId, null, null, null, null));
+		String cachePath = null;
+		if (item != null)
 		{
-		case SONGS:
-			custom = selection;
-			break;
-
-		case SONG:
-			StringBuilder where = new StringBuilder();
-			where.append(Five.Music.Songs._ID).append('=').append(uri.getLastPathSegment());
-
-			if (TextUtils.isEmpty(selection) == false)
-				where.append(" AND (").append(selection).append(')');
-
-			custom = where.toString();
-			break;
-
-		default:
-			throw new IllegalArgumentException("Cannot delete song URI: " + uri);
+			try {
+				cachePath = item.getCachePath();
+			} finally {
+				item.close();
+			}
 		}
 
-		count = db.delete(Five.Music.Songs.SQL.TABLE, custom, selectionArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
+		int count = db.delete(Five.Music.Songs.SQL.TABLE, queryForSongId, null);
+
+		if (count > 0)
+			new File(cachePath).delete();
 
 		return count;
 	}
 
-	private int deletePlaylists(SQLiteDatabase db, Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
+	private int deletePlaylist(SQLiteDatabase db, Uri uri, URIPatternIds type,
+			String selection, String[] selectionArgs)
 	{
-		String custom;
-		int count;
-
-		switch (type)
-		{
-		case PLAYLISTS:
-			custom = selection;
-
-			Cursor c = db.query(Five.Music.Playlists.SQL.TABLE,
-			  new String[] { Five.Music.Playlists._ID },
-			  custom, selectionArgs, null, null, null);
-
-			break;
-
-		case PLAYLIST:
-			custom = extendWhere(selection,
-			  Five.Music.Playlists._ID + '=' + uri.getLastPathSegment());
-			break;
-
-		default:
-			throw new IllegalArgumentException("Cannot delete playlist URI: " + uri);
-		}
-
-		count = db.delete(Five.Music.Playlists.SQL.TABLE, custom, selectionArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
-
-		return count;
+		assertNoSelection(selection, selectionArgs);
+		return db.delete(Five.Music.Playlists.SQL.TABLE,
+				Five.Music.Playlists._ID + " = " + ContentUris.parseId(uri), null);
 	}
 
-	private int deletePlaylistSongs(SQLiteDatabase db, Uri uri, URIPatternIds type,
-	  String selection, String[] selectionArgs)
+	private int deletePlaylistSong(SQLiteDatabase db, Uri uri, URIPatternIds type,
+			String selection, String[] selectionArgs)
 	{
-		List<Long> numsegs = null;
-		String custom = selection;
-		int count;
-
-		if (type != URIPatternIds.PLAYLIST_SONGS)
-		{
-			numsegs = getNumericPathSegments(uri);
-			custom = extendWhere(custom,
-			  Five.Music.PlaylistSongs.PLAYLIST_ID + '=' + numsegs.get(0));
-		}
-
-		switch (type)
-		{
-		case PLAYLIST_SONGS:
-			break;
-		case SONGS_IN_PLAYLIST:
-			break;
-		case SONG_IN_PLAYLIST:
-			custom = extendWhere(custom,
-			  Five.Music.PlaylistSongs.SONG_ID + '=' + numsegs.get(1));
-			break;
-		default:
-			throw new IllegalArgumentException("Cannot delete playlist URI: " + uri);
-		}
-
-		count = db.delete(Five.Music.PlaylistSongs.SQL.TABLE, custom, selectionArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
-
-		return count;
+		assertNoSelection(selection, selectionArgs);
+		return db.delete(Five.Music.PlaylistSongs.SQL.TABLE,
+				Five.Music.PlaylistSongs._ID + " = " + ContentUris.parseId(uri), null);
 	}
 
 	@Override
@@ -1137,22 +1142,17 @@ public class FiveProvider extends AbstractSyncProvider
 		{
 		case SOURCES:
 		case SOURCE:
-			return deleteSource(db, uri, type, selection, selectionArgs);
-		case ARTISTS:
+			return deleteSources(db, uri, type, selection, selectionArgs);
 		case ARTIST:
 			return deleteArtist(db, uri, type, selection, selectionArgs);
-		case ALBUMS:
 		case ALBUM:
 			return deleteAlbum(db, uri, type, selection, selectionArgs);
-		case SONGS:
 		case SONG:
 			return deleteSong(db, uri, type, selection, selectionArgs);
-		case PLAYLISTS:
 		case PLAYLIST:
-			return deletePlaylists(db, uri, type, selection, selectionArgs);
-		case PLAYLIST_SONGS:
-		case SONGS_IN_PLAYLIST:
-			return deletePlaylistSongs(db, uri, type, selection, selectionArgs);
+			return deletePlaylist(db, uri, type, selection, selectionArgs);
+		case PLAYLIST_SONG:
+			return deletePlaylistSong(db, uri, type, selection, selectionArgs);
 		default:
 			throw new IllegalArgumentException("Cannot delete URI: " + uri);
 		}
@@ -1204,6 +1204,7 @@ public class FiveProvider extends AbstractSyncProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums/#/songs", URIPatternIds.SONGS_BY_ARTIST_ON_ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/deleted", URIPatternIds.DELETED_ARTIST.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums", URIPatternIds.ALBUMS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/complete", URIPatternIds.ALBUMS_COMPLETE.ordinal());
@@ -1211,15 +1212,20 @@ public class FiveProvider extends AbstractSyncProvider
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork", URIPatternIds.ALBUM_ARTWORK.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork/big", URIPatternIds.ALBUM_ARTWORK_BIG.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/deleted", URIPatternIds.DELETED_ALBUM.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/deleted", URIPatternIds.DELETED_SONG.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists", URIPatternIds.PLAYLISTS.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/deleted", URIPatternIds.DELETED_PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/song/#", URIPatternIds.SONG_IN_PLAYLIST.ordinal());
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs", URIPatternIds.PLAYLIST_SONGS.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs/#", URIPatternIds.PLAYLIST_SONG.ordinal());
+		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs/deleted", URIPatternIds.DELETED_PLAYLIST_SONG.ordinal());
 
 		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/adjust_counts", URIPatternIds.ADJUST_COUNTS.ordinal());
 

@@ -28,6 +28,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.meta.data.Protos;
+import org.devtcg.five.meta.data.Protos.Record;
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
@@ -57,8 +58,6 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 	private static final String CONTENT_RANGE_HEADER = "Content-Range";
 	private static final String LAST_MODIFIED_HEADER = "X-Last-Modified";
 	private static final String MODIFIED_SINCE_HEADER = "X-Modified-Since";
-	private static final String CURSOR_POSITION_HEADER = "X-Cursor-Position";
-	private static final String CURSOR_COUNT_HEADER = "X-Cursor-Count";
 
 	private static final String FEED_ARTISTS = "artists";
 	private static final String FEED_ALBUMS = "albums";
@@ -69,6 +68,12 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 	private static final String TAG = "FiveSyncAdapter";
 
 	private final SourceItem mSource;
+
+	private final RecordDispatcher mArtistDispatcher = new ArtistRecordDispatcher();
+	private final RecordDispatcher mAlbumDispatcher = new AlbumRecordDispatcher();
+	private final RecordDispatcher mSongDispatcher = new SongRecordDispatcher();
+	private final RecordDispatcher mPlaylistDispatcher = new PlaylistRecordDispatcher();
+	private final RecordDispatcher mPlaylistSongDispatcher = new PlaylistSongRecordDispatcher();
 
 	private final ContentValues mTmpValues = new ContentValues();
 
@@ -147,7 +152,22 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		Log.i(TAG, "Downloading changes from feed=" + feedUrl + ", " +
 				"starting at modifiedSince=" + modifiedSince);
 
+		/**
+		 * Abstract object to perform insert records (and delete records) into
+		 * the temporary provider passed here to store downloaded results from
+		 * the server.
+		 */
+		RecordDispatcher recordDispatcher = getRecordDispatcher(feedType);
+
 		try {
+			/**
+			 * Issue a request to download all entries from the server for the
+			 * given feed (artists, albums, etc) with a modification time
+			 * exceeding <code>modifiedSince</code>. The expected response is a
+			 * manually crafted protobufs stream first listing all server ids that have
+			 * been deleted followed by all records which have either been
+			 * modified or newly inserted.
+			 */
 			HttpResponse response = mClient.execute(feeds);
 
 			StatusLine status = response.getStatusLine();
@@ -167,34 +187,25 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			InputStream in = entity.getContent();
 			try {
 				CodedInputStream stream = CodedInputStream.newInstance(in);
-				int count = stream.readRawLittleEndian32();
-				while (count-- > 0 && context.hasCanceled() == false)
+
+				int deleteCount = stream.readRawLittleEndian32();
+				while (deleteCount-- > 0 && context.hasCanceled() == false)
+				{
+					long deletedId = stream.readRawLittleEndian64();
+					recordDispatcher.delete(context, serverDiffs, deletedId);
+				}
+
+				int modCount = stream.readRawLittleEndian32();
+				while (modCount-- > 0 && context.hasCanceled() == false)
 				{
 					int size = stream.readRawLittleEndian32();
 					byte[] recordData = stream.readRawBytes(size);
 					Protos.Record record = Protos.Record.parseFrom(recordData);
-					switch (record.getType())
-					{
-						case ARTIST:
-							insertArtist(context, serverDiffs, record.getArtist());
-							break;
 
-						case ALBUM:
-							insertAlbum(context, serverDiffs, record.getAlbum());
-							break;
+					/* Sanity check the record type returned by the server. */
+					validateRecordType(record.getType(), recordDispatcher);
 
-						case SONG:
-							insertSong(context, serverDiffs, record.getSong());
-							break;
-
-						case PLAYLIST:
-							insertPlaylist(context, serverDiffs, record.getPlaylist());
-							break;
-
-						case PLAYLIST_SONG:
-							insertPlaylistSong(context, serverDiffs, record.getPlaylistSong());
-							break;
-					}
+					recordDispatcher.insert(context, serverDiffs, record);
 				}
 			} finally {
 				IOUtilities.close(in);
@@ -207,6 +218,35 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		}
 
 		return modifiedSince;
+	}
+
+	/**
+	 * Awkward way to validate that the record type from the server matches what
+	 * we expect based on our request. Compares the RecordDispatcher simply
+	 * because the API throughout the sync adapter prefers to work with string
+	 * feedTypes instead of integers aligning with the protobufs record types
+	 * for some silly reason.
+	 */
+	private void validateRecordType(Protos.Record.Type type, RecordDispatcher dispatcher)
+	{
+		RecordDispatcher expected;
+
+		switch (type)
+		{
+			case ARTIST: expected = mArtistDispatcher; break;
+			case ALBUM: expected = mAlbumDispatcher; break;
+			case SONG: expected = mSongDispatcher; break;
+			case PLAYLIST: expected = mPlaylistDispatcher; break;
+			case PLAYLIST_SONG: expected = mPlaylistSongDispatcher; break;
+			default:
+				throw new IllegalStateException("Server produced unknown record of type " + type);
+		}
+
+		if (expected != dispatcher)
+		{
+			throw new IllegalStateException("Server produced unusual record of type " + type +
+					" when we expected to dispatch with " + dispatcher);
+		}
 	}
 
 	private void getImageData(SyncContext context, AbstractSyncProvider serverDiffs,
@@ -358,6 +398,22 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		}
 	}
 
+	private RecordDispatcher getRecordDispatcher(String feedType)
+	{
+		if (feedType.equals(FEED_ARTISTS))
+			return mArtistDispatcher;
+		else if (feedType.equals(FEED_ALBUMS))
+			return mAlbumDispatcher;
+		else if (feedType.equals(FEED_SONGS))
+			return mSongDispatcher;
+		else if (feedType.equals(FEED_PLAYLISTS))
+			return mPlaylistDispatcher;
+		else if (feedType.equals(FEED_PLAYLIST_SONGS))
+			return mPlaylistSongDispatcher;
+
+		throw new IllegalArgumentException();
+	}
+
 	private static Uri getLocalFeedUri(String feedType)
 	{
 		if (feedType.equals(FEED_ARTISTS))
@@ -411,77 +467,153 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		return maxSyncTime;
 	}
 
-	private void insertArtist(SyncContext context, AbstractSyncProvider serverDiffs,
-		Protos.Artist artist)
+	/**
+	 * Standard interface to simplify dispatching records received from a server
+	 * feed. Inserts into temporary provider to be later merged with the main
+	 * tables.
+	 */
+	private abstract class RecordDispatcher
 	{
-		ContentValues values = mTmpValues;
-		values.clear();
-		values.put(Five.Music.Artists._SYNC_ID, artist.getId());
-		values.put(Five.Music.Artists._SYNC_TIME, artist.getSyncTime());
-		values.put(Five.Music.Artists.MBID, artist.getMbid());
-		values.put(Five.Music.Artists.NAME, artist.getName());
-		values.put(Five.Music.Artists.DISCOVERY_DATE, artist.getDiscoveryDate());
-		serverDiffs.insert(Five.Music.Artists.CONTENT_URI, values);
+		private final Uri mDeletedUri;
+
+		public RecordDispatcher(Uri deletedUri)
+		{
+			mDeletedUri = deletedUri;
+		}
+
+		public abstract void insert(SyncContext context, AbstractSyncProvider serverDiffs,
+				Protos.Record record);
+
+		public void delete(SyncContext context, AbstractSyncProvider serverDiffs,
+				long deletedId)
+		{
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(SyncableColumns._SYNC_ID, deletedId);
+			serverDiffs.insert(mDeletedUri, values);
+		}
 	}
 
-	private void insertAlbum(SyncContext context, AbstractSyncProvider serverDiffs,
-		Protos.Album album)
+	private class ArtistRecordDispatcher extends RecordDispatcher
 	{
-		ContentValues values = mTmpValues;
-		values.clear();
-		values.put(Five.Music.Albums._SYNC_ID, album.getId());
-		values.put(Five.Music.Albums._SYNC_TIME, album.getSyncTime());
-		values.put(Five.Music.Albums.MBID, album.getMbid());
-		values.put(Five.Music.Albums.ARTIST_ID, album.getArtistId());
-		values.put(Five.Music.Albums.NAME, album.getName());
-		values.put(Five.Music.Albums.DISCOVERY_DATE, album.getDiscoveryDate());
-		values.put(Five.Music.Albums.RELEASE_DATE, album.getReleaseDate());
-		serverDiffs.insert(Five.Music.Albums.CONTENT_URI, values);
+		public ArtistRecordDispatcher()
+		{
+			super(Five.Music.Artists.CONTENT_DELETED_URI);
+		}
+
+		@Override
+		public void insert(SyncContext context, AbstractSyncProvider serverDiffs,
+				Protos.Record record)
+		{
+			Protos.Artist artist = record.getArtist();
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(Five.Music.Artists._SYNC_ID, artist.getId());
+			values.put(Five.Music.Artists._SYNC_TIME, artist.getSyncTime());
+			values.put(Five.Music.Artists.MBID, artist.getMbid());
+			values.put(Five.Music.Artists.NAME, artist.getName());
+			values.put(Five.Music.Artists.DISCOVERY_DATE, artist.getDiscoveryDate());
+			serverDiffs.insert(Five.Music.Artists.CONTENT_URI, values);
+		}
 	}
 
-	private void insertSong(SyncContext context, AbstractSyncProvider serverDiffs,
-		Protos.Song song)
+	private class AlbumRecordDispatcher extends RecordDispatcher
 	{
-		ContentValues values = mTmpValues;
-		values.clear();
-		values.put(Five.Music.Songs._SYNC_ID, song.getId());
-		values.put(Five.Music.Songs._SYNC_TIME, song.getSyncTime());
-		values.put(Five.Music.Songs.SOURCE_ID, mSource.getId());
-		values.put(Five.Music.Songs.MBID, song.getMbid());
-		values.put(Five.Music.Songs.ARTIST_ID, song.getArtistId());
-		values.put(Five.Music.Songs.ALBUM_ID, song.getAlbumId());
-		values.put(Five.Music.Songs.BITRATE, song.getBitrate());
-		values.put(Five.Music.Songs.LENGTH, song.getLength());
-		values.put(Five.Music.Songs.TITLE, song.getTitle());
-		values.put(Five.Music.Songs.TRACK, song.getTrack());
-		values.put(Five.Music.Songs.MIME_TYPE, song.getMimeType());
-		values.put(Five.Music.Songs.SIZE, song.getFilesize());
+		public AlbumRecordDispatcher()
+		{
+			super(Five.Music.Albums.CONTENT_DELETED_URI);
+		}
 
-		serverDiffs.insert(Five.Music.Songs.CONTENT_URI, values);
+		@Override
+		public void insert(SyncContext context, AbstractSyncProvider serverDiffs,
+				Protos.Record record)
+		{
+			Protos.Album album = record.getAlbum();
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(Five.Music.Albums._SYNC_ID, album.getId());
+			values.put(Five.Music.Albums._SYNC_TIME, album.getSyncTime());
+			values.put(Five.Music.Albums.MBID, album.getMbid());
+			values.put(Five.Music.Albums.ARTIST_ID, album.getArtistId());
+			values.put(Five.Music.Albums.NAME, album.getName());
+			values.put(Five.Music.Albums.DISCOVERY_DATE, album.getDiscoveryDate());
+			values.put(Five.Music.Albums.RELEASE_DATE, album.getReleaseDate());
+			serverDiffs.insert(Five.Music.Albums.CONTENT_URI, values);
+		}
 	}
 
-	private void insertPlaylist(SyncContext context, AbstractSyncProvider serverDiffs,
-		Protos.Playlist playlist)
+	private class SongRecordDispatcher extends RecordDispatcher
 	{
-		ContentValues values = mTmpValues;
-		values.clear();
-		values.put(Five.Music.Playlists._SYNC_ID, playlist.getId());
-		values.put(Five.Music.Playlists._SYNC_TIME, playlist.getSyncTime());
-		values.put(Five.Music.Playlists.NAME, playlist.getName());
-		values.put(Five.Music.Playlists.CREATED_DATE, playlist.getCreatedDate());
-		serverDiffs.insert(Five.Music.Playlists.CONTENT_URI, values);
+		public SongRecordDispatcher()
+		{
+			super(Five.Music.Songs.CONTENT_DELETED_URI);
+		}
+
+		@Override
+		public void insert(SyncContext context, AbstractSyncProvider serverDiffs,
+				Protos.Record record)
+		{
+			Protos.Song song = record.getSong();
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(Five.Music.Songs._SYNC_ID, song.getId());
+			values.put(Five.Music.Songs._SYNC_TIME, song.getSyncTime());
+			values.put(Five.Music.Songs.SOURCE_ID, mSource.getId());
+			values.put(Five.Music.Songs.MBID, song.getMbid());
+			values.put(Five.Music.Songs.ARTIST_ID, song.getArtistId());
+			values.put(Five.Music.Songs.ALBUM_ID, song.getAlbumId());
+			values.put(Five.Music.Songs.BITRATE, song.getBitrate());
+			values.put(Five.Music.Songs.LENGTH, song.getLength());
+			values.put(Five.Music.Songs.TITLE, song.getTitle());
+			values.put(Five.Music.Songs.TRACK, song.getTrack());
+			values.put(Five.Music.Songs.MIME_TYPE, song.getMimeType());
+			values.put(Five.Music.Songs.SIZE, song.getFilesize());
+			serverDiffs.insert(Five.Music.Songs.CONTENT_URI, values);
+		}
 	}
 
-	private void insertPlaylistSong(SyncContext context, AbstractSyncProvider serverDiffs,
-		Protos.PlaylistSong playlistSong)
+	private class PlaylistRecordDispatcher extends RecordDispatcher
 	{
-		ContentValues values = mTmpValues;
-		values.clear();
-		values.put(Five.Music.PlaylistSongs._SYNC_ID, playlistSong.getId());
-		values.put(Five.Music.PlaylistSongs._SYNC_TIME, playlistSong.getSyncTime());
-		values.put(Five.Music.PlaylistSongs.PLAYLIST_ID, playlistSong.getPlaylistId());
-		values.put(Five.Music.PlaylistSongs.POSITION, playlistSong.getPosition());
-		values.put(Five.Music.PlaylistSongs.SONG_ID, playlistSong.getSongId());
-		serverDiffs.insert(Five.Music.PlaylistSongs.CONTENT_URI, values);
+		public PlaylistRecordDispatcher()
+		{
+			super(Five.Music.Playlists.CONTENT_DELETED_URI);
+		}
+
+		@Override
+		public void insert(SyncContext context, AbstractSyncProvider serverDiffs,
+				Protos.Record record)
+		{
+			Protos.Playlist playlist = record.getPlaylist();
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(Five.Music.Playlists._SYNC_ID, playlist.getId());
+			values.put(Five.Music.Playlists._SYNC_TIME, playlist.getSyncTime());
+			values.put(Five.Music.Playlists.NAME, playlist.getName());
+			values.put(Five.Music.Playlists.CREATED_DATE, playlist.getCreatedDate());
+			serverDiffs.insert(Five.Music.Playlists.CONTENT_URI, values);
+		}
+	}
+
+	private class PlaylistSongRecordDispatcher extends RecordDispatcher
+	{
+		public PlaylistSongRecordDispatcher()
+		{
+			super(Five.Music.PlaylistSongs.CONTENT_DELETED_URI);
+		}
+
+		@Override
+		public void insert(SyncContext context, AbstractSyncProvider serverDiffs,
+				Protos.Record record)
+		{
+			Protos.PlaylistSong playlistSong = record.getPlaylistSong();
+			ContentValues values = mTmpValues;
+			values.clear();
+			values.put(Five.Music.PlaylistSongs._SYNC_ID, playlistSong.getId());
+			values.put(Five.Music.PlaylistSongs._SYNC_TIME, playlistSong.getSyncTime());
+			values.put(Five.Music.PlaylistSongs.PLAYLIST_ID, playlistSong.getPlaylistId());
+			values.put(Five.Music.PlaylistSongs.POSITION, playlistSong.getPosition());
+			values.put(Five.Music.PlaylistSongs.SONG_ID, playlistSong.getSongId());
+			serverDiffs.insert(Five.Music.PlaylistSongs.CONTENT_URI, values);
+		}
 	}
 }

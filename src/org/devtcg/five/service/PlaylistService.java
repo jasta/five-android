@@ -209,6 +209,9 @@ public class PlaylistService extends Service implements
 
 	private void handleStart(Intent intent, int startId)
 	{
+		if (intent == null)
+			return;
+
 		if (Intent.ACTION_MEDIA_BUTTON.equals(intent.getAction()))
 		{
 			KeyEvent event = (KeyEvent)intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);

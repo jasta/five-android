@@ -36,6 +36,7 @@ public class SyncContext
 
 	private volatile boolean hasCanceled;
 	public boolean networkError;
+	public boolean mergeError;
 	public String errorMessage;
 
 	/**
@@ -74,7 +75,7 @@ public class SyncContext
 
 	public boolean hasError()
 	{
-		return networkError;
+		return networkError || mergeError;
 	}
 
 	public interface CancelTrigger

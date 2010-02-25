@@ -37,7 +37,10 @@ public final class ArtistMerger extends AbstractTableMerger
 
 	public ArtistMerger(FiveProvider provider)
 	{
-		super(provider.getDatabase(), Five.Music.Artists.SQL.TABLE, Five.Music.Artists.CONTENT_URI);
+		super(provider.getDatabase(), Five.Music.Artists.SQL.TABLE,
+				Five.Music.Artists.SQL.DELETED_TABLE,
+				Five.Music.Artists.CONTENT_URI,
+				Five.Music.Artists.CONTENT_DELETED_URI);
 		mProvider = provider;
 	}
 
@@ -48,9 +51,11 @@ public final class ArtistMerger extends AbstractTableMerger
 	}
 
 	@Override
-	public void deleteRow(Context context, ContentProvider diffs, Cursor diffsCursor)
+	public void deleteRow(Context context, ContentProvider diffs, Cursor localCursor)
 	{
-		throw new UnsupportedOperationException();
+		mProvider.deleteInternal(ContentUris.withAppendedId(mTableUri,
+				localCursor.getLong(localCursor.getColumnIndexOrThrow(Five.Music.Artists._ID))),
+				null, null);
 	}
 
 	private static void rowToContentValues(Cursor cursor, ContentValues values)

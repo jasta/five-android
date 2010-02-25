@@ -54,6 +54,14 @@ public final class Five
 				.build();
 	}
 
+	private static String makeCreateDeletedTablesSQL(String deletedTable)
+	{
+		return "CREATE TABLE " + deletedTable + " (" +
+				SyncableColumns._ID + " INTEGER PRIMARY KEY, " +
+				SyncableColumns._SYNC_ID + " INTEGER, " +
+				SyncableColumns._SYNC_TIME + " BIGINT)";
+	}
+
 	/**
 	 * Concrete synchronization source.  Under this implementation, a TCP
 	 * server on the Internet.
@@ -245,6 +253,9 @@ public final class Five
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/songs");
 
+			public static final Uri CONTENT_DELETED_URI =
+				  Uri.parse("content://" + AUTHORITY + "/media/music/songs/deleted");
+
 			/**
 			 * Server source, used to join Content and Songs during sync
 			 * merging.
@@ -301,8 +312,9 @@ public final class Five
 			public static final class SQL
 			{
 				public static final String TABLE = "music_songs";
+				public static final String DELETED_TABLE = "music_songs_deleted";
 
-				public static final String CREATE =
+				public static final String[] CREATE = {
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  _SYNC_ID + " INTEGER, " +
@@ -323,10 +335,11 @@ public final class Five
 				  SET + " INTEGER, " +
 				  DISCOVERY_DATE + " DATETIME, " +
 				  LAST_PLAYED + " DATETIME " +
-				  ");";
+				  ");",
+				  makeCreateDeletedTablesSQL(DELETED_TABLE),
+				};
 
-				public static final String[] INDEX =
-				{
+				public static final String[] INDEX = {
 					"CREATE INDEX " +
 				  	  TABLE + "_" + ARTIST_ID +
 				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
@@ -345,8 +358,10 @@ public final class Five
 				  	");",
 				};
 
-				public static final String DROP =
-				  "DROP TABLE IF EXISTS " + TABLE;
+				public static final String[] DROP = {
+				  "DROP TABLE IF EXISTS " + TABLE,
+				  "DROP TABLE IF EXISTS " + DELETED_TABLE,
+				};
 			}
 		}
 
@@ -358,6 +373,9 @@ public final class Five
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 				Uri.parse("content://" + AUTHORITY + "/media/music/artists");
+
+			public static final Uri CONTENT_DELETED_URI =
+				Uri.parse("content://" + AUTHORITY + "/media/music/artists/deleted");
 
 			/** MusicBrainz identifier. */
 			public static final String MBID = "mbid";
@@ -390,8 +408,9 @@ public final class Five
 			public static final class SQL
 			{
 				public static final String TABLE = "music_artists";
+				public static final String DELETED_TABLE = TABLE + "_deleted";
 
-				public static final String CREATE =
+				public static final String[] CREATE = {
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  _SYNC_ID + " INTEGER, " +
@@ -404,10 +423,11 @@ public final class Five
 				  DISCOVERY_DATE + " DATETIME, " +
 				  NUM_ALBUMS + " INTEGER, " +
 				  NUM_SONGS + " INTEGER " +
-				  ");";
+				  ")",
+				  makeCreateDeletedTablesSQL(DELETED_TABLE),
+				};
 
-				public static final String[] INDEX = new String[]
-				{
+				public static final String[] INDEX  = {
 			  	  "CREATE UNIQUE INDEX " +
 			  	    TABLE + "_" + _SYNC_ID +
 			  	    " ON " + TABLE + " (" +
@@ -415,8 +435,10 @@ public final class Five
 			  	  ");",
 				};
 
-				public static final String DROP =
-				  "DROP TABLE IF EXISTS " + TABLE;
+				public static final String[] DROP = {
+				  "DROP TABLE IF EXISTS " + TABLE,
+				  "DROP TABLE IF EXISTS " + DELETED_TABLE,
+				};
 			}
 		}
 
@@ -428,6 +450,9 @@ public final class Five
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/albums");
+
+			public static final Uri CONTENT_DELETED_URI =
+				  Uri.parse("content://" + AUTHORITY + "/media/music/albums/deleted");
 
 			/** Access URI for "complete" albums only. */
 			public static final Uri CONTENT_URI_COMPLETE =
@@ -468,8 +493,9 @@ public final class Five
 			public static final class SQL
 			{
 				public static final String TABLE = "music_albums";
+				public static final String DELETED_TABLE = "music_albums_deleted";
 
-				public static final String CREATE =
+				public static final String[] CREATE = {
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  _SYNC_ID + " INTEGER, " +
@@ -483,10 +509,11 @@ public final class Five
 				  RELEASE_DATE + " DATETIME, " +
 				  DISCOVERY_DATE + " DATETIME, " +
 				  NUM_SONGS + " INTEGER " +
-				  ");";
+				  ")",
+				  makeCreateDeletedTablesSQL(DELETED_TABLE),
+				};
 
-				public static final String[] INDEX =
-				{
+				public static final String[] INDEX = {
 					"CREATE INDEX " +
 				  	  TABLE + "_" + ARTIST_ID +
 				  	  " ON " + TABLE + " (" + ARTIST_ID + ");",
@@ -497,8 +524,10 @@ public final class Five
 				  	");",
 				};
 
-				public static final String DROP =
-				  "DROP TABLE IF EXISTS " + TABLE;
+				public static final String[] DROP = {
+				  "DROP TABLE IF EXISTS " + TABLE,
+				  "DROP TABLE IF EXISTS " + DELETED_TABLE,
+				};
 			}
 		}
 
@@ -510,6 +539,9 @@ public final class Five
 			/** Access URI. */
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists");
+
+			public static final Uri CONTENT_DELETED_URI =
+				  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/deleted");
 
 			/** User-prescribed name and description. */
 			public static final String NAME = "name";
@@ -523,8 +555,9 @@ public final class Five
 			public static final class SQL
 			{
 				public static final String TABLE = "music_playlists";
+				public static final String DELETED_TABLE = "music_playlists_deleted";
 
-				public static final String CREATE =
+				public static final String[] CREATE = {
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  _SYNC_ID + " INTEGER, " +
@@ -532,10 +565,14 @@ public final class Five
 				  NAME + " TEXT COLLATE UNICODE NOT NULL, " +
 				  CREATED_DATE + " DATETIME, " +
 				  NUM_SONGS + " INTEGER " +
-				  ");";
+				  ");",
+				  makeCreateDeletedTablesSQL(DELETED_TABLE),
+				};
 
-				public static final String DROP =
-				  "DROP TABLE IF EXISTS " + TABLE;
+				public static final String[] DROP = {
+				  "DROP TABLE IF EXISTS " + TABLE,
+				  "DROP TABLE IF EXISTS " + DELETED_TABLE,
+				};
 			}
 		}
 
@@ -549,6 +586,9 @@ public final class Five
 			public static final Uri CONTENT_URI =
 			  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/songs");
 
+			public static final Uri CONTENT_DELETED_URI =
+				  Uri.parse("content://" + AUTHORITY + "/media/music/playlists/songs/deleted");
+
 			/** Playlist ID. */
 			public static final String PLAYLIST_ID = "playlist_id";
 
@@ -561,8 +601,9 @@ public final class Five
 			public static final class SQL
 			{
 				public static final String TABLE = "music_playlist_songs";
+				public static final String DELETED_TABLE = "music_playlist_songs_deleted";
 
-				public static final String CREATE =
+				public static final String[] CREATE = {
 				  "CREATE TABLE " + TABLE + " (" +
 				  _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				  _SYNC_ID + " INTEGER, " +
@@ -570,17 +611,20 @@ public final class Five
 				  PLAYLIST_ID + " INTEGER NOT NULL, " +
 				  SONG_ID + " INTEGER NOT NULL, " +
 				  POSITION + " INTEGER NOT NULL " +
-				  ");";
+				  ");",
+				  makeCreateDeletedTablesSQL(DELETED_TABLE),
+				};
 
-				public static final String[] INDEX =
-				{
+				public static final String[] INDEX = {
 				  "CREATE INDEX " +
 				    TABLE + "_" + PLAYLIST_ID +
 				    " ON " + TABLE + " (" + PLAYLIST_ID + ");",
 				};
 
-				public static final String DROP =
-				  "DROP TABLE IF EXISTS " + TABLE;
+				public static final String[] DROP = {
+				  "DROP TABLE IF EXISTS " + TABLE,
+				  "DROP TABLE IF EXISTS " + DELETED_TABLE,
+				};
 			}
 		}
 

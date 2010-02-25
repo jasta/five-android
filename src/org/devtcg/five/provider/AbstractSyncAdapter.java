@@ -123,7 +123,10 @@ public abstract class AbstractSyncAdapter
 				watch.start();
 				mProvider.merge(context, serverDiffs);
 				watch.stopAndDebugElapsed(TAG, "serverDiffs.merge");
-				Log.d(TAG, "Successfully merged " + context.getTotalRecordsProcessed() + " records!");
+
+				if (!context.hasError())
+					Log.d(TAG, "Successfully merged " + context.getTotalRecordsProcessed() + " records!");
+
 				break;
 			}
 		}
@@ -136,8 +139,10 @@ public abstract class AbstractSyncAdapter
 			Log.i(TAG, "Sync aborted with errors, will try again later...");
 		else
 		{
-			Log.i(TAG, "Sync completed successfully, total records processed: " +
-				context.getTotalRecordsProcessed());
+			Log.i(TAG, "Sync completed successfully, processed " +
+					context.numberOfDeletes + " deletes, " +
+					context.numberOfInserts + " inserts, and " +
+					context.numberOfUpdates + " updates");
 			serverDiffs.onDestroySyncInstance();
 		}
 	}

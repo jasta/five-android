@@ -22,6 +22,7 @@ import org.devtcg.five.provider.FiveProvider;
 
 import android.content.ContentProvider;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -41,7 +42,10 @@ public final class PlaylistSongMerger extends AbstractTableMerger
 
 	public PlaylistSongMerger(FiveProvider provider)
 	{
-		super(provider.getDatabase(), Five.Music.PlaylistSongs.SQL.TABLE, Five.Music.PlaylistSongs.CONTENT_URI);
+		super(provider.getDatabase(), Five.Music.PlaylistSongs.SQL.TABLE,
+				Five.Music.PlaylistSongs.SQL.DELETED_TABLE,
+				Five.Music.PlaylistSongs.CONTENT_URI,
+				Five.Music.PlaylistSongs.CONTENT_DELETED_URI);
 		mProvider = provider;
 	}
 
@@ -65,9 +69,11 @@ public final class PlaylistSongMerger extends AbstractTableMerger
 	}
 
 	@Override
-	public void deleteRow(Context context, ContentProvider diffs, Cursor diffsCursor)
+	public void deleteRow(Context context, ContentProvider diffs, Cursor localCursor)
 	{
-		throw new UnsupportedOperationException();
+		mProvider.deleteInternal(ContentUris.withAppendedId(mTableUri,
+				localCursor.getLong(localCursor.getColumnIndexOrThrow(Five.Music.Artists._ID))),
+				null, null);
 	}
 
 	private long getPlaylistId(ContentProvider diffs, long playlistSyncId)
