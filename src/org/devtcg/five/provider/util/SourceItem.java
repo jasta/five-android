@@ -24,7 +24,6 @@ import android.net.Uri;
 
 public class SourceItem extends AbstractDAOItem
 {
-	private int mColumnId;
 	private int mColumnHost;
 	private int mColumnPort;
 	private int mColumnPassword;
@@ -45,7 +44,6 @@ public class SourceItem extends AbstractDAOItem
 	{
 		super(cursor);
 
-		mColumnId = cursor.getColumnIndex(Five.Sources._ID);
 		mColumnHost = cursor.getColumnIndex(Five.Sources.HOST);
 		mColumnPort = cursor.getColumnIndex(Five.Sources.PORT);
 		mColumnPassword = cursor.getColumnIndex(Five.Sources.PASSWORD);
@@ -56,11 +54,6 @@ public class SourceItem extends AbstractDAOItem
 	public Uri getUri()
 	{
 		return ContentUris.withAppendedId(Five.Sources.CONTENT_URI, getId());
-	}
-
-	public long getId()
-	{
-		return mCursor.getLong(mColumnId);
 	}
 
 	public String getHost()

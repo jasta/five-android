@@ -23,7 +23,6 @@ import android.net.Uri;
 
 public class SongItem extends AbstractDAOItem
 {
-	private int mColumnId;
 	private int mColumnSyncId;
 	private int mColumnCachePath;
 	private int mColumnSize;
@@ -45,7 +44,6 @@ public class SongItem extends AbstractDAOItem
 		super(cursor);
 
 		/* XXX: We don't currently support all columns.  Finish later. */
-		mColumnId = cursor.getColumnIndex(Five.Music.Songs._ID);
 		mColumnSyncId = cursor.getColumnIndex(Five.Music.Songs._SYNC_ID);
 		mColumnCachePath = cursor.getColumnIndex(Five.Music.Songs.CACHED_PATH);
 		mColumnSize = cursor.getColumnIndex(Five.Music.Songs.SIZE);
@@ -56,11 +54,6 @@ public class SongItem extends AbstractDAOItem
 	public Uri getUri()
 	{
 		return ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, getId());
-	}
-
-	public long getId()
-	{
-		return mCursor.getLong(mColumnId);
 	}
 
 	public long getSyncId()

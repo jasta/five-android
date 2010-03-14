@@ -22,7 +22,7 @@
 	>
 
 	<ImageView
-		android:id="@+id/album_cover"
+		android:id="@+id/badge"
 		android:layout_width="@dimen/image_thumb_width"
 		android:layout_height="@dimen/image_thumb_height"
 		android:scaleType="centerCrop"

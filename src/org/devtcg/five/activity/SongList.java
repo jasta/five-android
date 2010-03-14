@@ -21,6 +21,7 @@ import java.util.Random;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.AlbumItem;
 import org.devtcg.five.service.IPlaylistMoveListener;
 import org.devtcg.five.service.IPlaylistService;
 import org.devtcg.five.util.PlaylistServiceActivity;
@@ -951,5 +952,17 @@ public class SongList extends PlaylistServiceActivity
 		{
 			return mWrapped.isNull(column);
 		}
+	}
+
+	public static void show(Context context, AlbumItem album)
+	{
+		Intent chosen = new Intent(Intent.ACTION_VIEW, album.getUri(), context, SongList.class);
+		chosen.putExtra("artistId", album.getArtistId());
+		chosen.putExtra("artistName", album.getArtist());
+		chosen.putExtra("albumId", album.getId());
+		chosen.putExtra("albumName", album.getName());
+		chosen.putExtra("albumArtwork", album.getArtworkThumbUri() != null ? album.getArtworkThumbUri().toString() : null);
+		chosen.putExtra("albumArtworkBig", album.getArtworkFullUri() != null ? album.getArtworkFullUri().toString() : null);
+		context.startActivity(chosen);
 	}
 }

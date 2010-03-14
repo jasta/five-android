@@ -17,6 +17,7 @@ package org.devtcg.five.util;
 import java.io.IOException;
 import java.io.InputStream;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -28,6 +29,9 @@ import android.net.Uri;
  */
 public class BetterBitmapFactory extends BitmapFactory
 {
+	/**
+	 * @see #decodeUri(ContentResolver, Uri)
+	 */
 	public static Bitmap decodeUri(Context ctx, String uri)
 	{
 		if (uri == null)
@@ -37,14 +41,22 @@ public class BetterBitmapFactory extends BitmapFactory
 	}
 
 	/**
+	 * @see #decodeUri(ContentResolver, Uri)
+	 */
+	public static Bitmap decodeUri(Context context, Uri uri)
+	{
+		return decodeUri(context.getContentResolver(), uri);
+	}
+
+	/**
 	 * Decode a Uri as a bitmap, as ImageView.setImageURI would do.
 	 */
-	public static Bitmap decodeUri(Context ctx, Uri uri)
+	public static Bitmap decodeUri(ContentResolver resolver, Uri uri)
 	{
 		InputStream in = null;
 
 		try {
-			in = ctx.getContentResolver().openInputStream(uri);
+			in = resolver.openInputStream(uri);
 			return decodeStream(in);
 		} catch (IOException e) {
 			return null;

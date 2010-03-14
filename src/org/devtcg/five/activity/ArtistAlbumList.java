@@ -16,6 +16,7 @@ package org.devtcg.five.activity;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
+import org.devtcg.five.provider.util.ArtistItem;
 import org.devtcg.five.widget.EfficientCursorAdapter;
 
 import android.app.Activity;
@@ -51,6 +52,15 @@ public class ArtistAlbumList extends Activity
 
 	private static final int MENU_RETURN_LIBRARY = Menu.FIRST;
 	private static final int MENU_GOTO_PLAYER = Menu.FIRST + 1;
+
+	public static void show(Context context, ArtistItem item)
+	{
+		Intent chosen = new Intent(Intent.ACTION_VIEW, item.getUri(), context, ArtistAlbumList.class);
+		chosen.putExtra("artistId", item.getId());
+		chosen.putExtra("artistName", item.getName());
+		chosen.putExtra("artistPhoto", item.getPhotoUri() != null ? item.getPhotoUri().toString() : null);
+		context.startActivity(chosen);
+	}
 
 	@Override
 	public void onCreate(Bundle icicle)

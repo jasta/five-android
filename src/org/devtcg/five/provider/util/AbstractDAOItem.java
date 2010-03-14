@@ -17,10 +17,13 @@ package org.devtcg.five.provider.util;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.BaseColumns;
 
 public class AbstractDAOItem
 {
 	protected final Cursor mCursor;
+
+	private final int mColumnId;
 
 	public AbstractDAOItem(Cursor cursor)
 	{
@@ -28,6 +31,8 @@ public class AbstractDAOItem
 			throw new IllegalArgumentException("Cursor must not be null");
 
 		mCursor = cursor;
+
+		mColumnId = cursor.getColumnIndex(BaseColumns._ID);
 	}
 
 	public void close()
@@ -58,6 +63,16 @@ public class AbstractDAOItem
 	public Cursor getCursor()
 	{
 		return mCursor;
+	}
+
+	public long getId()
+	{
+		return mCursor.getLong(mColumnId);
+	}
+
+	protected Uri parseUriNullSafe(String uri)
+	{
+		return uri != null ? Uri.parse(uri) : null;
 	}
 
 	protected static abstract class Creator<T extends AbstractDAOItem>

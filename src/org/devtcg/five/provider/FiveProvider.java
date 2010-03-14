@@ -461,13 +461,10 @@ public class FiveProvider extends AbstractSyncProvider
 			break;
 
 		case ARTISTS:
-			qb.setTables(Five.Music.Artists.SQL.TABLE);
-			qb.setProjectionMap(artistsMap);
-			break;
-
 		case ARTIST:
 			qb.setTables(Five.Music.Artists.SQL.TABLE);
-			qb.appendWhere("_id=" + uri.getLastPathSegment());
+			if (type == URIPatternIds.ARTIST)
+				qb.appendWhere("_id=" + uri.getLastPathSegment());
 			qb.setProjectionMap(artistsMap);
 			break;
 
@@ -481,10 +478,13 @@ public class FiveProvider extends AbstractSyncProvider
 
 			if (type == URIPatternIds.ALBUM)
 				qb.appendWhere("a._id=" + uri.getLastPathSegment());
-			else if (type == URIPatternIds.ALBUMS_BY_ARTIST)
-				qb.appendWhere("a.artist_id=" + getSecondToLastPathSegment(uri));
-			else if (type == URIPatternIds.ALBUMS_COMPLETE)
-				qb.appendWhere("a.num_songs > 3");
+			else
+			{
+				if (type == URIPatternIds.ALBUMS_BY_ARTIST)
+					qb.appendWhere("a.artist_id=" + getSecondToLastPathSegment(uri));
+				else if (type == URIPatternIds.ALBUMS_COMPLETE)
+					qb.appendWhere("a.num_songs > 3");
+			}
 
 			qb.setProjectionMap(albumsMap);
 			break;
