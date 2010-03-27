@@ -19,15 +19,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
+import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.provider.util.AlbumItem;
+import org.devtcg.five.provider.util.PlaylistItem;
 import org.devtcg.five.service.IPlaylistMoveListener;
 import org.devtcg.five.service.IPlaylistService;
 import org.devtcg.five.util.PlaylistServiceActivity;
 import org.devtcg.five.widget.EfficientCursorAdapter;
 import org.devtcg.five.widget.StatefulListView;
 
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.database.AbstractCursor;
@@ -59,20 +62,20 @@ public class SongList extends PlaylistServiceActivity
 {
 	public static final String TAG = "SongList";
 
-	private static final String[] QUERY_FIELDS =
-	  { Five.Music.Songs._ID, Five.Music.Songs.TITLE,
+	private static final String[] sProjection = {
+		Five.Music.Songs._ID, Five.Music.Songs.TITLE,
 		Five.Music.Songs.LENGTH, Five.Music.Songs.TRACK,
-		Five.Music.Songs.ARTIST_ID };
+		Five.Music.Songs.ARTIST_ID
+	};
 
 	/* Compilation albums are handled specially by showing the artist name
 	 * with the song title.  This map is designed to efficiently cache
 	 * the result of that extra query. */
 	private HashMap<Long, String> mVAArtistMap = null;
 
-	/* Stored information handed to us through our Intent. */
 	private SongListExtras mExtras;
 
-	private Handler mHandler = new Handler();
+	private final Handler mHandler = new Handler();
 
 	private StatefulListView mList;
 	private EfficientCursorAdapter mAdapter;
@@ -92,6 +95,47 @@ public class SongList extends PlaylistServiceActivity
 	private static final int MENU_RETURN_LIBRARY = Menu.FIRST + 8;
 	private static final int MENU_GOTO_PLAYER = Menu.FIRST + 9;
 
+	public static Intent makeShowByPlaylistIntent(Context context, PlaylistItem item)
+	{
+		Intent chosen = new Intent(Intent.ACTION_VIEW, item.getUri(), context, SongList.class);
+		chosen.putExtra(Constants.EXTRA_PLAYLIST_ID, item.getId());
+		chosen.putExtra(Constants.EXTRA_PLAYLIST_NAME, item.getName());
+		return chosen;
+	}
+
+	public static void showByPlaylist(Context context, PlaylistItem item)
+	{
+		context.startActivity(makeShowByPlaylistIntent(context, item));
+	}
+
+	public static void showByArtist(Context context, Uri artistUri, String artistName)
+	{
+		Intent chosen = new Intent(Intent.ACTION_VIEW, artistUri, context, SongList.class);
+		chosen.putExtra(Constants.EXTRA_ARTIST_ID, ContentUris.parseId(artistUri));
+		chosen.putExtra(Constants.EXTRA_ARTIST_NAME, artistName);
+		chosen.putExtra(Constants.EXTRA_ALL_ALBUMS, true);
+		context.startActivity(chosen);
+	}
+
+	public static void showByAlbum(Context context, AlbumItem album)
+	{
+		Intent chosen = new Intent(Intent.ACTION_VIEW, album.getUri(), context, SongList.class);
+		chosen.putExtra(Constants.EXTRA_ARTIST_ID, album.getArtistId());
+		chosen.putExtra(Constants.EXTRA_ARTIST_NAME, album.getArtist());
+		chosen.putExtra(Constants.EXTRA_ALBUM_ID, album.getId());
+		chosen.putExtra(Constants.EXTRA_ALBUM_NAME, album.getName());
+		chosen.putExtra(Constants.EXTRA_ALBUM_ARTWORK_THUMB, album.getArtworkThumbUri() != null ? album.getArtworkThumbUri().toString() : null);
+		chosen.putExtra(Constants.EXTRA_ALBUM_ARTWORK_LARGE, album.getArtworkFullUri() != null ? album.getArtworkFullUri().toString() : null);
+		context.startActivity(chosen);
+	}
+
+	public static void actionOpenPlayQueue(Context context)
+	{
+		Intent i = new Intent(context, SongList.class);
+		i.putExtra(Constants.EXTRA_PLAYQUEUE, true);
+		context.startActivity(i);
+	}
+
 	private static class SongListExtras
 	{
 		public long artistId;
@@ -110,17 +154,17 @@ public class SongList extends PlaylistServiceActivity
 
 		public SongListExtras(Bundle b)
 		{
-			artistId = b.getLong("artistId", -1);
-			artistName = b.getString("artistName");
-			albumId = b.getLong("albumId", -1);
-			albumName = b.getString("albumName");
-			albumArt = b.getString("albumArtwork");
-			albumArtBig = b.getString("albumArtworkBig");
+			artistId = b.getLong(Constants.EXTRA_ARTIST_ID, -1);
+			artistName = b.getString(Constants.EXTRA_ARTIST_NAME);
+			albumId = b.getLong(Constants.EXTRA_ALBUM_ID, -1);
+			albumName = b.getString(Constants.EXTRA_ALBUM_NAME);
+			albumArt = b.getString(Constants.EXTRA_ALBUM_ARTWORK_THUMB);
+			albumArtBig = b.getString(Constants.EXTRA_ALBUM_ARTWORK_LARGE);
 
-			if (b.containsKey("playlistId") == true)
+			if (b.containsKey(Constants.EXTRA_PLAYLIST_ID) == true)
 			{
-				playlistId = b.getLong("playlistId");
-				playlistName = b.getString("playlistName");
+				playlistId = b.getLong(Constants.EXTRA_PLAYLIST_ID);
+				playlistName = b.getString(Constants.EXTRA_PLAYLIST_NAME);
 			}
 			else
 			{
@@ -128,8 +172,8 @@ public class SongList extends PlaylistServiceActivity
 				playlistName = null;
 			}
 
-			allAlbums = b.getBoolean("allAlbums");
-			playQueue = b.getBoolean("playQueue");
+			allAlbums = b.getBoolean(Constants.EXTRA_ALL_ALBUMS);
+			playQueue = b.getBoolean(Constants.EXTRA_PLAYQUEUE);
 		}
 
 		public boolean showAlbumCover()
@@ -154,13 +198,6 @@ public class SongList extends PlaylistServiceActivity
 		}
 	}
 
-	public static void actionOpenPlayQueue(Context context)
-	{
-		Intent i = new Intent(context, SongList.class);
-		i.putExtra("playQueue", true);
-		context.startActivity(i);
-	}
-
 	@Override
 	public void onCreate(Bundle icicle)
 	{
@@ -179,7 +216,10 @@ public class SongList extends PlaylistServiceActivity
 			else if (mExtras.playQueue == true)
 				setTitle("Now Playing");
 			else
-				throw new IllegalArgumentException("What's a matter you?");
+			{
+				Log.w(TAG, "Uncertain invocation, aborting...");
+				finish();
+			}
 		}
 	}
 
@@ -192,7 +232,7 @@ public class SongList extends PlaylistServiceActivity
 
 		if (mExtras.playQueue == true)
 		{
-			mCursor = new PlayQueueCursor(mService, QUERY_FIELDS);
+			mCursor = new PlayQueueCursor(mService, sProjection);
 			startManagingCursor(mCursor);
 		}
 		else
@@ -200,7 +240,7 @@ public class SongList extends PlaylistServiceActivity
 			Uri songsUri = i.getData().buildUpon()
 			  .appendPath("songs").build();
 
-			mCursor = managedQuery(songsUri, QUERY_FIELDS, null, null, null);
+			mCursor = managedQuery(songsUri, sProjection, null, null, null);
 		}
 
 		if (mExtras.hasMultipleArtists() == true)
@@ -255,14 +295,14 @@ public class SongList extends PlaylistServiceActivity
 
 	public boolean setViewValue(View v, Cursor c, int col)
 	{
-		if (QUERY_FIELDS[col] == Five.Music.Songs._ID)
+		if (sProjection[col] == Five.Music.Songs._ID)
 		{
 			if (mSongPlaying >= 0 && c.getLong(col) == mSongPlaying)
 				v.setVisibility(View.VISIBLE);
 			else
 				v.setVisibility(View.INVISIBLE);
 		}
-		else if (QUERY_FIELDS[col] == Five.Music.Songs.ARTIST_ID)
+		else if (sProjection[col] == Five.Music.Songs.ARTIST_ID)
 		{
 			if (mVAArtistMap != null)
 			{
@@ -423,30 +463,6 @@ public class SongList extends PlaylistServiceActivity
 		mSongPlaying = songId;
 	}
 
-//	private static class ShuffleAllView extends LinearLayout
-//	{
-//		public ShuffleAllView(Context context)
-//		{
-//			super(context);
-//			init();
-//		}
-//
-//		public void init()
-//		{
-//			LayoutInflater.from(getContext())
-//			  .inflate(R.layout.shuffle_all_view, this);
-//		}
-//
-//		public static ShuffleAllView getListView(Context ctx)
-//		{
-//			ShuffleAllView header = new ShuffleAllView(ctx);
-//			header.setLayoutParams(new AbsListView.LayoutParams
-//			  (AbsListView.LayoutParams.FILL_PARENT,
-//			   AbsListView.LayoutParams.WRAP_CONTENT));
-//			return header;
-//		}
-//	}
-
 	private IPlaylistMoveListener.Stub mPlaylistMoveListener = new IPlaylistMoveListener.Stub()
 	{
 		public void onAdvance() throws RemoteException
@@ -602,26 +618,26 @@ public class SongList extends PlaylistServiceActivity
 		{
 			long artistId =
 			  c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.ARTIST_ID));
-			i.putExtra("artistId", artistId);
-			i.putExtra("artistName", mVAArtistMap.get(artistId));
+			i.putExtra(Constants.EXTRA_ARTIST_ID, artistId);
+			i.putExtra(Constants.EXTRA_ARTIST_NAME, mVAArtistMap.get(artistId));
 		}
 		else
 		{
-			i.putExtra("artistId", mExtras.artistId);
-			i.putExtra("artistName", mExtras.artistName);
+			i.putExtra(Constants.EXTRA_ARTIST_ID, mExtras.artistId);
+			i.putExtra(Constants.EXTRA_ARTIST_NAME, mExtras.artistName);
 		}
 
-		i.putExtra("albumId", mExtras.albumId);
-		i.putExtra("albumName", mExtras.albumName);
-		i.putExtra("albumArtworkBig", mExtras.albumArtBig);
+		i.putExtra(Constants.EXTRA_ALBUM_ID, mExtras.albumId);
+		i.putExtra(Constants.EXTRA_ALBUM_NAME, mExtras.albumName);
+		i.putExtra(Constants.EXTRA_ALBUM_ARTWORK_LARGE, mExtras.albumArtBig);
 
-		i.putExtra("songId", id);
-		i.putExtra("songTitle",
+		i.putExtra(Constants.EXTRA_SONG_ID, id);
+		i.putExtra(Constants.EXTRA_SONG_TITLE,
 		  c.getString(c.getColumnIndexOrThrow(Five.Music.Songs.TITLE)));
-		i.putExtra("songLength",
+		i.putExtra(Constants.EXTRA_SONG_LENGTH,
 		  c.getLong(c.getColumnIndexOrThrow(Five.Music.Songs.LENGTH)));
-		i.putExtra("playlistPosition", pos);
-		i.putExtra("playlistLength", mAdapter.getCount());
+		i.putExtra(Constants.EXTRA_PLAYLIST_POSITION, pos);
+		i.putExtra(Constants.EXTRA_PLAYLIST_LENGTH, mAdapter.getCount());
 
 		return i;
 	}
@@ -952,17 +968,5 @@ public class SongList extends PlaylistServiceActivity
 		{
 			return mWrapped.isNull(column);
 		}
-	}
-
-	public static void show(Context context, AlbumItem album)
-	{
-		Intent chosen = new Intent(Intent.ACTION_VIEW, album.getUri(), context, SongList.class);
-		chosen.putExtra("artistId", album.getArtistId());
-		chosen.putExtra("artistName", album.getArtist());
-		chosen.putExtra("albumId", album.getId());
-		chosen.putExtra("albumName", album.getName());
-		chosen.putExtra("albumArtwork", album.getArtworkThumbUri() != null ? album.getArtworkThumbUri().toString() : null);
-		chosen.putExtra("albumArtworkBig", album.getArtworkFullUri() != null ? album.getArtworkFullUri().toString() : null);
-		context.startActivity(chosen);
 	}
 }

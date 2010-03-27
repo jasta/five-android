@@ -16,43 +16,35 @@ package org.devtcg.five.activity;
 
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
-import org.devtcg.five.widget.EfficientCursorAdapter;
+import org.devtcg.five.provider.util.PlaylistItem;
+import org.devtcg.five.widget.AbstractDAOItemAdapter;
+import org.devtcg.five.widget.AbstractMainListActivity.OptionsMenuHelper;
 
 import android.app.Activity;
+import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.Intent.ShortcutIconResource;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.SimpleCursorAdapter.ViewBinder;
 
-public class PlaylistList extends Activity implements ViewBinder
+public class PlaylistList extends ListActivity
 {
 	public static final String TAG = "Playlists";
 
-	private ListView mList;
-	private EfficientCursorAdapter mAdapter;
-
 	private boolean mCreateShortcut = false;
 
-	private static final String QUERY_FIELDS[] =
-	  { Five.Music.Playlists._ID, Five.Music.Playlists.NAME,
-		Five.Music.Playlists.NUM_SONGS };
+	private static final String[] sProjection = {
+		Five.Music.Playlists._ID, Five.Music.Playlists.NAME,
+		Five.Music.Playlists.NUM_SONGS
+	};
 
-	private static final int MENU_RETURN_LIBRARY = Menu.FIRST;
-	private static final int MENU_GOTO_PLAYER = Menu.FIRST + 1;
-
-	private Cursor getCursor(String sel, String[] args)
-	{
-		return getContentResolver().query(getIntent().getData(),
-		  QUERY_FIELDS, sel, args, Five.Music.Playlists.NAME + " ASC");
-	}
+	private final OptionsMenuHelper mMenuHelper = new OptionsMenuHelper(this);
 
 	public static void show(Context context)
 	{
@@ -63,137 +55,84 @@ public class PlaylistList extends Activity implements ViewBinder
 	public void onCreate(Bundle icicle)
 	{
 		super.onCreate(icicle);
-		setContentView(R.layout.lastfm);
 
-		Intent i = getIntent();
-		if (i.getData() == null)
-			i.setData(Five.Music.Playlists.CONTENT_URI);
-
-		String action = i.getAction();
-		if (action == null)
-			i.setAction(Intent.ACTION_VIEW);
-		else if (action.equals(Intent.ACTION_CREATE_SHORTCUT) == true)
+		if (Intent.ACTION_CREATE_SHORTCUT.equals(getIntent().getAction()))
 			mCreateShortcut = true;
 
-		Cursor c = getCursor(null, null);
-
-		mList = (ListView)findViewById(android.R.id.list);
-
-		mAdapter = new EfficientCursorAdapter(this,
-		  R.layout.playlist_item, c,
-		  new String[] { Five.Music.Playlists.NAME, Five.Music.Playlists.NUM_SONGS },
-		  new int[] { R.id.playlist_name, R.id.playlist_counts });
-
-		mAdapter.setViewBinder(this);
-		mList.setAdapter(mAdapter);
-		mList.setOnItemClickListener(mItemClick);
-	}
-
-	@Override
-	public void onDestroy()
-	{
-		mAdapter.changeCursor(null);
-		super.onDestroy();
-	}
-
-	public boolean setViewValue(View v, Cursor c, int col)
-	{
-		if (QUERY_FIELDS[col] == Five.Music.Playlists.NUM_SONGS)
-		{
-			int nsongs = c.getInt(col);
-
-			StringBuilder b = new StringBuilder();
-
-			b.append(nsongs).append(" song");
-			if (nsongs != 1)
-				b.append('s');
-
-			((TextView)v).setText(b.toString());
-
-			return true;
-		}
-
-		return false;
+		setListAdapter(new PlaylistListAdapter(this));
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
-		super.onCreateOptionsMenu(menu);
-
-		if (mCreateShortcut == false)
-		{
-			menu.add(0, MENU_RETURN_LIBRARY, 0, R.string.return_library)
-			.setIcon(R.drawable.ic_menu_music_library);
-			menu.add(0, MENU_GOTO_PLAYER, 0, R.string.goto_player)
-			.setIcon(R.drawable.ic_menu_playback);
-		}
-
-		return true;
-	}
-
-	@Override
-	public boolean onPrepareOptionsMenu(Menu menu)
-	{
-//		menu.findItem(MENU_GOTO_PLAYER).setVisible(mSongPlaying >= 0);
-		return super.onPrepareOptionsMenu(menu);
+		if (!mCreateShortcut)
+			return mMenuHelper.dispatchOnCreateOptionsMenu(menu);
+		else
+			return true;
 	}
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
-		switch (item.getItemId())
-		{
-		case MENU_RETURN_LIBRARY:
-			Main.show(this);
-			return true;
-		case MENU_GOTO_PLAYER:
-			Player.show(this);
-			return true;
-		}
-
-		return false;
+		return mMenuHelper.dispatchOnOptionsItemSelected(item);
 	}
 
-	private OnItemClickListener mItemClick = new OnItemClickListener()
+	@Override
+	protected void onListItemClick(ListView list, View view, int position, long id)
 	{
-		public void onItemClick(AdapterView<?> av, View v, int pos, long id)
+		PlaylistItem item = (PlaylistItem)list.getItemAtPosition(position);
+
+		if (!mCreateShortcut)
+			SongList.showByPlaylist(this, item);
+		else
 		{
-			Intent i = getIntent();
+			Intent shortcut = new Intent();
+			shortcut.putExtra(Intent.EXTRA_SHORTCUT_INTENT,
+					SongList.makeShowByPlaylistIntent(this, item));
+			shortcut.putExtra(Intent.EXTRA_SHORTCUT_NAME, item.getName());
+			shortcut.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
+					ShortcutIconResource.fromContext(this,
+							R.drawable.ic_launcher_shortcut_music_playlist));
 
-			Intent chosen = new Intent();
-
-			chosen.setDataAndType(i.getData().buildUpon()
-			  .appendEncodedPath(String.valueOf(id)).build(),
-			  Five.Music.Playlists.CONTENT_ITEM_TYPE);
-
-			Cursor c = (Cursor)av.getItemAtPosition(pos);
-
-			chosen.putExtra("playlistId", id);
-
-			String playlistName =
-			  c.getString(c.getColumnIndexOrThrow(Five.Music.Playlists.NAME));
-			chosen.putExtra("playlistName", playlistName);
-
-			chosen.setAction(Intent.ACTION_VIEW);
-
-			if (mCreateShortcut == true)
-			{
-				Intent shortcut = new Intent();
-				shortcut.putExtra(Intent.EXTRA_SHORTCUT_INTENT, chosen);
-				shortcut.putExtra(Intent.EXTRA_SHORTCUT_NAME, playlistName);
-				shortcut.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
-				  Intent.ShortcutIconResource.fromContext(PlaylistList.this,
-				    R.drawable.ic_launcher_shortcut_music_playlist));
-
-	            setResult(RESULT_OK, shortcut);
-	            finish();
-			}
-			else
-			{
-				chosen.setClass(PlaylistList.this, SongList.class);
-				startActivity(chosen);
-			}
+			setResult(RESULT_OK, shortcut);
+			finish();
 		}
-	};
+	}
+
+	private static class PlaylistListAdapter extends AbstractDAOItemAdapter<PlaylistItem>
+	{
+		public PlaylistListAdapter(Activity context)
+		{
+			super(context, R.layout.playlist_item,
+					context.managedQuery(Five.Music.Playlists.CONTENT_URI,
+							sProjection, null, null, Five.Music.Playlists.NAME + " ASC"));
+		}
+
+		@Override
+		protected PlaylistItem newItemDAO(Cursor cursor)
+		{
+			return new PlaylistItem(cursor);
+		}
+
+		@Override
+		public void bindView(View view, Context context, Cursor cursor)
+		{
+			TextView playlistNameView = (TextView)view.findViewById(R.id.playlist_name);
+			playlistNameView.setText(mItemDAO.getName());
+
+			TextView playlistCountsView = (TextView)view.findViewById(R.id.playlist_counts);
+			playlistCountsView.setText(getSongCounts(mItemDAO, new StringBuilder()));
+		}
+
+		private static String getSongCounts(PlaylistItem playlist, StringBuilder buffer)
+		{
+			int nsongs = playlist.getNumSongs();
+
+			buffer.append(nsongs).append(" song");
+			if (nsongs != 1)
+				buffer.append('s');
+
+			return buffer.toString();
+		}
+	}
 }

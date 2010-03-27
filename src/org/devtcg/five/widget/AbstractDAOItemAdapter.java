@@ -55,11 +55,24 @@ public abstract class AbstractDAOItemAdapter<T extends AbstractDAOItem>
 		super.notifyDataSetInvalidated();
 	}
 
+	/**
+	 * @deprecated See {@link #getItem(int)}.
+	 */
 	public T getItemDAO(int position)
 	{
-		if (getItem(position) != null)
+		if (super.getItem(position) != null)
 			return mItemDAO;
 		else
 			return null;
+	}
+
+	/**
+	 * Answers an appropriately positioned abstract DAO item for the given request.
+	 *
+	 * @return Positioned DAO item or null if the cursor is invalid.
+	 */
+	public T getItem(int position)
+	{
+		return getItemDAO(position);
 	}
 }

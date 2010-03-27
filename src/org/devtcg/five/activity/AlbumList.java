@@ -40,7 +40,7 @@ public class AlbumList extends AbstractMainListActivity
 	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id)
 	{
-		SongList.show(this, getAdapter().getItemDAO(position));
+		SongList.showByAlbum(this, getAdapter().getItemDAO(position));
 	}
 
 	private class AlbumAdapter extends AbstractMainItemAdapter<Holder, AlbumItem>

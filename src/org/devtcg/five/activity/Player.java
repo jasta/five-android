@@ -14,6 +14,7 @@
 
 package org.devtcg.five.activity;
 
+import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.provider.Five;
 import org.devtcg.five.service.IPlaylistBufferListener;
@@ -225,7 +226,7 @@ public class Player extends PlaylistServiceActivity
 		chosen.setData(Five.Music.Artists.CONTENT_URI.buildUpon()
 		  .appendEncodedPath(String.valueOf(mSongPlaying.artistId)).build());
 
-		chosen.putExtra("artistName", mSongPlaying.artist);
+		chosen.putExtra(Constants.EXTRA_ARTIST_NAME, mSongPlaying.artist);
 
 		chosen.setAction(Intent.ACTION_VIEW);
 		chosen.setClass(this, ArtistAlbumList.class);
@@ -441,22 +442,22 @@ public class Player extends PlaylistServiceActivity
 	{
 		Song song = new Song();
 
-		song.artistId = e.getLong("artistId");
-		song.artist = e.getString("artistName");
+		song.artistId = e.getLong(Constants.EXTRA_ARTIST_ID);
+		song.artist = e.getString(Constants.EXTRA_ARTIST_NAME);
 
-		song.albumId = e.getLong("albumId");
-		song.album = e.getString("albumName");
+		song.albumId = e.getLong(Constants.EXTRA_ALBUM_ID);
+		song.album = e.getString(Constants.EXTRA_ALBUM_NAME);
 
-		String artwork = e.getString("albumArtworkBig");
+		String artwork = e.getString(Constants.EXTRA_ALBUM_ARTWORK_LARGE);
 		if (artwork != null)
 			song.albumCoverBig = Uri.parse(artwork);
 
-		song.id = e.getLong("songId");
-		song.title = e.getString("songTitle");
-		song.length = e.getLong("songLength");
+		song.id = e.getLong(Constants.EXTRA_SONG_ID);
+		song.title = e.getString(Constants.EXTRA_SONG_TITLE);
+		song.length = e.getLong(Constants.EXTRA_SONG_LENGTH);
 
-		setNowPlaying(song, e.getInt("playlistPosition"),
-		  e.getInt("playlistLength"));
+		setNowPlaying(song, e.getInt(Constants.EXTRA_PLAYLIST_POSITION),
+		  e.getInt(Constants.EXTRA_PLAYLIST_LENGTH));
 	}
 
 	private void setPausedState(boolean paused)

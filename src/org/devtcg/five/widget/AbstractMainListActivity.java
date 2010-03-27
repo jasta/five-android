@@ -1,9 +1,12 @@
 package org.devtcg.five.widget;
 
+import java.lang.ref.WeakReference;
+
 import org.devtcg.five.R;
 import org.devtcg.five.activity.Main;
 import org.devtcg.five.activity.Player;
 
+import android.app.Activity;
 import android.app.ListActivity;
 import android.database.Cursor;
 import android.net.Uri;
@@ -20,6 +23,8 @@ import android.widget.AbsListView.OnScrollListener;
 public abstract class AbstractMainListActivity extends ListActivity implements OnScrollListener
 {
 	protected AbstractMainItemAdapter<?, ?> mAdapter;
+
+	private final OptionsMenuHelper mMenuHelper = new OptionsMenuHelper(this);
 
 	@Override
 	public void onCreate(Bundle icicle)
@@ -62,26 +67,13 @@ public abstract class AbstractMainListActivity extends ListActivity implements O
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
-		super.onCreateOptionsMenu(menu);
-		getMenuInflater().inflate(R.menu.browse_controls, menu);
-		return true;
+		return mMenuHelper.dispatchOnCreateOptionsMenu(menu);
 	}
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
-		switch (item.getItemId())
-		{
-			case R.id.return_library:
-				Main.show(this);
-				return true;
-
-			case R.id.goto_player:
-				Player.show(this);
-				return true;
-		}
-
-		return false;
+		return mMenuHelper.dispatchOnOptionsItemSelected(item);
 	}
 
 	public void onScrollStateChanged(AbsListView view, int scrollState)
@@ -112,4 +104,44 @@ public abstract class AbstractMainListActivity extends ListActivity implements O
 					selection, args, getColumnName() + " COLLATE UNICODE ASC");
 		}
 	};
+
+	/**
+	 * Helper to display and respond to common screen menu controls.
+	 */
+	public static class OptionsMenuHelper
+	{
+		private WeakReference<Activity> mContext;
+
+		public OptionsMenuHelper(Activity context)
+		{
+			mContext = new WeakReference<Activity>(context);
+		}
+
+		private Activity getContext()
+		{
+			return mContext.get();
+		}
+
+		public boolean dispatchOnCreateOptionsMenu(Menu menu)
+		{
+			getContext().getMenuInflater().inflate(R.menu.browse_controls, menu);
+			return true;
+		}
+
+		public boolean dispatchOnOptionsItemSelected(MenuItem item)
+		{
+			switch (item.getItemId())
+			{
+				case R.id.return_library:
+					Main.show(getContext());
+					return true;
+
+				case R.id.goto_player:
+					Player.show(getContext());
+					return true;
+			}
+
+			return false;
+		}
+	}
 }

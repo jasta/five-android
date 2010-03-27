@@ -16,6 +16,8 @@ package org.devtcg.five.provider;
 
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 
+import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
 
@@ -52,6 +54,11 @@ public final class Five
 				.appendEncodedPath("artwork")
 				.appendEncodedPath("big")
 				.build();
+	}
+
+	public static Uri makeArtistAlbumsUri(Uri artistUri)
+	{
+		return artistUri.buildUpon().appendEncodedPath("albums").build();
 	}
 
 	private static String makeCreateDeletedTablesSQL(String deletedTable)
