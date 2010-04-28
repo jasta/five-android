@@ -107,7 +107,6 @@ public class FiveProvider extends AbstractSyncProvider
 		public void onCreate(SQLiteDatabase db)
 		{
 			db.execSQL(Five.Sources.SQL.CREATE);
-//			db.execSQL(Five.Sources.SQL.INSERT_DUMMY);
 
 			execStatements(db, Five.Music.Artists.SQL.CREATE);
 			execStatements(db, Five.Music.Albums.SQL.CREATE);
@@ -437,7 +436,6 @@ public class FiveProvider extends AbstractSyncProvider
 		case SONGS_BY_ARTIST:
 			qb.setTables(Five.Music.Songs.SQL.TABLE);
 			qb.appendWhere("artist_id=" + getSecondToLastPathSegment(uri));
-//			qb.setProjectionMap(songsMap);
 
 			if (sortOrder == null)
 				sortOrder = "title ASC";
@@ -561,7 +559,6 @@ public class FiveProvider extends AbstractSyncProvider
 		}
 
 		int ret = db.update(Five.Music.Songs.SQL.TABLE, v, custom, selArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
@@ -574,7 +571,6 @@ public class FiveProvider extends AbstractSyncProvider
 		custom = extendWhere(sel, Five.Music.Albums._ID + '=' + uri.getLastPathSegment());
 
 		int ret = db.update(Five.Music.Albums.SQL.TABLE, v, custom, selArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
@@ -587,7 +583,6 @@ public class FiveProvider extends AbstractSyncProvider
 		custom = extendWhere(sel, Five.Music.Artists._ID + '=' + uri.getLastPathSegment());
 
 		int ret = db.update(Five.Music.Artists.SQL.TABLE, v, custom, selArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
@@ -600,7 +595,6 @@ public class FiveProvider extends AbstractSyncProvider
 		custom = extendWhere(sel, Five.Music.Playlists._ID + '=' + uri.getLastPathSegment());
 
 		int ret = db.update(Five.Music.Playlists.SQL.TABLE, v, custom, selArgs);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
@@ -616,7 +610,6 @@ public class FiveProvider extends AbstractSyncProvider
 
 		if (isTemporary() == false)
 			getContext().getContentResolver().notifyChange(Five.Sources.CONTENT_URI, null);
-//		getContext().getContentResolver().notifyChange(uri, null);
 
 		return ret;
 	}
@@ -670,11 +663,6 @@ public class FiveProvider extends AbstractSyncProvider
 			  "SELECT album_id, COUNT(*) FROM music_songs GROUP BY album_id");
 			updateCount(db, "UPDATE music_playlists SET num_songs = ? WHERE _id = ?",
 			  "SELECT playlist_id, COUNT(*) FROM music_playlist_songs GROUP BY playlist_id");
-
-//			/* Now delete all the empty containers that are left. */
-//			delete(Five.Music.Playlists.CONTENT_URI, "num_songs=0", null);
-//			delete(Five.Music.Albums.CONTENT_URI, "num_songs=0", null);
-//			delete(Five.Music.Artists.CONTENT_URI, "num_songs=0", null);
 
 			db.setTransactionSuccessful();
 		} finally {
@@ -797,11 +785,6 @@ public class FiveProvider extends AbstractSyncProvider
 
 		Uri ret = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, id);
 
-//		long artistId = v.getAsLong(Five.Music.Albums.ARTIST_ID);
-//		Uri artistUri = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, artistId);
-//
-//		getContext().getContentResolver().notifyChange(artistUri, null);
-
 		return ret;
 	}
 
@@ -816,24 +799,6 @@ public class FiveProvider extends AbstractSyncProvider
 			return null;
 
 		Uri ret = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, id);
-
-//		long artistId = v.getAsLong(Five.Music.Songs.ARTIST_ID);
-//		Uri artistUri = ContentUris.withAppendedId(Five.Music.Artists.CONTENT_URI, artistId);
-//
-//		getContext().getContentResolver().notifyChange(artistUri, null);
-//
-//		if (v.containsKey(Five.Music.Songs.ALBUM_ID) == true)
-//		{
-//			long albumId = v.getAsLong(Five.Music.Songs.ALBUM_ID);
-//			Uri albumUri = ContentUris.withAppendedId(Five.Music.Albums.CONTENT_URI, albumId);
-//
-//			getContext().getContentResolver().notifyChange(albumUri, null);
-//		}
-//
-//		long contentId = v.getAsLong(Five.Music.Songs.CONTENT_ID);
-//		Uri Uri = ContentUris.withAppendedId(Five.Music.Songs.CONTENT_URI, contentId);
-//
-//		getContext().getContentResolver().notifyChange(Uri, null);
 
 		return ret;
 	}
@@ -878,7 +843,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 		/* TODO: Check that the inserted POSITION doesn't require that we
 		 * reposition other songs. */
-		long id = db.insert(Five.Music.PlaylistSongs.SQL.TABLE,
+		db.insert(Five.Music.PlaylistSongs.SQL.TABLE,
 		  Five.Music.PlaylistSongs.PLAYLIST_ID, v);
 
 		Uri playlistSongUri = uri.buildUpon()
