@@ -29,7 +29,7 @@ import org.devtcg.five.provider.util.PlaylistSongMerger;
 import org.devtcg.five.provider.util.SongItem;
 import org.devtcg.five.provider.util.SongMerger;
 import org.devtcg.five.provider.util.SourceItem;
-import org.devtcg.five.service.CacheManager;
+import org.devtcg.five.util.FileUtils;
 
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -277,24 +277,6 @@ public class FiveProvider extends AbstractSyncProvider
 
 	/*-***********************************************************************/
 
-	private static File getSdCardPath(String path)
-	{
-		return new File("/sdcard/five/" + path);
-	}
-
-	private static void ensureSdCardPath(File file)
-	  throws FileNotFoundException
-	{
-		if (file.exists() == true)
-			return;
-
-		if (file.mkdirs() == false)
-		{
-			throw new FileNotFoundException("Could not create cache directory: " +
-				file.getAbsolutePath());
-		}
-	}
-
     private static int stringModeToInt(Uri uri, String mode)
 	  throws FileNotFoundException
 	{
@@ -336,15 +318,12 @@ public class FiveProvider extends AbstractSyncProvider
 
 	public static File getArtistPhoto(long id, boolean temporary) throws FileNotFoundException
 	{
-		File path = getSdCardPath("music/artist/");
-
-		if (path.exists() == false)
-			ensureSdCardPath(path);
+		FileUtils.mkdirIfNecessary(Constants.sArtistPhotoDir);
 
 		if (temporary == true)
-			return new File(path, id + ".tmp");
+			return new File(Constants.sArtistPhotoDir, id + ".tmp");
 		else
-			return new File(path, String.valueOf(id));
+			return new File(Constants.sArtistPhotoDir, String.valueOf(id));
 	}
 
 	public static File getAlbumArtwork(long id, boolean temporary) throws FileNotFoundException
@@ -360,10 +339,7 @@ public class FiveProvider extends AbstractSyncProvider
 	private static File getAlbumArtwork(long id, URIPatternIds type, boolean temporary)
 		throws FileNotFoundException
 	{
-		File path = getSdCardPath("music/album/");
-
-		if (path.exists() == false)
-			ensureSdCardPath(path);
+		FileUtils.mkdirIfNecessary(Constants.sAlbumArtworkDir);
 
 		String filename;
 
@@ -373,9 +349,9 @@ public class FiveProvider extends AbstractSyncProvider
 			filename = id + "-big";
 
 		if (temporary == true)
-			return new File(path, filename + ".tmp");
+			return new File(Constants.sAlbumArtworkDir, filename + ".tmp");
 		else
-			return new File(path, filename);
+			return new File(Constants.sAlbumArtworkDir, filename);
 	}
 
 	@Override

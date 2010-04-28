@@ -1,6 +1,7 @@
 package org.devtcg.five.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class FileUtils
@@ -60,4 +61,25 @@ public class FileUtils
     			throw new IOException("failed to delete file: " + path);
     	}
     }
+
+	/**
+	 * Creates a directory if it does not already exist. Throws an exception if
+	 * unable to do so.
+	 *
+	 * @param file Path to create.
+	 * @throws FileNotFoundException
+	 *             If the directory could not be made or the entry already
+	 *             exists but is not a directory.
+	 */
+	public static void mkdirIfNecessary(File file) throws FileNotFoundException
+	{
+		if (file.exists())
+			return;
+
+		if (!file.isDirectory() || !file.mkdirs())
+		{
+			throw new FileNotFoundException("Could not create directory: " +
+					file.getAbsolutePath());
+		}
+	}
 }

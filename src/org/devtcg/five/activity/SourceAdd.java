@@ -121,7 +121,8 @@ public class SourceAdd extends Activity
 						try {
 							CacheManager.getInstance().wipeAll();
 						} catch (IOException e) {
-							Log.e(Constants.TAG, "Failed to clear /sdcard/five, syncing may not work properly", e);
+							Log.e(Constants.TAG, "Failed to clear " + Constants.sBaseStorageDir +
+									", syncing may not work properly", e);
 						}
 
 						/* Now begin the first time sync. */

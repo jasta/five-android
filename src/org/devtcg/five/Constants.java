@@ -14,7 +14,10 @@
 
 package org.devtcg.five;
 
+import java.io.File;
+
 import android.os.Build;
+import android.os.Environment;
 
 public interface Constants
 {
@@ -40,6 +43,12 @@ public interface Constants
 	 * Generic logging tag to use for various Five components.
 	 */
 	public static final String TAG = "Five";
+
+	public static final File sBaseStorageDir = new File(Environment.getExternalStorageDirectory(), "five");
+	public static final File sMetaStorageDir = new File(sBaseStorageDir, "music");
+	public static final File sAlbumArtworkDir = new File(sMetaStorageDir, "album");
+	public static final File sArtistPhotoDir = new File(sMetaStorageDir, "artist");
+	public static final File sCacheDir = new File(sBaseStorageDir, "cache");
 
 	public static final String ACTION_SYNC_BEGIN = "org.devtcg.five.intent.action.SYNC_BEGIN";
 	public static final String ACTION_SYNC_END = "org.devtcg.five.intent.action.SYNC_END";
