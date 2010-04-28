@@ -22,7 +22,16 @@ public abstract class AbstractDAOItemAdapter<T extends AbstractDAOItem>
 		attachItemDAO(c);
 	}
 
-	protected abstract void onAttachItemDAO(Cursor cursor);
+	protected T newItemDAO(Cursor cursor)
+	{
+		throw new UnsupportedOperationException("You must override newItemDAO to use this adapter");
+	}
+
+	/** @deprecated Extend {@link #newItemDAO(Cursor)} instead. */
+	protected void onAttachItemDAO(Cursor cursor)
+	{
+		mItemDAO = newItemDAO(cursor);
+	}
 
 	private void attachItemDAO(Cursor cursor)
 	{
