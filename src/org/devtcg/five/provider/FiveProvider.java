@@ -62,10 +62,10 @@ public class FiveProvider extends AbstractSyncProvider
 	private static final String DATABASE_NAME = "five.db";
 	private static final int DATABASE_VERSION = 36;
 
-	private static final UriMatcher URI_MATCHER;
-	private static final HashMap<String, String> artistsMap;
-	private static final HashMap<String, String> albumsMap;
-	private static final HashMap<String, String> songsMap;
+	private static final UriMatcher sUriMatcher;
+	private static final HashMap<String, String> sArtistsMap;
+	private static final HashMap<String, String> sAlbumsMap;
+	private static final HashMap<String, String> sSongsMap;
 
 	private InsertHelper mArtistInserter;
 	private InsertHelper mAlbumInserter;
@@ -359,7 +359,7 @@ public class FiveProvider extends AbstractSyncProvider
 	{
 		File file;
 
-		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+		URIPatternIds type = URIPatternIds.get(sUriMatcher.match(uri));
 
 		switch (type)
 		{
@@ -386,7 +386,7 @@ public class FiveProvider extends AbstractSyncProvider
 		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
 		String groupBy = null;
 
-		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+		URIPatternIds type = URIPatternIds.get(sUriMatcher.match(uri));
 
 		switch (type)
 		{
@@ -417,7 +417,7 @@ public class FiveProvider extends AbstractSyncProvider
 			  "LEFT JOIN " + Five.Music.Songs.SQL.TABLE + " s " +
 			  "ON s." + Five.Music.Songs._ID + " = ps." + Five.Music.PlaylistSongs.SONG_ID);
 			qb.appendWhere("ps.playlist_id=" + getSecondToLastPathSegment(uri));
-			qb.setProjectionMap(songsMap);
+			qb.setProjectionMap(sSongsMap);
 
 			if (sortOrder == null)
 				sortOrder = "ps.position ASC";
@@ -465,7 +465,7 @@ public class FiveProvider extends AbstractSyncProvider
 			qb.setTables(Five.Music.Artists.SQL.TABLE);
 			if (type == URIPatternIds.ARTIST)
 				qb.appendWhere("_id=" + uri.getLastPathSegment());
-			qb.setProjectionMap(artistsMap);
+			qb.setProjectionMap(sArtistsMap);
 			break;
 
 		case ALBUM:
@@ -486,7 +486,7 @@ public class FiveProvider extends AbstractSyncProvider
 					qb.appendWhere("a.num_songs > 3");
 			}
 
-			qb.setProjectionMap(albumsMap);
+			qb.setProjectionMap(sAlbumsMap);
 			break;
 
 		case ALBUMS_WITH_ARTIST:
@@ -498,7 +498,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 			qb.appendWhere("s.artist_id=" + getSecondToLastPathSegment(uri));
 
-			HashMap<String, String> proj = new HashMap<String, String>(albumsMap);
+			HashMap<String, String> proj = new HashMap<String, String>(sAlbumsMap);
 			proj.put(Five.Music.Albums.NUM_SONGS, "COUNT(*) AS " + Five.Music.Albums.NUM_SONGS);
 			qb.setProjectionMap(proj);
 
@@ -680,7 +680,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 		SQLiteDatabase db = mHelper.getWritableDatabase();
 
-		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+		URIPatternIds type = URIPatternIds.get(sUriMatcher.match(uri));
 
 		switch (type)
 		{
@@ -882,7 +882,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 		SQLiteDatabase db = mHelper.getWritableDatabase();
 
-		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+		URIPatternIds type = URIPatternIds.get(sUriMatcher.match(uri));
 
 		switch (type)
 		{
@@ -1077,7 +1077,7 @@ public class FiveProvider extends AbstractSyncProvider
 
 		SQLiteDatabase db = mHelper.getWritableDatabase();
 
-		URIPatternIds type = URIPatternIds.get(URI_MATCHER.match(uri));
+		URIPatternIds type = URIPatternIds.get(sUriMatcher.match(uri));
 
 		switch (type)
 		{
@@ -1104,7 +1104,7 @@ public class FiveProvider extends AbstractSyncProvider
 	@Override
 	public String getType(Uri uri)
 	{
-		switch (URIPatternIds.get(URI_MATCHER.match(uri)))
+		switch (URIPatternIds.get(sUriMatcher.match(uri)))
 		{
 		case SOURCES:
 			return Five.Sources.CONTENT_TYPE;
@@ -1134,86 +1134,86 @@ public class FiveProvider extends AbstractSyncProvider
 
 	static
 	{
-		URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
+		sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources", URIPatternIds.SOURCES.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "sources", URIPatternIds.SOURCES.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "sources/#", URIPatternIds.SOURCE.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_WITH_ARTIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/albums/#/songs", URIPatternIds.SONGS_BY_ARTIST_ON_ALBUM.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/artists/deleted", URIPatternIds.DELETED_ARTIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists", URIPatternIds.ARTISTS.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists/#", URIPatternIds.ARTIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists/#/albums", URIPatternIds.ALBUMS_WITH_ARTIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists/#/albums/#/songs", URIPatternIds.SONGS_BY_ARTIST_ON_ALBUM.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists/#/songs", URIPatternIds.SONGS_BY_ARTIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists/#/photo", URIPatternIds.ARTIST_PHOTO.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/artists/deleted", URIPatternIds.DELETED_ARTIST.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums", URIPatternIds.ALBUMS.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/complete", URIPatternIds.ALBUMS_COMPLETE.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#", URIPatternIds.ALBUM.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork", URIPatternIds.ALBUM_ARTWORK.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/#/artwork/big", URIPatternIds.ALBUM_ARTWORK_BIG.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/albums/deleted", URIPatternIds.DELETED_ALBUM.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums", URIPatternIds.ALBUMS.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums/complete", URIPatternIds.ALBUMS_COMPLETE.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums/#", URIPatternIds.ALBUM.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums/#/songs", URIPatternIds.SONGS_BY_ALBUM.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums/#/artwork", URIPatternIds.ALBUM_ARTWORK.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums/#/artwork/big", URIPatternIds.ALBUM_ARTWORK_BIG.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/albums/deleted", URIPatternIds.DELETED_ALBUM.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/songs/deleted", URIPatternIds.DELETED_SONG.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/songs", URIPatternIds.SONGS.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/songs/#", URIPatternIds.SONG.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/songs/deleted", URIPatternIds.DELETED_SONG.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists", URIPatternIds.PLAYLISTS.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/deleted", URIPatternIds.DELETED_PLAYLIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/#/song/#", URIPatternIds.SONG_IN_PLAYLIST.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs", URIPatternIds.PLAYLIST_SONGS.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs/#", URIPatternIds.PLAYLIST_SONG.ordinal());
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/playlists/songs/deleted", URIPatternIds.DELETED_PLAYLIST_SONG.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists", URIPatternIds.PLAYLISTS.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/#", URIPatternIds.PLAYLIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/deleted", URIPatternIds.DELETED_PLAYLIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/#/songs", URIPatternIds.SONGS_IN_PLAYLIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/#/song/#", URIPatternIds.SONG_IN_PLAYLIST.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/songs", URIPatternIds.PLAYLIST_SONGS.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/songs/#", URIPatternIds.PLAYLIST_SONG.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/playlists/songs/deleted", URIPatternIds.DELETED_PLAYLIST_SONG.ordinal());
 
-		URI_MATCHER.addURI(Five.AUTHORITY, "media/music/adjust_counts", URIPatternIds.ADJUST_COUNTS.ordinal());
+		sUriMatcher.addURI(Five.AUTHORITY, "media/music/adjust_counts", URIPatternIds.ADJUST_COUNTS.ordinal());
 
-		artistsMap = new HashMap<String, String>();
-		artistsMap.put(Five.Music.Artists.MBID, Five.Music.Artists.MBID);
-		artistsMap.put(Five.Music.Artists._ID, Five.Music.Artists._ID);
-		artistsMap.put(Five.Music.Artists._SYNC_ID, Five.Music.Artists._SYNC_ID);
-		artistsMap.put(Five.Music.Artists._SYNC_TIME, Five.Music.Artists._SYNC_TIME);
-		artistsMap.put(Five.Music.Artists.DISCOVERY_DATE, Five.Music.Artists.DISCOVERY_DATE);
-		artistsMap.put(Five.Music.Artists.GENRE, Five.Music.Artists.GENRE);
-		artistsMap.put(Five.Music.Artists.NAME, Five.Music.Artists.NAME);
-		artistsMap.put(Five.Music.Artists.NAME_PREFIX, Five.Music.Artists.NAME_PREFIX);
-		artistsMap.put(Five.Music.Artists.FULL_NAME, "IFNULL(" + Five.Music.Artists.NAME_PREFIX + ", \"\") || " + Five.Music.Artists.NAME + " AS " + Five.Music.Artists.FULL_NAME);
-		artistsMap.put(Five.Music.Artists.PHOTO, Five.Music.Artists.PHOTO);
-		artistsMap.put(Five.Music.Artists.NUM_ALBUMS, Five.Music.Artists.NUM_ALBUMS);
-		artistsMap.put(Five.Music.Artists.NUM_SONGS, Five.Music.Artists.NUM_SONGS);
+		sArtistsMap = new HashMap<String, String>();
+		sArtistsMap.put(Five.Music.Artists.MBID, Five.Music.Artists.MBID);
+		sArtistsMap.put(Five.Music.Artists._ID, Five.Music.Artists._ID);
+		sArtistsMap.put(Five.Music.Artists._SYNC_ID, Five.Music.Artists._SYNC_ID);
+		sArtistsMap.put(Five.Music.Artists._SYNC_TIME, Five.Music.Artists._SYNC_TIME);
+		sArtistsMap.put(Five.Music.Artists.DISCOVERY_DATE, Five.Music.Artists.DISCOVERY_DATE);
+		sArtistsMap.put(Five.Music.Artists.GENRE, Five.Music.Artists.GENRE);
+		sArtistsMap.put(Five.Music.Artists.NAME, Five.Music.Artists.NAME);
+		sArtistsMap.put(Five.Music.Artists.NAME_PREFIX, Five.Music.Artists.NAME_PREFIX);
+		sArtistsMap.put(Five.Music.Artists.FULL_NAME, "IFNULL(" + Five.Music.Artists.NAME_PREFIX + ", \"\") || " + Five.Music.Artists.NAME + " AS " + Five.Music.Artists.FULL_NAME);
+		sArtistsMap.put(Five.Music.Artists.PHOTO, Five.Music.Artists.PHOTO);
+		sArtistsMap.put(Five.Music.Artists.NUM_ALBUMS, Five.Music.Artists.NUM_ALBUMS);
+		sArtistsMap.put(Five.Music.Artists.NUM_SONGS, Five.Music.Artists.NUM_SONGS);
 
-		albumsMap = new HashMap<String, String>();
-		albumsMap.put(Five.Music.Albums._ID, "a." + Five.Music.Albums._ID + " AS " + Five.Music.Albums._ID);
-		albumsMap.put(Five.Music.Albums._SYNC_ID, "a." + Five.Music.Albums._SYNC_ID + " AS " + Five.Music.Albums._SYNC_ID);
-		albumsMap.put(Five.Music.Albums._SYNC_TIME, "a." + Five.Music.Albums._SYNC_TIME + " AS " + Five.Music.Albums._SYNC_TIME);
-		albumsMap.put(Five.Music.Albums.MBID, "a." + Five.Music.Albums.MBID + " AS " + Five.Music.Albums.MBID);
-		albumsMap.put(Five.Music.Albums.ARTIST_ID, "a." + Five.Music.Albums.ARTIST_ID + " AS " + Five.Music.Albums.ARTIST_ID);
-		albumsMap.put(Five.Music.Albums.ARTIST, "artists." + Five.Music.Artists.NAME + " AS " + Five.Music.Albums.ARTIST);
-		albumsMap.put(Five.Music.Albums.ARTWORK, "a." + Five.Music.Albums.ARTWORK + " AS " + Five.Music.Albums.ARTWORK);
-		albumsMap.put(Five.Music.Albums.ARTWORK_BIG, "a." + Five.Music.Albums.ARTWORK_BIG + " AS " + Five.Music.Albums.ARTWORK_BIG);
-		albumsMap.put(Five.Music.Albums.DISCOVERY_DATE, "a." + Five.Music.Albums.DISCOVERY_DATE + " AS " + Five.Music.Albums.DISCOVERY_DATE);
-		albumsMap.put(Five.Music.Albums.NAME, "a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.NAME);
-		albumsMap.put(Five.Music.Albums.NAME_PREFIX, "a." + Five.Music.Albums.NAME_PREFIX + " AS " + Five.Music.Albums.NAME_PREFIX);
-		albumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(a." + Five.Music.Albums.NAME_PREFIX + ", \"\") || a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
-		albumsMap.put(Five.Music.Albums.RELEASE_DATE, "a." + Five.Music.Albums.RELEASE_DATE + " AS " + Five.Music.Albums.RELEASE_DATE);
-		albumsMap.put(Five.Music.Albums.NUM_SONGS, "a." + Five.Music.Albums.NUM_SONGS + " AS " + Five.Music.Albums.NUM_SONGS);
+		sAlbumsMap = new HashMap<String, String>();
+		sAlbumsMap.put(Five.Music.Albums._ID, "a." + Five.Music.Albums._ID + " AS " + Five.Music.Albums._ID);
+		sAlbumsMap.put(Five.Music.Albums._SYNC_ID, "a." + Five.Music.Albums._SYNC_ID + " AS " + Five.Music.Albums._SYNC_ID);
+		sAlbumsMap.put(Five.Music.Albums._SYNC_TIME, "a." + Five.Music.Albums._SYNC_TIME + " AS " + Five.Music.Albums._SYNC_TIME);
+		sAlbumsMap.put(Five.Music.Albums.MBID, "a." + Five.Music.Albums.MBID + " AS " + Five.Music.Albums.MBID);
+		sAlbumsMap.put(Five.Music.Albums.ARTIST_ID, "a." + Five.Music.Albums.ARTIST_ID + " AS " + Five.Music.Albums.ARTIST_ID);
+		sAlbumsMap.put(Five.Music.Albums.ARTIST, "artists." + Five.Music.Artists.NAME + " AS " + Five.Music.Albums.ARTIST);
+		sAlbumsMap.put(Five.Music.Albums.ARTWORK, "a." + Five.Music.Albums.ARTWORK + " AS " + Five.Music.Albums.ARTWORK);
+		sAlbumsMap.put(Five.Music.Albums.ARTWORK_BIG, "a." + Five.Music.Albums.ARTWORK_BIG + " AS " + Five.Music.Albums.ARTWORK_BIG);
+		sAlbumsMap.put(Five.Music.Albums.DISCOVERY_DATE, "a." + Five.Music.Albums.DISCOVERY_DATE + " AS " + Five.Music.Albums.DISCOVERY_DATE);
+		sAlbumsMap.put(Five.Music.Albums.NAME, "a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.NAME);
+		sAlbumsMap.put(Five.Music.Albums.NAME_PREFIX, "a." + Five.Music.Albums.NAME_PREFIX + " AS " + Five.Music.Albums.NAME_PREFIX);
+		sAlbumsMap.put(Five.Music.Albums.FULL_NAME, "IFNULL(a." + Five.Music.Albums.NAME_PREFIX + ", \"\") || a." + Five.Music.Albums.NAME + " AS " + Five.Music.Albums.FULL_NAME);
+		sAlbumsMap.put(Five.Music.Albums.RELEASE_DATE, "a." + Five.Music.Albums.RELEASE_DATE + " AS " + Five.Music.Albums.RELEASE_DATE);
+		sAlbumsMap.put(Five.Music.Albums.NUM_SONGS, "a." + Five.Music.Albums.NUM_SONGS + " AS " + Five.Music.Albums.NUM_SONGS);
 
-		songsMap = new HashMap<String, String>();
-		songsMap.put(Five.Music.Songs._ID, "s." + Five.Music.Songs._ID + " AS " + Five.Music.Songs._ID);
-		songsMap.put(Five.Music.Songs._SYNC_ID, "s." + Five.Music.Songs._SYNC_ID + " AS " + Five.Music.Songs._SYNC_ID);
-		songsMap.put(Five.Music.Songs._SYNC_TIME, "s." + Five.Music.Songs._SYNC_TIME + " AS " + Five.Music.Songs._SYNC_TIME);
-		songsMap.put(Five.Music.Songs.MBID, "s." + Five.Music.Songs.MBID + " AS " + Five.Music.Songs.MBID);
-		songsMap.put(Five.Music.Songs.TITLE, "s." + Five.Music.Songs.TITLE + " AS " + Five.Music.Songs.TITLE);
-		songsMap.put(Five.Music.Songs.ALBUM, "s." + Five.Music.Songs.ALBUM + " AS " + Five.Music.Songs.ALBUM);
-		songsMap.put(Five.Music.Songs.ALBUM_ID, "s." + Five.Music.Songs.ALBUM_ID + " AS " + Five.Music.Songs.ALBUM_ID);
-		songsMap.put(Five.Music.Songs.ARTIST, "s." + Five.Music.Songs.ARTIST + " AS " + Five.Music.Songs.ARTIST);
-		songsMap.put(Five.Music.Songs.ARTIST_ID, "s." + Five.Music.Songs.ARTIST_ID + " AS " + Five.Music.Songs.ARTIST_ID);
-		songsMap.put(Five.Music.Songs.LENGTH, "s." + Five.Music.Songs.LENGTH + " AS " + Five.Music.Songs.LENGTH);
-		songsMap.put(Five.Music.Songs.TRACK, "s." + Five.Music.Songs.TRACK + " AS " + Five.Music.Songs.TRACK);
-		songsMap.put(Five.Music.Songs.SET, "s." + Five.Music.Songs.SET + " AS " + Five.Music.Songs.SET);
-		songsMap.put(Five.Music.Songs.GENRE, "s." + Five.Music.Songs.GENRE + " AS " + Five.Music.Songs.GENRE);
-		songsMap.put(Five.Music.Songs.DISCOVERY_DATE, "s." + Five.Music.Songs.DISCOVERY_DATE + " AS " + Five.Music.Songs.DISCOVERY_DATE);
+		sSongsMap = new HashMap<String, String>();
+		sSongsMap.put(Five.Music.Songs._ID, "s." + Five.Music.Songs._ID + " AS " + Five.Music.Songs._ID);
+		sSongsMap.put(Five.Music.Songs._SYNC_ID, "s." + Five.Music.Songs._SYNC_ID + " AS " + Five.Music.Songs._SYNC_ID);
+		sSongsMap.put(Five.Music.Songs._SYNC_TIME, "s." + Five.Music.Songs._SYNC_TIME + " AS " + Five.Music.Songs._SYNC_TIME);
+		sSongsMap.put(Five.Music.Songs.MBID, "s." + Five.Music.Songs.MBID + " AS " + Five.Music.Songs.MBID);
+		sSongsMap.put(Five.Music.Songs.TITLE, "s." + Five.Music.Songs.TITLE + " AS " + Five.Music.Songs.TITLE);
+		sSongsMap.put(Five.Music.Songs.ALBUM, "s." + Five.Music.Songs.ALBUM + " AS " + Five.Music.Songs.ALBUM);
+		sSongsMap.put(Five.Music.Songs.ALBUM_ID, "s." + Five.Music.Songs.ALBUM_ID + " AS " + Five.Music.Songs.ALBUM_ID);
+		sSongsMap.put(Five.Music.Songs.ARTIST, "s." + Five.Music.Songs.ARTIST + " AS " + Five.Music.Songs.ARTIST);
+		sSongsMap.put(Five.Music.Songs.ARTIST_ID, "s." + Five.Music.Songs.ARTIST_ID + " AS " + Five.Music.Songs.ARTIST_ID);
+		sSongsMap.put(Five.Music.Songs.LENGTH, "s." + Five.Music.Songs.LENGTH + " AS " + Five.Music.Songs.LENGTH);
+		sSongsMap.put(Five.Music.Songs.TRACK, "s." + Five.Music.Songs.TRACK + " AS " + Five.Music.Songs.TRACK);
+		sSongsMap.put(Five.Music.Songs.SET, "s." + Five.Music.Songs.SET + " AS " + Five.Music.Songs.SET);
+		sSongsMap.put(Five.Music.Songs.GENRE, "s." + Five.Music.Songs.GENRE + " AS " + Five.Music.Songs.GENRE);
+		sSongsMap.put(Five.Music.Songs.DISCOVERY_DATE, "s." + Five.Music.Songs.DISCOVERY_DATE + " AS " + Five.Music.Songs.DISCOVERY_DATE);
 	}
 }
