@@ -1,9 +1,15 @@
 package org.devtcg.five.util;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
+
+import org.devtcg.five.Constants;
+import org.devtcg.util.IOUtilities;
 
 import android.content.ContentResolver;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -127,9 +133,12 @@ public abstract class AsyncBitmapHandler extends Handler
 					if (resolver != null && args.uri != null)
 					{
 						try {
-							args.result = BetterBitmapFactory.decodeUri(resolver, args.uri);
+							args.result = decodeUri(resolver, args.uri);
 						} catch (OutOfMemoryError e) {
 							/* Ignore... */
+						} catch (IOException e) {
+							if (Constants.DEBUG)
+								Log.w(TAG, "Unable to decode bitmap at uri=" + args.uri, e);
 						}
 					}
 					break;
@@ -145,6 +154,16 @@ public abstract class AsyncBitmapHandler extends Handler
 
 			if (DEBUG_MESSAGES)
 				Log.d(TAG, "Sent reply: token=" + token + ", msgType=" + msgType);
+		}
+	}
+
+	private static Bitmap decodeUri(ContentResolver resolver, Uri uri) throws IOException
+	{
+		InputStream in = resolver.openInputStream(uri);
+		try {
+			return BitmapFactory.decodeStream(in);
+		} finally {
+			IOUtilities.close(in);
 		}
 	}
 
