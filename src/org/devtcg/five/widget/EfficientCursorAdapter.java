@@ -26,6 +26,8 @@ import android.widget.TextView;
  * SimpleCursorAdapter which implements the ViewBinder using the
  * ViewHolder pattern.  See ApiDemos sample List14.java ("Efficient
  * Adapter") for more information on the ViewHolder pattern.
+ *
+ * @deprecated These optimizations are now supported in SimpleCursorAdapter.
  */
 public class EfficientCursorAdapter extends SimpleCursorAdapter
 {
