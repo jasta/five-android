@@ -73,7 +73,7 @@ public class PlaylistService extends Service implements
 	public static final String TAG = "PlaylistService";
 
 	private static final String STATE_FILE = "playlist_state";
-	private static final String STATE_FILE_TMP = "playlist_state.tmp";
+	private static final String STATE_FILE_TMP = STATE_FILE + ".tmp";
 	private static final int STATE_FILE_FORMAT = 3;
 
 	/* Lock synchronizing resource access from binder threads.  This is more
@@ -254,8 +254,8 @@ public class PlaylistService extends Service implements
 				outf.close();
 		}
 
-		File tmp = new File(STATE_FILE_TMP);
-		tmp.renameTo(new File(STATE_FILE));
+		File tmp = getFileStreamPath(STATE_FILE_TMP);
+		tmp.renameTo(getFileStreamPath(STATE_FILE));
 	}
 
 	public void saveStateQuietly()
