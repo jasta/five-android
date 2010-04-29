@@ -74,9 +74,14 @@ public class FileUtils
 	public static void mkdirIfNecessary(File file) throws FileNotFoundException
 	{
 		if (file.exists())
-			return;
-
-		if (!file.isDirectory() || !file.mkdirs())
+		{
+			if (!file.isDirectory())
+			{
+				throw new FileNotFoundException("Path already exists, but is not a directory: " +
+						file.getAbsolutePath());
+			}
+		}
+		else if (!file.mkdirs())
 		{
 			throw new FileNotFoundException("Could not create directory: " +
 					file.getAbsolutePath());
