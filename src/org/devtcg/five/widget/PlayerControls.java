@@ -301,8 +301,6 @@ public class PlayerControls extends FrameLayout implements OnClickListener,
 		/* Fill the remaining space. */
 		mArtwork.measure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(MeasureSpec.EXACTLY,
 				height - mMainControls.getMeasuredHeight()));
-		Log.d(Constants.TAG, "Album art measured at " +
-				mArtwork.getMeasuredWidth() + "x" + mArtwork.getMeasuredHeight());
 
 		/*
 		 * The progress controls "float", and so measurement doesn't depend on
