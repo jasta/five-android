@@ -398,18 +398,19 @@ public class PlaylistService extends Service implements
 
 		public void deferredStopSelf()
 		{
-			Log.i(TAG, "Service stop scheduled " + (DEFERRAL_DELAY / 1000 / 60) + " minutes from now.");
+			if (Constants.DEBUG)
+				Log.i(TAG, "Service stop scheduled " + (DEFERRAL_DELAY / 1000 / 60) + " minutes from now.");
+
 			sendMessageDelayed(obtainMessage(DEFERRED_STOP), DEFERRAL_DELAY);
 			saveStateQuietly();
 		}
 
 		public void cancelStopSelf()
 		{
-			if (hasMessages(DEFERRED_STOP) == true)
-			{
+			if (Constants.DEBUG && hasMessages(DEFERRED_STOP))
 				Log.i(TAG, "Service stop cancelled.");
-				removeMessages(DEFERRED_STOP);
-			}
+
+			removeMessages(DEFERRED_STOP);
 		}
 	};
 
