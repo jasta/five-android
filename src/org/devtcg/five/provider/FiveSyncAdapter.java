@@ -24,11 +24,12 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.devtcg.five.Constants;
 import org.devtcg.five.R;
 import org.devtcg.five.meta.data.Protos;
-import org.devtcg.five.meta.data.Protos.Record;
 import org.devtcg.five.provider.AbstractTableMerger.SyncableColumns;
 import org.devtcg.five.provider.util.SourceItem;
 import org.devtcg.five.service.SyncContext;
@@ -52,7 +53,7 @@ import com.google.protobuf.CodedInputStream;
 
 public class FiveSyncAdapter extends AbstractSyncAdapter
 {
-	private static final FailfastHttpClient mClient = FailfastHttpClient.newInstance(null);
+	private static final FailfastHttpClient sClient = FailfastHttpClient.newInstance(null);
 
 	private static final String RANGE_HEADER = "Range";
 	private static final String CONTENT_RANGE_HEADER = "Content-Range";
@@ -95,7 +96,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		if (mSource.moveToFirst() == false)
 			return;
 
-		AuthHelper.setCredentials(mClient, mSource);
+		AuthHelper.setCredentials(sClient, mSource);
 
 		long modifiedSince;
 
@@ -124,8 +125,18 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			context.moreRecordsToGet = false;
 	}
 
+	private static void markErrorUnlessCanceled(SyncContext context, Exception e)
+	{
+		if (!context.hasCanceled())
+		{
+			Log.e(Constants.TAG, "Sync error", e);
+			context.networkError = true;
+			context.errorMessage = e.getMessage();
+		}
+	}
+
 	private long getServerDiffsImpl(SyncContext context, AbstractSyncProvider serverDiffs,
-		String feedType)
+			String feedType)
 	{
 		if (context.hasError() == true || context.hasCanceled() == true)
 			return -1;
@@ -142,14 +153,25 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			}
 		};
 
+		try {
+			return getServerDiffsCancelable(context, serverDiffs, feedType, feeds);
+		} finally {
+			context.trigger = null;
+		}
+	}
+
+	private long getServerDiffsCancelable(final SyncContext context,
+			final AbstractSyncProvider serverDiffs, final String feedType,
+			final HttpGet feedRequest)
+	{
 		/* TODO: Optimize with another URI inside the provider. */
 		long modifiedSince = getModifiedSinceArgument(serverDiffs, feedType);
-		feeds.setHeader(MODIFIED_SINCE_HEADER, String.valueOf(modifiedSince));
+		feedRequest.setHeader(MODIFIED_SINCE_HEADER, String.valueOf(modifiedSince));
 
 		if (context.hasCanceled() == true)
 			return -1;
 
-		Log.i(TAG, "Downloading changes from feed=" + feedUrl + ", " +
+		Log.i(TAG, "Downloading changes from feed=" + feedRequest.getURI() + ", " +
 				"starting at modifiedSince=" + modifiedSince);
 
 		/**
@@ -157,7 +179,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 		 * the temporary provider passed here to store downloaded results from
 		 * the server.
 		 */
-		RecordDispatcher recordDispatcher = getRecordDispatcher(feedType);
+		final RecordDispatcher recordDispatcher = getRecordDispatcher(feedType);
 
 		try {
 			/**
@@ -168,54 +190,63 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			 * been deleted followed by all records which have either been
 			 * modified or newly inserted.
 			 */
-			HttpResponse response = mClient.execute(feeds);
-
-			StatusLine status = response.getStatusLine();
-			int statusCode = status.getStatusCode();
-
-			if (statusCode != HttpStatus.SC_OK)
-				throw new IOException("HTTP GET failed: " + status);
-
-			for (Header header: response.getAllHeaders())
-				System.out.println(header.getName() + ": " + header.getValue());
-
-			System.out.println(" ");
-
-			adjustNewestSyncTime(context, response);
-
-			HttpEntity entity = response.getEntity();
-			InputStream in = entity.getContent();
-			try {
-				CodedInputStream stream = CodedInputStream.newInstance(in);
-
-				int deleteCount = stream.readRawLittleEndian32();
-				while (deleteCount-- > 0 && context.hasCanceled() == false)
+			sClient.execute(feedRequest, new ResponseHandler<Void>() {
+				public Void handleResponse(HttpResponse response) throws ClientProtocolException,
+						IOException
 				{
-					long deletedId = stream.readRawLittleEndian64();
-					recordDispatcher.delete(context, serverDiffs, deletedId);
+					if (context.hasCanceled())
+						return null;
+
+					StatusLine status = response.getStatusLine();
+					int statusCode = status.getStatusCode();
+
+					if (statusCode != HttpStatus.SC_OK)
+						throw new IOException("HTTP GET failed: " + status);
+
+					for (Header header: response.getAllHeaders())
+						System.out.println(header.getName() + ": " + header.getValue());
+
+					System.out.println(" ");
+
+					adjustNewestSyncTime(context, response);
+
+					HttpEntity entity = response.getEntity();
+					InputStream in = entity.getContent();
+					try {
+						CodedInputStream stream = CodedInputStream.newInstance(in);
+
+						int deleteCount = stream.readRawLittleEndian32();
+						while (deleteCount-- > 0 && context.hasCanceled() == false)
+						{
+							long deletedId = stream.readRawLittleEndian64();
+							recordDispatcher.delete(context, serverDiffs, deletedId);
+						}
+
+						int modCount = stream.readRawLittleEndian32();
+						while (modCount-- > 0 && context.hasCanceled() == false)
+						{
+							int size = stream.readRawLittleEndian32();
+							byte[] recordData = stream.readRawBytes(size);
+							Protos.Record record = Protos.Record.parseFrom(recordData);
+
+							/* Sanity check the record type returned by the server. */
+							validateRecordType(record.getType(), recordDispatcher);
+
+							recordDispatcher.insert(context, serverDiffs, record);
+						}
+					} finally {
+						IOUtilities.close(in);
+					}
+
+					return null;
 				}
-
-				int modCount = stream.readRawLittleEndian32();
-				while (modCount-- > 0 && context.hasCanceled() == false)
-				{
-					int size = stream.readRawLittleEndian32();
-					byte[] recordData = stream.readRawBytes(size);
-					Protos.Record record = Protos.Record.parseFrom(recordData);
-
-					/* Sanity check the record type returned by the server. */
-					validateRecordType(record.getType(), recordDispatcher);
-
-					recordDispatcher.insert(context, serverDiffs, record);
-				}
-			} finally {
-				IOUtilities.close(in);
-				context.trigger = null;
-			}
+			});
 		} catch (IOException e) {
-			Log.e(Constants.TAG, "Sync error downloading feed data", e);
-			context.networkError = true;
-			context.errorMessage = e.getMessage();
+			markErrorUnlessCanceled(context, e);
 		}
+
+		if (context.hasCanceled())
+			return -1;
 
 		return modifiedSince;
 	}
@@ -299,11 +330,7 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 								Five.Music.Albums.ARTWORK_BIG);
 					}
 				} catch (IOException e) {
-					Log.e(Constants.TAG, "Sync error downloading image data", e);
-					context.networkError = true;
-					context.errorMessage = e.getMessage();
-				} finally {
-					context.trigger = null;
+					markErrorUnlessCanceled(context, e);
 				}
 			}
 		} finally {
@@ -324,7 +351,6 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			return;
 
 		final HttpGet request = new HttpGet(httpUrl);
-
 		final Thread currentThread = Thread.currentThread();
 
 		context.trigger = new CancelTrigger() {
@@ -335,53 +361,64 @@ public class FiveSyncAdapter extends AbstractSyncAdapter
 			}
 		};
 
-		HttpResponse response = mClient.execute(request);
+		try {
+			downloadFileAndUpdateProviderCancelable(context, serverDiffs, request, localUri,
+					localFeedItemUri, columnToUpdate);
+		} finally {
+			context.trigger = null;
+		}
+	}
 
-		if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
-			response.getEntity().consumeContent();
-		else
-		{
-			if (context.hasCanceled() == true)
-				return;
+	private static void downloadFileAndUpdateProviderCancelable(final SyncContext context,
+			final AbstractSyncProvider serverDiffs, final HttpGet request,
+			final Uri localUri, final Uri localFeedItemUri, final String columnToUpdate)
+			throws ClientProtocolException, IOException
+	{
+		sClient.execute(request, new ResponseHandler<Void>() {
+			public Void handleResponse(HttpResponse response) throws ClientProtocolException,
+					IOException
+			{
+				if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
+					return null;
 
-			/*
-			 * Access a temp file path (FiveProvider treats this as a
-			 * special case when isTemporary is true and uses a temporary
-			 * path to be moved manually during merging).
-			 */
-			ParcelFileDescriptor pfd;
-			try {
-				pfd = serverDiffs.openFile(localUri, "w");
-			} catch (FileNotFoundException e) {
-				response.getEntity().consumeContent();
-				throw e;
-			}
-
-			InputStream in = response.getEntity().getContent();
-			OutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
-
-			try {
-				IOUtilities.copyStream(in, out);
-
-				if (context.hasCanceled() == true)
-					return;
+				if (context.hasCanceled())
+					return null;
 
 				/*
-				 * Update the record to reflect the newly downloaded uri.
-				 * During table merging we'll need to move the file and
-				 * update the uri we store here.
+				 * Access a temp file path (FiveProvider treats this as a
+				 * special case when isTemporary is true and uses a temporary
+				 * path to be moved manually during merging).
 				 */
-				ContentValues values = new ContentValues();
-				values.put(columnToUpdate, localUri.toString());
-				serverDiffs.update(localFeedItemUri, values, null, null);
-			} finally {
-				if (in != null)
-					IOUtilities.close(in);
+				ParcelFileDescriptor pfd = serverDiffs.openFile(localUri, "w");
 
-				if (out != null)
-					IOUtilities.close(out);
+				InputStream in = response.getEntity().getContent();
+				OutputStream out = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
+
+				try {
+					IOUtilities.copyStream(in, out);
+
+					if (context.hasCanceled() == true)
+						return null;
+
+					/*
+					 * Update the record to reflect the newly downloaded uri.
+					 * During table merging we'll need to move the file and
+					 * update the uri we store here.
+					 */
+					ContentValues values = new ContentValues();
+					values.put(columnToUpdate, localUri.toString());
+					serverDiffs.update(localFeedItemUri, values, null, null);
+				} finally {
+					if (in != null)
+						IOUtilities.close(in);
+
+					if (out != null)
+						IOUtilities.close(out);
+				}
+
+				return null;
 			}
-		}
+		});
 	}
 
 	private void adjustNewestSyncTime(SyncContext context, HttpResponse response)

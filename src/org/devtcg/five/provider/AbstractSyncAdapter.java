@@ -82,7 +82,16 @@ public abstract class AbstractSyncAdapter
 			/*
 			 * Download all changes since our last sync from the server.
 			 */
-			getServerDiffs(context, serverDiffs);
+			try {
+				getServerDiffs(context, serverDiffs);
+			} catch (RuntimeException e) {
+				/* Uncaught runtime exception, blank the sync status. */
+				if (context.observer != null)
+					context.observer.onStatusChanged(null);
+
+				/* Explode our process. */
+				throw e;
+			}
 
 			watch.stopAndDebugElapsed(TAG, "getServerDiffs");
 
